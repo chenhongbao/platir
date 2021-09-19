@@ -18,6 +18,7 @@ import io.platir.core.PlatirSystem;
 import io.platir.service.Contract;
 import io.platir.service.Notice;
 import io.platir.service.Order;
+import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
@@ -68,7 +69,7 @@ class TransactionQueue implements Runnable {
 		t.setState("pending");
 		t.setStateMessage("never enqueued");
 		// Initialize adding transaction to data source.
-		ctx.getQuery().add(t);
+		ctx.getQuery().insert(t);
 		pending.add(ctx);
 	}
 
@@ -117,7 +118,7 @@ class TransactionQueue implements Runnable {
 			c.setState("opening");
 			c.setOpenTradingDay(query.getTradingDay());
 			c.setOpenTime(PlatirSystem.datetime());
-			query.add(c);
+			query.insert(c);
 			r.add(c);
 		}
 		return r;
@@ -168,7 +169,7 @@ class TransactionQueue implements Runnable {
 		o.setOffset(offset);
 		o.setTradingDay(query.getTradingDay());
 		/* save order to data source */
-		query.add(o);
+		query.insert(o);
 		/* create order context. */
 		var ctx = new OrderContextImpl(o);
 		ctx.lockedContracts().addAll(contracts);
@@ -194,6 +195,10 @@ class TransactionQueue implements Runnable {
 					t.setState("in-front-risk-accessment;" + r.getCode());
 					t.setStateMessage(r.getMessage());
 					ctx.awake();
+
+					/* save risk notice */
+					var profile = ctx.getStrategyContext().getPofile();
+					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, ctx.getQuery());
 				} else {
 					if (!ctx.pendingOrder().isEmpty()) {
 						/* the transaction has been processed but order is not completed. */
@@ -340,7 +345,7 @@ class TransactionQueue implements Runnable {
 		var t = ctx.getTransaction();
 		var query = ctx.getQuery();
 		var order = orderCtx.getOrder();
-		var tl = new SyncTradeListener(orderCtx, ctx.getStrategyContext());
+		var tl = new SyncTradeListener(orderCtx, ctx);
 		tr.require(order.getOrderId(), order.getInstrumentId(), order.getOffset(), order.getDirection(),
 				order.getPrice(), order.getVolume(), tl);
 		/* Wait for the first response telling if the order is accepted. */
@@ -364,6 +369,12 @@ class TransactionQueue implements Runnable {
 		return ro;
 	}
 
+	private void saveRiskNotice(String strategyId, String userId, RiskNotice notice, PlatirQueryImpl query) {
+		notice.setStrategyId(strategyId);
+		notice.setUserId(userId);
+		query.insert(notice);
+	}
+
 	/**
 	 * Error code explanation:
 	 * <ul>
@@ -380,11 +391,11 @@ class TransactionQueue implements Runnable {
 		private final int timeoutSec = 5;
 		/* when order is completed, set references to null so GC collect the objects */
 		private OrderContextImpl oCtx;
-		private StrategyContextImpl stgCtx;
+		private TransactionContextImpl trCtx;
 
-		SyncTradeListener(OrderContextImpl order, StrategyContextImpl strategy) {
+		SyncTradeListener(OrderContextImpl order, TransactionContextImpl transaction) {
 			oCtx = order;
-			stgCtx = strategy;
+			trCtx = transaction;
 		}
 
 		Notice waitResponse() {
@@ -405,17 +416,33 @@ class TransactionQueue implements Runnable {
 
 		@Override
 		public void onTrade(Trade trade) {
+			var stg = trCtx.getStrategyContext();
 			/* save trade to data source. */
-			stgCtx.getPlatirClientImpl().add(trade);
+			stg.getPlatirClientImpl().insert(trade);
 			/* add trade to order context. */
 			oCtx.addTrade(trade);
 			/* update contracts' states */
 			updateContracts(trade);
-			stgCtx.timedOnTrade(trade);
+			stg.timedOnTrade(trade);
 			checkCompleted(trade.getVolume());
+			/* risk assess */
+			afterRisk(trade);
+		}
+
+		private void afterRisk(Trade trade) {
+			var profile = trCtx.getStrategyContext().getPofile();
+			try {
+				var r = rsk.after(trade, trCtx.getTransaction(), trCtx.getQuery());
+				if (!r.isGood()) {
+					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, trCtx.getQuery());
+				}
+			} catch (Throwable th) {
+				PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
+			}
 		}
 
 		private void updateContracts(Trade trade) {
+			var stg = trCtx.getStrategyContext();
 			var count = 0;
 			var it = oCtx.lockedContracts().iterator();
 			while (++count <= trade.getVolume() && it.hasNext()) {
@@ -426,7 +453,7 @@ class TransactionQueue implements Runnable {
 					c.setState("open");
 					c.setPrice(trade.getPrice());
 					c.setOpenTime(PlatirSystem.datetime());
-					c.setOpenTradingDay(stgCtx.getPlatirClientImpl().getTradingDay());
+					c.setOpenTradingDay(stg.getPlatirClientImpl().getTradingDay());
 				} else if (c.getState().compareToIgnoreCase("closing") == 0) {
 					/* don't forget the close price here */
 					c.setState("closed");
@@ -437,7 +464,7 @@ class TransactionQueue implements Runnable {
 					continue;
 				}
 				try {
-					stgCtx.getPlatirClientImpl().update(c);
+					stg.getPlatirClientImpl().update(c);
 				} catch (Throwable th) {
 					PlatirSystem.err
 							.write("Fail updating contract(" + c.getContractId() + ") for " + c.getState() + ".", th);
@@ -463,7 +490,7 @@ class TransactionQueue implements Runnable {
 			n.setCode(code);
 			n.setMessage(message);
 			n.setObject(error);
-			stgCtx.timedOnNotice(n);
+			trCtx.getStrategyContext().timedOnNotice(n);
 		}
 
 		private void checkCompleted(int addedVolume) {
@@ -472,7 +499,7 @@ class TransactionQueue implements Runnable {
 			if (cur >= vol) {
 				/* let garbage collection reclaim the objects */
 				oCtx = null;
-				stgCtx = null;
+				trCtx = null;
 			}
 			if (cur == vol) {
 				timedOnNotice(0, "trade completed");

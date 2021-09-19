@@ -15,6 +15,7 @@ import io.platir.service.Instrument;
 import io.platir.service.Order;
 import io.platir.service.PlatirQuery;
 import io.platir.service.Position;
+import io.platir.service.RiskNotice;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
@@ -235,7 +236,7 @@ class PlatirQueryImpl implements PlatirQuery {
 		}
 	}
 
-	void add(Contract contract) {
+	void insert(Contract contract) {
 		try {
 			queries.insert(contract);
 		} catch (SQLException e) {
@@ -260,7 +261,7 @@ class PlatirQueryImpl implements PlatirQuery {
 		}
 	}
 
-	void add(Trade trade) {
+	void insert(Trade trade) {
 		try {
 			queries.insert(trade);
 		} catch (SQLException e) {
@@ -268,7 +269,7 @@ class PlatirQueryImpl implements PlatirQuery {
 		}
 	}
 
-	void add(Order order) {
+	void insert(Order order) {
 		try {
 			queries.insert(order);
 		} catch (SQLException e) {
@@ -276,11 +277,20 @@ class PlatirQueryImpl implements PlatirQuery {
 		}
 	}
 
-	void add(Transaction transaction) {
+	void insert(Transaction transaction) {
 		try {
 			queries.insert(transaction);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail inserting new transaction(" + transaction.getTransactionId() + ").", e);
+		}
+	}
+
+	void insert(RiskNotice notice) {
+		try {
+			queries.insert(notice);
+		} catch (SQLException e) {
+			PlatirSystem.err.write("Fail inserting new risk notice for strategy(" + notice.getStrategyId()
+					+ ") and user(" + notice.getUserId() + ").", e);
 		}
 	}
 

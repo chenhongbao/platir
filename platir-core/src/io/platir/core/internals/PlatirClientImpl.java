@@ -85,7 +85,7 @@ class PlatirClientImpl extends PlatirQueryImpl implements PlatirClient {
 		/* strategy context has the transaction context. */
 		getStrategyContext().addTransactionContext(transCtx);
 		/* save transaction to data source */
-		getStrategyContext().getPlatirClientImpl().add(trans);
+		getStrategyContext().getPlatirClientImpl().insert(trans);
 		/* send the order and update trades into TransactionContext. */
 		tr.push(transCtx);
 		return transCtx;

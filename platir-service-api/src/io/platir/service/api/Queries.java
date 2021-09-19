@@ -7,6 +7,7 @@ import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.Order;
+import io.platir.service.RiskNotice;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
@@ -16,7 +17,7 @@ import io.platir.service.User;
 public interface Queries {
 
 	void prepareTables() throws SQLException;
-	
+
 	void insert(String tradingDay) throws SQLException;
 
 	void insert(Account... accounts) throws SQLException;
@@ -34,21 +35,23 @@ public interface Queries {
 	void insert(User... users) throws SQLException;
 
 	void insert(StrategyProfile... profiles) throws SQLException;
-	
+
 	void insert(Instrument... instruments) throws SQLException;
-	
-	void update(Account...accounts) throws SQLException;
 
-	void update(Contract...contracts) throws SQLException;
+	void insert(RiskNotice... notices) throws SQLException;
 
-	void update(Transaction...transactions) throws SQLException;
+	void update(Account... accounts) throws SQLException;
+
+	void update(Contract... contracts) throws SQLException;
+
+	void update(Transaction... transactions) throws SQLException;
 
 	void update(Instrument... instruments) throws SQLException;
-	
-	void update(User...users) throws SQLException;
-	
-	void updateStrategyProfile(StrategyProfile...profiles) throws SQLException;
-	
+
+	void update(User... users) throws SQLException;
+
+	void updateStrategyProfile(StrategyProfile... profiles) throws SQLException;
+
 	void updateTradingDay(String tradingDay) throws SQLException;
 
 	void clearAccounts() throws SQLException;
