@@ -68,6 +68,7 @@ public class Settlement extends SettlementFacilities {
 		/* write settled information */
 		qry.clearAccounts();
 		qry.clearContracts();
+		/* clear obsolete data */
 		qry.clearTrades();
 		qry.clearOrders();
 		qry.clearTransactions();
@@ -82,6 +83,10 @@ public class Settlement extends SettlementFacilities {
 			settle(u, tradingDay, ticks, instruments);
 			push0(u);
 		}
+		/* clear snapshot so backup the settled data */
+		snapshot.orders().clear();
+		snapshot.trades().clear();
+		snapshot.transactions().clear();
 	}
 
 	private void push0(UserSnapshot u) {
