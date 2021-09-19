@@ -176,24 +176,7 @@ public class PlatirImpl extends Platir {
 
 	@Override
 	public void updateStrategyProfile(StrategyProfile profile) throws UpdateStrategyException {
-		StrategyContextImpl ctx = null;
-		for (var stg : stgCtxPool.strategyContexts()) {
-			if (stg.getPofile().getStrategyId().equals(profile.getStrategyId())) {
-				ctx = stg;
-				break;
-			}
-		}
-		if (ctx == null) {
-			throw new UpdateStrategyException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
-		}
-		update(ctx.getPofile(), profile);
-		mkRouter.updateSubscription(ctx);
-	}
-
-	private void update(StrategyProfile old, StrategyProfile newProf) {
-		/* strategy ID, user information don't change */
-		old.setArgs(newProf.getArgs());
-		old.setInstrumentIds(newProf.getInstrumentIds());
+		stgCtxPool.update(profile);
 	}
 
 }

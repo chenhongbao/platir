@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.InvalidLoginException;
+import io.platir.core.UpdateStrategyException;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyDrestroyException;
@@ -104,6 +105,28 @@ class StrategyContextPool {
 		}
 		strategies.remove(strategy);
 		router.removeSubscription(strategy);
+	}
+	
+	void update(StrategyProfile profile) throws UpdateStrategyException {
+		StrategyContextImpl ctx = null;
+		for (var stg : strategyContexts()) {
+			if (stg.getPofile().getStrategyId().equals(profile.getStrategyId())) {
+				ctx = stg;
+				break;
+			}
+		}
+		if (ctx == null) {
+			throw new UpdateStrategyException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
+		}
+		update(ctx.getPofile(), profile);
+		router.updateSubscription(ctx);
+	}
+	
+
+	private void update(StrategyProfile old, StrategyProfile newProf) {
+		/* strategy ID, user information don't change */
+		old.setArgs(newProf.getArgs());
+		old.setInstrumentIds(newProf.getInstrumentIds());
 	}
 
 	void settle() throws IntegrityException {
