@@ -2,6 +2,7 @@ package io.platir.core.internals;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,24 @@ class MarketRouter implements MarketListener {
 		return new HashSet<>(ticks.values());
 	}
 
-	void refreshSubscription() {
+	void updateSubscription(StrategyContextImpl strategy) {
+		if (strategy.getPofile().getInstrumentIds().length == 0) {
+			removeSubscription(strategy);
+		} else {
+			var ns = new HashSet<>(Arrays.asList(strategy.getPofile().getInstrumentIds()));
+			for (var entry : subs.entrySet()) {
+				if (!ns.contains(entry.getKey())) {
+					/* instrument that is not subscribed, remove it */
+					entry.getValue().remove(strategy);
+				}
+			}
+			for (var i : ns) {
+				subscribe(i, strategy);
+			}
+		}
+	}
+
+	void refreshAllSubscriptions() {
 		MarketListener ml = this;
 		subs.keySet().forEach(key -> {
 			var tick = ticks.get(key);
@@ -52,18 +70,12 @@ class MarketRouter implements MarketListener {
 	}
 
 	void subscribe(StrategyContextImpl strategy) {
-		MarketListener ml = this;
 		for (var i : strategy.getPofile().getInstrumentIds()) {
-			var p = subs.computeIfAbsent(i, key -> {
-				adaptor.add(key, ml);
-				createDaemon(strategy);
-				return new ConcurrentSkipListSet<>();
-			});
-			p.add(strategy);
+			subscribe(i, strategy);
 		}
 	}
 
-	void remove(StrategyContextImpl strategy) {
+	void removeSubscription(StrategyContextImpl strategy) {
 		for (var i : strategy.getPofile().getInstrumentIds()) {
 			var p = subs.get(i);
 			if (p != null) {
@@ -80,11 +92,25 @@ class MarketRouter implements MarketListener {
 		}
 	}
 
+	private void subscribe(String instrumentId, StrategyContextImpl strategy) {
+		MarketListener ml = this;
+		var p = subs.computeIfAbsent(instrumentId, key -> {
+			adaptor.add(key, ml);
+			return new ConcurrentSkipListSet<>();
+		});
+		if (!daemons.containsKey(strategy)) {
+			createDaemon(strategy);
+		}
+		if (!p.contains(strategy)) {
+			p.add(strategy);
+		}
+	}
+
 	@Override
 	public void onTick(Tick tick) {
 		var x = subs.get(tick.getInstrumentId());
 		x.parallelStream().forEach(ctx -> {
-			if (daemons.get(ctx) == null) {
+			if (!daemons.containsKey(ctx)) {
 				createDaemon(ctx);
 			}
 			daemons.get(ctx).push(tick);
@@ -155,7 +181,8 @@ class MarketRouter implements MarketListener {
 					PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
 				}
 			}
-			PlatirSystem.err.write("Tick daemon for strategy(" + ctx.getPofile().getStrategyId() + ") is about to exit.");
+			PlatirSystem.err
+					.write("Tick daemon for strategy(" + ctx.getPofile().getStrategyId() + ") is about to exit.");
 		}
 	}
 }

@@ -25,6 +25,8 @@ public abstract class Platir {
 
 	public abstract StrategyContext addStrategy(StrategyProfile profile, Object strategy)
 			throws AnnotationParsingException, InvalidLoginException;
+	
+	public abstract void updateStrategyProfile(StrategyProfile profile) throws UpdateStrategyException;
 
 	public abstract Set<StrategyContext> getStrategies();
 

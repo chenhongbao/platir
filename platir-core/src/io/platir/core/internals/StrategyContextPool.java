@@ -1,7 +1,6 @@
 package io.platir.core.internals;
 
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -52,8 +51,8 @@ class StrategyContextPool {
 		return ctx;
 	}
 
-	Set<StrategyContext> getStrategies() {
-		return new HashSet<>(strategies);
+	Set<StrategyContextImpl> strategyContexts() {
+		return strategies;
 	}
 
 	void initialize() {
@@ -104,7 +103,7 @@ class StrategyContextPool {
 					+ count + " transaction running.");
 		}
 		strategies.remove(strategy);
-		router.remove(strategy);
+		router.removeSubscription(strategy);
 	}
 
 	void settle() throws IntegrityException {

@@ -1,6 +1,7 @@
 package io.platir.core.internals;
 
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,6 +16,7 @@ import io.platir.core.InvalidLoginException;
 import io.platir.core.Platir;
 import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
+import io.platir.core.UpdateStrategyException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
@@ -50,7 +52,7 @@ public class PlatirImpl extends Platir {
 
 	@Override
 	public Set<StrategyContext> getStrategies() {
-		return stgCtxPool.getStrategies();
+		return new HashSet<>(stgCtxPool.strategyContexts());
 	}
 
 	@Override
@@ -113,7 +115,7 @@ public class PlatirImpl extends Platir {
 		trader.initialize();
 		market.initialize();
 		/* if there are subscribed instruments, re-subscribe them. */
-		mkRouter.refreshSubscription();
+		mkRouter.refreshAllSubscriptions();
 		if (trQueue == null) {
 			trQueue = new TransactionQueue(trader, rsk);
 			es.submit(trQueue);
@@ -122,7 +124,7 @@ public class PlatirImpl extends Platir {
 			mkRouter = new MarketRouter(market, trQueue);
 		} else {
 			/* need subscribe again after re-login */
-			mkRouter.refreshSubscription();
+			mkRouter.refreshAllSubscriptions();
 		}
 		if (stgCtxPool == null) {
 			stgCtxPool = new StrategyContextPool(mkRouter, trQueue, qry);
@@ -170,6 +172,28 @@ public class PlatirImpl extends Platir {
 	@Override
 	public void checkIntegrity() throws IntegrityException {
 		stgCtxPool.checkIntegrity();
+	}
+
+	@Override
+	public void updateStrategyProfile(StrategyProfile profile) throws UpdateStrategyException {
+		StrategyContextImpl ctx = null;
+		for (var stg : stgCtxPool.strategyContexts()) {
+			if (stg.getPofile().getStrategyId().equals(profile.getStrategyId())) {
+				ctx = stg;
+				break;
+			}
+		}
+		if (ctx == null) {
+			throw new UpdateStrategyException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
+		}
+		update(ctx.getPofile(), profile);
+		mkRouter.updateSubscription(ctx);
+	}
+
+	private void update(StrategyProfile old, StrategyProfile newProf) {
+		/* strategy ID, user information don't change */
+		old.setArgs(newProf.getArgs());
+		old.setInstrumentIds(newProf.getInstrumentIds());
 	}
 
 }
