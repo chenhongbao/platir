@@ -449,7 +449,7 @@ class TransactionQueue implements Runnable {
 				it.remove();
 			}
 			if (count <= trade.getVolume()) {
-				PlatirSystem.err.write("Fail updating data source for trades(still need "
+				PlatirSystem.err.write("Insufficient locked contracts for trades(still need "
 						+ (trade.getVolume() - count + 1) + " more).");
 			}
 		}
