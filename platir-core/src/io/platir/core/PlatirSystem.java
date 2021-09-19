@@ -44,6 +44,7 @@ public final class PlatirSystem {
 		}
 
 		private void write(PrintStream out, Object message) {
+			out.println(datetime());
 			out.println(message.toString());
 		}
 	}

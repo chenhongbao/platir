@@ -155,7 +155,7 @@ class MarketRouter implements MarketListener {
 					PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
 				}
 			}
-			PlatirSystem.out.write("Tick daemon for strategy(" + ctx.getPofile().getStrategyId() + ") has exited.");
+			PlatirSystem.err.write("Tick daemon for strategy(" + ctx.getPofile().getStrategyId() + ") is about to exit.");
 		}
 	}
 }
