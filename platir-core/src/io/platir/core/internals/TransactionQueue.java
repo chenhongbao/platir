@@ -197,7 +197,7 @@ class TransactionQueue implements Runnable {
 					ctx.awake();
 
 					/* save risk notice */
-					var profile = ctx.getStrategyContext().getPofile();
+					var profile = ctx.getStrategyContext().getProfile();
 					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, ctx.getQuery());
 				} else {
 					if (!ctx.pendingOrder().isEmpty()) {
@@ -430,7 +430,7 @@ class TransactionQueue implements Runnable {
 		}
 
 		private void afterRisk(Trade trade) {
-			var profile = trCtx.getStrategyContext().getPofile();
+			var profile = trCtx.getStrategyContext().getProfile();
 			try {
 				var r = rsk.after(trade, trCtx.getTransaction(), trCtx.getQuery());
 				if (!r.isGood()) {

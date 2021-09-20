@@ -14,12 +14,13 @@ import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.PlatirSystem;
 import io.platir.service.Bar;
+import io.platir.service.InvalidLoginException;
 import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.OrderContext;
 import io.platir.service.PlatirClient;
 import io.platir.service.StrategyContext;
-import io.platir.service.StrategyDrestroyException;
+import io.platir.service.StrategyRemovalException;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
@@ -286,20 +287,20 @@ class StrategyContextImpl implements StrategyContext {
 	}
 
 	@Override
-	public void destroy(int reason) throws StrategyDrestroyException {
+	public void remove(int reason) throws StrategyRemovalException, InvalidLoginException {
 		try {
 			checkIntegrity();
 		} catch (IntegrityException e) {
-			throw new StrategyDrestroyException("Integrity check fails: " + e.getMessage(), e);
+			throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
 		}
-		ctxes.remove(this);
+		ctxes.remove(getProfile());
 		isShutdown.set(true);
 		timedOnDestroy(reason);
 		pool.shutdown();
 	}
 
 	@Override
-	public StrategyProfile getPofile() {
+	public StrategyProfile getProfile() {
 		return prof;
 	}
 

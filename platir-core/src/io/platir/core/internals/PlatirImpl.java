@@ -10,15 +10,16 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
-import io.platir.core.InvalidLoginException;
 import io.platir.core.Platir;
 import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
-import io.platir.core.UpdateStrategyException;
+import io.platir.core.StrategyCreateException;
+import io.platir.core.StrategyUpdateException;
+import io.platir.service.InvalidLoginException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
+import io.platir.service.StrategyRemovalException;
 import io.platir.service.Tick;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.Queries;
@@ -46,7 +47,7 @@ public class PlatirImpl extends Platir {
 
 	@Override
 	public StrategyContext addStrategy(StrategyProfile profile, Object strategy)
-			throws AnnotationParsingException, InvalidLoginException {
+			throws InvalidLoginException, StrategyCreateException {
 		return stgCtxPool.add(profile, strategy);
 	}
 
@@ -175,8 +176,13 @@ public class PlatirImpl extends Platir {
 	}
 
 	@Override
-	public void updateStrategyProfile(StrategyProfile profile) throws UpdateStrategyException {
+	public void updateStrategyProfile(StrategyProfile profile) throws StrategyUpdateException, InvalidLoginException {
 		stgCtxPool.update(profile);
+	}
+
+	@Override
+	public void removeStrategy(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
+		stgCtxPool.remove(profile);
 	}
 
 }

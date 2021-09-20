@@ -47,19 +47,19 @@ class PlatirQueryImpl implements PlatirQuery {
 	@Override
 	public String getStrategyId() {
 		if (sid == null) {
-			sid = getStrategyContext().getPofile().getStrategyId();
+			sid = getStrategyContext().getProfile().getStrategyId();
 		}
 		return sid;
 	}
 
 	@Override
 	public StrategyProfile getStrategyProfile() {
-		return stg.getPofile();
+		return stg.getProfile();
 	}
 
 	@Override
 	public Account getAccount() {
-		var uid = stg.getPofile().getUserId();
+		var uid = stg.getProfile().getUserId();
 		try {
 			var snapshot = selectUserSnapshot(uid);
 			new SettlementFacilities().settleInDay(snapshot, getTradingDay(), market.getLastTicks(),

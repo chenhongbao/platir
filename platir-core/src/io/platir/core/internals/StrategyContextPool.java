@@ -6,11 +6,12 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
-import io.platir.core.InvalidLoginException;
-import io.platir.core.UpdateStrategyException;
+import io.platir.core.StrategyCreateException;
+import io.platir.core.StrategyUpdateException;
+import io.platir.service.InvalidLoginException;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
-import io.platir.service.StrategyDrestroyException;
+import io.platir.service.StrategyRemovalException;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.Queries;
 
@@ -38,18 +39,24 @@ class StrategyContextPool {
 	}
 
 	StrategyContext add(StrategyProfile profile, Object strategy)
-			throws AnnotationParsingException, InvalidLoginException {
+			throws StrategyCreateException, InvalidLoginException {
 		var n = verifyLogin(profile);
 		if (!n.isGood()) {
-			throw new InvalidLoginException("[" + n.getCode() + "]" + n.getMessage());
+			throw new InvalidLoginException(
+					"Can't add strategy on login verification failure(" + n.getCode() + "): " + n.getMessage() + ".");
 		}
 		/* erase password */
 		profile.setPassword("");
-		var ctx = new StrategyContextImpl(profile, strategy, trader, market, this, qry);
-		/* subscribe instruments */
-		market.subscribe(ctx);
-		strategies.add(ctx);
-		return ctx;
+
+		try {
+			var ctx = new StrategyContextImpl(profile, strategy, trader, market, this, qry);
+			/* subscribe instruments */
+			market.subscribe(ctx);
+			strategies.add(ctx);
+			return ctx;
+		} catch (AnnotationParsingException e) {
+			throw new StrategyCreateException("Strategy parsing failure: " + e.getMessage() + ".", e);
+		}
 	}
 
 	Set<StrategyContextImpl> strategyContexts() {
@@ -97,31 +104,53 @@ class StrategyContextPool {
 		}
 	}
 
-	void remove(StrategyContextImpl strategy) throws StrategyDrestroyException {
+	void remove(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
+		var r = verifyLogin(profile);
+		if (!r.isGood()) {
+			throw new InvalidLoginException(
+					"Identity check failure(" + r.getCode() + ") on removal: " + r.getMessage() + ".");
+		}
+		var strategy = findStrategyContext(profile);
+		if (strategy == null) {
+			throw new StrategyRemovalException("Can't find strategy(" + profile.getStrategyId() + ") context.");
+		}
 		var count = trader.countTransactionRunning(strategy);
 		if (count > 0) {
-			throw new StrategyDrestroyException("The strategy(" + strategy.getPofile().getStrategyId() + ") still has "
+			throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has "
 					+ count + " transaction running.");
 		}
 		strategies.remove(strategy);
 		market.removeSubscription(strategy);
 	}
-	
-	void update(StrategyProfile profile) throws UpdateStrategyException {
+
+	private StrategyContextImpl findStrategyContext(StrategyProfile profile) {
+		for (var stg : strategies) {
+			if (stg.getProfile().getStrategyId().equals(profile.getStrategyId())) {
+				return stg;
+			}
+		}
+		return null;
+	}
+
+	void update(StrategyProfile profile) throws StrategyUpdateException, InvalidLoginException {
+		var r = verifyLogin(profile);
+		if (!r.isGood()) {
+			throw new InvalidLoginException(
+					"Identity check failure(" + r.getCode() + ") on update profile: " + r.getMessage() + ".");
+		}
 		StrategyContextImpl ctx = null;
 		for (var stg : strategyContexts()) {
-			if (stg.getPofile().getStrategyId().equals(profile.getStrategyId())) {
+			if (stg.getProfile().getStrategyId().equals(profile.getStrategyId())) {
 				ctx = stg;
 				break;
 			}
 		}
 		if (ctx == null) {
-			throw new UpdateStrategyException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
+			throw new StrategyUpdateException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
 		}
-		update(ctx.getPofile(), profile);
+		update(ctx.getProfile(), profile);
 		market.updateSubscription(ctx);
 	}
-	
 
 	private void update(StrategyProfile old, StrategyProfile newProf) {
 		/* strategy ID, user information don't change */

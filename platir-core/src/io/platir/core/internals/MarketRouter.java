@@ -38,10 +38,10 @@ class MarketRouter implements MarketListener {
 	}
 
 	void updateSubscription(StrategyContextImpl strategy) {
-		if (strategy.getPofile().getInstrumentIds().length == 0) {
+		if (strategy.getProfile().getInstrumentIds().length == 0) {
 			removeSubscription(strategy);
 		} else {
-			var ns = new HashSet<>(Arrays.asList(strategy.getPofile().getInstrumentIds()));
+			var ns = new HashSet<>(Arrays.asList(strategy.getProfile().getInstrumentIds()));
 			for (var entry : subs.entrySet()) {
 				if (!ns.contains(entry.getKey())) {
 					/* instrument that is not subscribed, remove it */
@@ -70,13 +70,13 @@ class MarketRouter implements MarketListener {
 	}
 
 	void subscribe(StrategyContextImpl strategy) {
-		for (var i : strategy.getPofile().getInstrumentIds()) {
+		for (var i : strategy.getProfile().getInstrumentIds()) {
 			subscribe(i, strategy);
 		}
 	}
 
 	void removeSubscription(StrategyContextImpl strategy) {
-		for (var i : strategy.getPofile().getInstrumentIds()) {
+		for (var i : strategy.getProfile().getInstrumentIds()) {
 			var p = subs.get(i);
 			if (p != null) {
 				p.remove(strategy);
@@ -176,13 +176,13 @@ class MarketRouter implements MarketListener {
 				try {
 					ctx.timedOnTick(ticks.poll(24, TimeUnit.HOURS));
 				} catch (InterruptedException e) {
-					PlatirSystem.err.write("Strategy(" + ctx.getPofile().getStrategyId() + ") onTick(Tick) timeout.");
+					PlatirSystem.err.write("Strategy(" + ctx.getProfile().getStrategyId() + ") onTick(Tick) timeout.");
 				} catch (Throwable th) {
 					PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
 				}
 			}
 			PlatirSystem.err
-					.write("Tick daemon for strategy(" + ctx.getPofile().getStrategyId() + ") is about to exit.");
+					.write("Tick daemon for strategy(" + ctx.getProfile().getStrategyId() + ") is about to exit.");
 		}
 	}
 }
