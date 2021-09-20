@@ -100,7 +100,7 @@ public final class PlatirSystem {
 	}
 
 	public static Path cwd() {
-		var p = Paths.get(System.getProperty("user.dir"));
+		var p = Paths.get(System.getProperty("user.dir"), "PlatirCWD");
 		dir(p);
 		return p;
 	}
