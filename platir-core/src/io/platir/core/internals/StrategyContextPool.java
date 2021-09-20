@@ -50,12 +50,16 @@ class StrategyContextPool {
 
 		try {
 			var ctx = new StrategyContextImpl(profile, strategy, trader, market, qry);
+			/* insert strategy profile into data source */
+			qry.insert(profile);
 			/* subscribe instruments */
 			market.subscribe(ctx);
 			strategies.add(ctx);
 			return ctx;
 		} catch (AnnotationParsingException e) {
 			throw new StrategyCreateException("Strategy parsing failure: " + e.getMessage() + ".", e);
+		} catch (SQLException e) {
+			throw new StrategyCreateException("Can't save strategy profile: " + e.getMessage() + ".", e);
 		}
 	}
 
