@@ -1,6 +1,8 @@
 package io.platir.core;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -16,8 +18,24 @@ public final class PlatirSystem {
 	private static DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
 	private static DateTimeFormatter datetimeFmt = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss");
 
-	public static Console out = new Console(System.out);
-	public static Console err = new Console(System.err);
+	public static Console out;
+	public static Console err;
+
+	static {
+		try {
+			out = new Console(new PrintStream(
+					new FileOutputStream(file(Paths.get(cwd().toString(), "console.out.txt")), true), true));
+			err = new Console(new PrintStream(
+					new FileOutputStream(file(Paths.get(cwd().toString(), "console.err.txt")), true), true));
+		} catch (FileNotFoundException e) {
+			System.err.println("Can't create console to external file: " + e.getMessage() + ".");
+			e.printStackTrace();
+
+			/* console output is essential, just fallback to stdout/err */
+			out = new Console(System.out);
+			err = new Console(System.err);
+		}
+	}
 
 	public static class Console {
 
@@ -60,7 +78,7 @@ public final class PlatirSystem {
 		}
 
 	}
-	
+
 	public static LocalDateTime datetime(String dateOrDatetime) {
 		if (dateOrDatetime.length() == 8) {
 			return LocalDateTime.of(LocalDate.parse(dateOrDatetime, dateFmt), LocalTime.of(0, 0));
