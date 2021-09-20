@@ -6,10 +6,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
+import io.platir.core.InvalidLoginException;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
-import io.platir.service.InvalidLoginException;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;

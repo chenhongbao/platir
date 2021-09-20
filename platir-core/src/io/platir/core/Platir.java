@@ -3,7 +3,6 @@ package io.platir.core;
 import java.util.Set;
 
 import io.platir.core.internals.PlatirImpl;
-import io.platir.service.InvalidLoginException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.MarketAdaptor;

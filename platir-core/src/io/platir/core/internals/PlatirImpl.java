@@ -11,13 +11,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import io.platir.core.IntegrityException;
+import io.platir.core.InvalidLoginException;
 import io.platir.core.Platir;
 import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
-import io.platir.service.InvalidLoginException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;

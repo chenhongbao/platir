@@ -1,4 +1,4 @@
-package io.platir.service;
+package io.platir.core;
 
 public class InvalidLoginException extends Exception {
 
