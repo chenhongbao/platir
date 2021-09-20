@@ -6,7 +6,6 @@ import io.platir.core.internals.PlatirImpl;
 import io.platir.service.InvalidLoginException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
-import io.platir.service.StrategyRemovalException;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;

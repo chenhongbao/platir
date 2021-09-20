@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.PlatirSystem;
+import io.platir.core.StrategyRemovalException;
 import io.platir.service.Bar;
 import io.platir.service.InvalidLoginException;
 import io.platir.service.Notice;
@@ -20,7 +21,6 @@ import io.platir.service.Order;
 import io.platir.service.OrderContext;
 import io.platir.service.PlatirClient;
 import io.platir.service.StrategyContext;
-import io.platir.service.StrategyRemovalException;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
@@ -43,7 +43,6 @@ class StrategyContextImpl implements StrategyContext {
 	private final StrategyProfile prof;
 	private final AnnotatedStrategy annStg;
 	private final PlatirClientImpl cli;
-	private final StrategyContextPool ctxes;
 	private final ExecutorService pool = Executors.newCachedThreadPool();
 	private final Set<TransactionContextImpl> transactions = new ConcurrentSkipListSet<>();
 
@@ -54,15 +53,25 @@ class StrategyContextImpl implements StrategyContext {
 	private final AtomicBoolean isShutdown = new AtomicBoolean(true);
 
 	StrategyContextImpl(StrategyProfile profile, Object strategy, TransactionQueue trQueue, MarketRouter mkRouter,
-			StrategyContextPool ctxPool, Queries queries) throws AnnotationParsingException {
+			Queries queries) throws AnnotationParsingException {
 		prof = profile;
-		ctxes = ctxPool;
 		annStg = new AnnotatedStrategy(strategy);
 		cli = new PlatirClientImpl(this, trQueue, mkRouter, queries);
 	}
 
 	PlatirClientImpl getPlatirClientImpl() {
-		return null;
+		return cli;
+	}
+
+	void remove() throws StrategyRemovalException, InvalidLoginException {
+		try {
+			checkIntegrity();
+		} catch (IntegrityException e) {
+			throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
+		}
+		isShutdown.set(true);
+		timedOnDestroy();
+		pool.shutdown();
 	}
 
 	void addTransactionContext(TransactionContextImpl transaction) {
@@ -135,9 +144,9 @@ class StrategyContextImpl implements StrategyContext {
 		});
 	}
 
-	void timedOnDestroy(int reason) {
+	void timedOnDestroy() {
 		timedOperation(true, 5, () -> {
-			annStg.onDestroy(reason);
+			annStg.onDestroy();
 		});
 	}
 
@@ -284,19 +293,6 @@ class StrategyContextImpl implements StrategyContext {
 	public void shutdown(int reason) {
 		isShutdown.set(true);
 		timedOnStop(reason);
-	}
-
-	@Override
-	public void remove(int reason) throws StrategyRemovalException, InvalidLoginException {
-		try {
-			checkIntegrity();
-		} catch (IntegrityException e) {
-			throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
-		}
-		ctxes.remove(getProfile());
-		isShutdown.set(true);
-		timedOnDestroy(reason);
-		pool.shutdown();
 	}
 
 	@Override

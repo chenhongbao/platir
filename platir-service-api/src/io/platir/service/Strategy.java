@@ -5,7 +5,7 @@ public interface Strategy {
 	
 	void onStop(int reason);
 	
-	void onDestroy(int reason);
+	void onDestroy();
 	
 	void onTrade(Trade trade);
 	

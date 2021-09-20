@@ -114,11 +114,11 @@ class AnnotatedStrategy implements Strategy {
 	}
 
 	@Override
-	public void onDestroy(int reason) {
+	public void onDestroy() {
 		if (stg != null) {
-			stg.onDestroy(reason);
+			stg.onDestroy();
 		}
-		invoker.invokeDestroy(reason);
+		invoker.invokeDestroy();
 	}
 
 	/*
@@ -289,10 +289,10 @@ class AnnotatedStrategy implements Strategy {
 			}
 		}
 
-		void invokeDestroy(int reason) {
+		void invokeDestroy() {
 			if (destroy != null) {
 				try {
-					destroy.invoke(obj, reason);
+					destroy.invoke(obj);
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 					throw new RuntimeException("Fail invoking onDestroy(int).", e);
 				}

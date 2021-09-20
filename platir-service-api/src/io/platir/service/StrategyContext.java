@@ -9,8 +9,6 @@ public interface StrategyContext {
 
 	void shutdown(int reason);
 
-	void remove(int reason) throws StrategyRemovalException, InvalidLoginException;
-
 	StrategyProfile getProfile();
 
 	Object getStrategy();

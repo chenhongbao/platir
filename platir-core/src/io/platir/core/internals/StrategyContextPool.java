@@ -7,11 +7,11 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.StrategyCreateException;
+import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
 import io.platir.service.InvalidLoginException;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
-import io.platir.service.StrategyRemovalException;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.Queries;
 
@@ -49,7 +49,7 @@ class StrategyContextPool {
 		profile.setPassword("");
 
 		try {
-			var ctx = new StrategyContextImpl(profile, strategy, trader, market, this, qry);
+			var ctx = new StrategyContextImpl(profile, strategy, trader, market, qry);
 			/* subscribe instruments */
 			market.subscribe(ctx);
 			strategies.add(ctx);
@@ -105,6 +105,7 @@ class StrategyContextPool {
 	}
 
 	void remove(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
+		/* check precondition for removal */
 		var r = verifyLogin(profile);
 		if (!r.isGood()) {
 			throw new InvalidLoginException(
@@ -119,6 +120,8 @@ class StrategyContextPool {
 			throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has "
 					+ count + " transaction running.");
 		}
+		/* remove the strategy */
+		strategy.remove();
 		strategies.remove(strategy);
 		market.removeSubscription(strategy);
 	}
