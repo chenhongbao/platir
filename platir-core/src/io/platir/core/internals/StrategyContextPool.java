@@ -26,14 +26,14 @@ import io.platir.service.api.Queries;
  */
 class StrategyContextPool {
 
-	private final MarketRouter router;
-	private final TransactionQueue trQueue;
+	private final MarketRouter market;
+	private final TransactionQueue trader;
 	private final Queries qry;
 	private final Set<StrategyContextImpl> strategies = new ConcurrentSkipListSet<>();
 
-	StrategyContextPool(MarketRouter marketRouter, TransactionQueue transQueue, Queries queries) {
-		router = marketRouter;
-		trQueue = transQueue;
+	StrategyContextPool(TransactionQueue trQueue, MarketRouter mkRouter, Queries queries) {
+		market = mkRouter;
+		trader = trQueue;
 		qry = queries;
 	}
 
@@ -45,9 +45,9 @@ class StrategyContextPool {
 		}
 		/* erase password */
 		profile.setPassword("");
-		var ctx = new StrategyContextImpl(profile, strategy, trQueue, this, qry);
+		var ctx = new StrategyContextImpl(profile, strategy, trader, market, this, qry);
 		/* subscribe instruments */
-		router.subscribe(ctx);
+		market.subscribe(ctx);
 		strategies.add(ctx);
 		return ctx;
 	}
@@ -98,13 +98,13 @@ class StrategyContextPool {
 	}
 
 	void remove(StrategyContextImpl strategy) throws StrategyDrestroyException {
-		var count = trQueue.countTransactionRunning(strategy);
+		var count = trader.countTransactionRunning(strategy);
 		if (count > 0) {
 			throw new StrategyDrestroyException("The strategy(" + strategy.getPofile().getStrategyId() + ") still has "
 					+ count + " transaction running.");
 		}
 		strategies.remove(strategy);
-		router.removeSubscription(strategy);
+		market.removeSubscription(strategy);
 	}
 	
 	void update(StrategyProfile profile) throws UpdateStrategyException {
@@ -119,7 +119,7 @@ class StrategyContextPool {
 			throw new UpdateStrategyException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
 		}
 		update(ctx.getPofile(), profile);
-		router.updateSubscription(ctx);
+		market.updateSubscription(ctx);
 	}
 	
 

@@ -52,12 +52,12 @@ class StrategyContextImpl implements StrategyContext {
 	 */
 	private final AtomicBoolean isShutdown = new AtomicBoolean(true);
 
-	StrategyContextImpl(StrategyProfile profile, Object strategy, TransactionQueue trader, StrategyContextPool ctxPool,
-			Queries queries) throws AnnotationParsingException {
+	StrategyContextImpl(StrategyProfile profile, Object strategy, TransactionQueue trQueue, MarketRouter mkRouter,
+			StrategyContextPool ctxPool, Queries queries) throws AnnotationParsingException {
 		prof = profile;
 		ctxes = ctxPool;
 		annStg = new AnnotatedStrategy(strategy);
-		cli = new PlatirClientImpl(this, trader, queries);
+		cli = new PlatirClientImpl(this, trQueue, mkRouter, queries);
 	}
 
 	PlatirClientImpl getPlatirClientImpl() {

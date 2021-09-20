@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.platir.core.PlatirSystem;
+import io.platir.core.SettlementException;
+import io.platir.core.internals.SettlementFacilities.UserSnapshot;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -23,25 +25,23 @@ import io.platir.service.api.Queries;
 
 class PlatirQueryImpl implements PlatirQuery {
 
-	private final Queries queries;
+	private final Queries qry;
+	private final MarketRouter market;
 	private final StrategyContextImpl stg;
 	private final Map<String, Instrument> instruments = new ConcurrentHashMap<>();
 	private String sid;
 	private String whenQryTradingDay = null;
 	private String tradingDay = null;
 
-	PlatirQueryImpl(StrategyContextImpl strategyContext, Queries queries) {
+	PlatirQueryImpl(StrategyContextImpl strategyContext, MarketRouter mkRouter, Queries queries) {
 		stg = strategyContext;
-		this.queries = queries;
+		market = mkRouter;
+		qry = queries;
 	}
 
 	protected StrategyContextImpl getStrategyContext() {
 		return stg;
 
-	}
-
-	void prepareTables() {
-		// TODO
 	}
 
 	@Override
@@ -61,15 +61,42 @@ class PlatirQueryImpl implements PlatirQuery {
 	public Account getAccount() {
 		var uid = stg.getPofile().getUserId();
 		try {
-			for (var a : queries.selectAccounts()) {
-				if (a.getUserId().equals(uid)) {
-					return a;
-				}
-			}
-		} catch (SQLException e) {
+			var snapshot = selectUserSnapshot(uid);
+			new SettlementFacilities().settleInDay(snapshot, getTradingDay(), market.getLastTicks(),
+					qry.selectInstruments());
+			return snapshot.account;
+		} catch (SQLException | SettlementException e) {
 			PlatirSystem.err.write("Fail querying account by user(" + uid + ").", e);
 		}
 		return null;
+	}
+
+	private UserSnapshot selectUserSnapshot(String userId) throws SQLException, SettlementException {
+		var user = new UserSnapshot();
+		for (var a : qry.selectAccounts()) {
+			if (a.getUserId().equals(userId)) {
+				user.account = a;
+				break;
+			}
+		}
+		for (var u : qry.selectUsers()) {
+			if (u.getUserId().equals(userId)) {
+				user.user = u;
+				break;
+			}
+		}
+		for (var c : qry.selectContracts()) {
+			if (c.getUserId().equals(userId)) {
+				user.contracts.computeIfAbsent(c.getInstrumentId(), key -> new HashSet<Contract>()).add(c);
+			}
+		}
+		if (user.user == null) {
+			throw new SettlementException("No user(" + userId + ") information.");
+		}
+		if (user.account == null) {
+			throw new SettlementException("No account for user(" + userId + ").");
+		}
+		return user;
 	}
 
 	@Override
@@ -85,7 +112,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	private Instrument qryInstrument(String instrumentId) {
 		try {
-			for (var i : queries.selectInstruments()) {
+			for (var i : qry.selectInstruments()) {
 				if (i.getInstrumentId().equals(instrumentId)) {
 					i.setUpdateTime(PlatirSystem.datetime());
 					instruments.put(instrumentId, i);
@@ -104,7 +131,7 @@ class PlatirQueryImpl implements PlatirQuery {
 		var r = new HashSet<Transaction>();
 		var strategyId = getStrategyId();
 		try {
-			for (var t : queries.selectTransactions()) {
+			for (var t : qry.selectTransactions()) {
 				if (t.getStrategyId().equals(strategyId)) {
 					r.add(t);
 				}
@@ -120,7 +147,7 @@ class PlatirQueryImpl implements PlatirQuery {
 	public Set<Order> getOrders(String transactionId) {
 		var r = new HashSet<Order>();
 		try {
-			for (var order : queries.selectOrders()) {
+			for (var order : qry.selectOrders()) {
 				if (order.getTransactionId().equals(transactionId)) {
 					r.add(order);
 				}
@@ -136,7 +163,7 @@ class PlatirQueryImpl implements PlatirQuery {
 	public Set<Trade> getTrades(String orderId) {
 		var r = new HashSet<Trade>();
 		try {
-			for (var tr : queries.selectTrades()) {
+			for (var tr : qry.selectTrades()) {
 				if (tr.getOrderId().equals(orderId)) {
 					r.add(tr);
 				}
@@ -192,11 +219,13 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	@Override
 	public Set<Contract> getContracts(String... instrumentIds) {
+		/* find contracts that belong to the instrument and user */
 		var r = new HashSet<Contract>();
 		var i = new HashSet<String>(Arrays.asList(instrumentIds));
+		var userId = getStrategyProfile().getUserId();
 		try {
-			for (var c : queries.selectContracts()) {
-				if (i.contains(c.getInstrumentId())) {
+			for (var c : qry.selectContracts()) {
+				if (i.contains(c.getInstrumentId()) && c.getUserId().equals(userId)) {
 					r.add(c);
 				}
 			}
@@ -219,7 +248,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	private String qryTradingDay() {
 		try {
-			tradingDay = queries.selectTradingday();
+			tradingDay = qry.selectTradingday();
 			whenQryTradingDay = PlatirSystem.date();
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail querying trading day.", e);
@@ -230,7 +259,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void update(Transaction transaction) {
 		try {
-			queries.update(transaction);
+			qry.update(transaction);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail updating transaction(" + transaction.getTransactionId() + ").", e);
 		}
@@ -238,7 +267,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void insert(Contract contract) {
 		try {
-			queries.insert(contract);
+			qry.insert(contract);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail inserting contract(" + contract.getContractId() + ").", e);
 		}
@@ -246,7 +275,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void update(Contract contract) {
 		try {
-			queries.update(contract);
+			qry.update(contract);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail updating contract(" + contract.getContractId() + ").", e);
 		}
@@ -254,7 +283,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void map(Order order, Contract contract) {
 		try {
-			queries.oneToMany(order, contract);
+			qry.oneToMany(order, contract);
 		} catch (SQLException e) {
 			PlatirSystem.err.write(
 					"Fail inserting new mapping(" + order.getOrderId() + "->" + contract.getContractId() + ").", e);
@@ -263,7 +292,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void insert(Trade trade) {
 		try {
-			queries.insert(trade);
+			qry.insert(trade);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail inserting new trade(" + trade.getTradeId() + ").", e);
 		}
@@ -271,7 +300,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void insert(Order order) {
 		try {
-			queries.insert(order);
+			qry.insert(order);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail inserting new order(" + order.getOrderId() + ").", e);
 		}
@@ -279,7 +308,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void insert(Transaction transaction) {
 		try {
-			queries.insert(transaction);
+			qry.insert(transaction);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail inserting new transaction(" + transaction.getTransactionId() + ").", e);
 		}
@@ -287,7 +316,7 @@ class PlatirQueryImpl implements PlatirQuery {
 
 	void insert(RiskNotice notice) {
 		try {
-			queries.insert(notice);
+			qry.insert(notice);
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail inserting new risk notice for strategy(" + notice.getStrategyId()
 					+ ") and user(" + notice.getUserId() + ").", e);

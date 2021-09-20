@@ -15,16 +15,12 @@ import io.platir.service.Instrument;
 import io.platir.service.Tick;
 import io.platir.service.User;
 
-public class SettlementFacilities {
+class SettlementFacilities {
 
-	class UserSnapshot {
+	static class UserSnapshot {
 		User user;
 		Account account;
 		Map<String, Set<Contract>> contracts = new HashMap<>();
-	}
-
-	public SettlementFacilities() {
-		super();
 	}
 
 	static Double computeRatio(Double price, Double multi, Double byAmount, Double byVolume)

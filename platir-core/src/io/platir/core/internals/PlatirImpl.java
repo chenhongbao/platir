@@ -127,7 +127,7 @@ public class PlatirImpl extends Platir {
 			mkRouter.refreshAllSubscriptions();
 		}
 		if (stgCtxPool == null) {
-			stgCtxPool = new StrategyContextPool(mkRouter, trQueue, qry);
+			stgCtxPool = new StrategyContextPool(trQueue, mkRouter, qry);
 		}
 		/* finally initialize strategies when all are ready */
 		stgCtxPool.initialize();

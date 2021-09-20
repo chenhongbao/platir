@@ -17,9 +17,9 @@ class PlatirClientImpl extends PlatirQueryImpl implements PlatirClient {
 	private final AtomicInteger increId = new AtomicInteger(0);
 	private final DateTimeFormatter transIdFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-	PlatirClientImpl(StrategyContextImpl strategyContext, TransactionQueue trader, Queries queries) {
-		super(strategyContext, queries);
-		tr = trader;
+	PlatirClientImpl(StrategyContextImpl strategyContext, TransactionQueue trQueue, MarketRouter mkRouter, Queries queries) {
+		super(strategyContext, mkRouter, queries);
+		tr = trQueue;
 	}
 
 	@Override
