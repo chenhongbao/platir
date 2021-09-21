@@ -211,6 +211,7 @@ class StrategyContextImpl implements StrategyContext {
 			timedOnNotice(r);
 			/* tell risk assessment there is callback timeout */
 			var msg = "User(" + prof.getUserId() + ") strategy(" + prof.getStrategyId() + ") callback timeout.";
+			PlatirSystem.err.write(msg);
 			saveCodeMessage(r.getCode(), msg);
 			try {
 				rsk.notice(r.getCode(), msg);

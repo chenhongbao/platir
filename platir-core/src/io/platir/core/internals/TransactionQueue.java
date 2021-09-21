@@ -246,7 +246,7 @@ class TransactionQueue implements Runnable {
 			}
 		}
 	}
-	
+
 	private void saveCodeMessage(int code, String message, TransactionContextImpl ctx) {
 		var r = new RiskNotice();
 		var profile = ctx.getStrategyContext().getProfile();
@@ -543,11 +543,11 @@ class TransactionQueue implements Runnable {
 				it.remove();
 			}
 			if (count <= trade.getVolume()) {
-				PlatirSystem.err.write("Insufficient locked contracts for trades(still need "
-						+ (trade.getVolume() - count + 1) + " more).");
+				var msg = "Insufficent(" + count + "<" + trade.getVolume() + ") locked contracts.";
+				PlatirSystem.err.write(msg);
 				/* tell risk assessment not enough locked contracts */
 				try {
-					rsk.notice(3003, "Insufficent(" + count + "<" + trade.getVolume() + ") locked contracts.", oCtx);
+					rsk.notice(3003, msg, oCtx);
 				} catch (Throwable th) {
 					PlatirSystem.err.write(
 							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
@@ -581,8 +581,8 @@ class TransactionQueue implements Runnable {
 			} else if (cur > vol) {
 				int code = 3002;
 				var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
-				
 				timedOnNotice(code, msg);
+				PlatirSystem.err.write(msg);
 				/* tell risk assessment there is an order over traded */
 				try {
 					saveCodeMessage0(code, msg);
