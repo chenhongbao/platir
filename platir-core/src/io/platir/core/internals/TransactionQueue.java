@@ -432,7 +432,8 @@ class TransactionQueue implements Runnable {
 	 * Error code explanation:
 	 * <ul>
 	 * <li>3001: Trade response timeout.
-	 * <li>3002: Order over open/close position.
+	 * <li>3002: Trade more than expected.
+	 * <li>3003: Locked contracts are less than traded contracts.
 	 * </ul>
 	 */
 	private class SyncTradeListener implements TradeListener {
@@ -538,6 +539,13 @@ class TransactionQueue implements Runnable {
 			if (count <= trade.getVolume()) {
 				PlatirSystem.err.write("Insufficient locked contracts for trades(still need "
 						+ (trade.getVolume() - count + 1) + " more).");
+				try {
+					rsk.notice(3003, "Insufficent locked contracts.", oCtx);
+				} catch (Throwable th) {
+					PlatirSystem.err.write(
+							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
+							th);
+				}
 			}
 		}
 
@@ -582,15 +590,6 @@ class TransactionQueue implements Runnable {
 				signalJoiner(code, message);
 			}
 			timedOnNotice(code, message);
-			if (code != 0) {
-				try {
-					rsk.notice(code, message, oCtx);
-				} catch (Throwable th) {
-					PlatirSystem.err.write(
-							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
-							th);
-				}
-			}
 		}
 
 		private void signalJoiner(int code, String message) {
