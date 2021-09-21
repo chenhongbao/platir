@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.InvalidLoginException;
+import io.platir.core.PlatirSystem;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
@@ -50,16 +51,25 @@ class StrategyContextPool {
 
 		try {
 			var ctx = new StrategyContextImpl(profile, strategy, trader, market, qry);
-			/* insert strategy profile into data source */
-			qry.insert(profile);
+			setStrategyCreated(profile);
 			/* subscribe instruments */
 			market.subscribe(ctx);
 			strategies.add(ctx);
 			return ctx;
 		} catch (AnnotationParsingException e) {
 			throw new StrategyCreateException("Strategy parsing failure: " + e.getMessage() + ".", e);
+		}
+	}
+
+	private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
+		/* insert strategy profile into data source */
+		profile.setState("running");
+		profile.setCreateDate(PlatirSystem.date());
+		try {
+			qry.insert(profile);
 		} catch (SQLException e) {
-			throw new StrategyCreateException("Can't save strategy profile: " + e.getMessage() + ".", e);
+			throw new StrategyCreateException(
+					"Can't save strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 	}
 
@@ -128,6 +138,19 @@ class StrategyContextPool {
 		strategy.remove();
 		strategies.remove(strategy);
 		market.removeSubscription(strategy);
+		setStrategyRemoved(profile);
+	}
+
+	private void setStrategyRemoved(StrategyProfile profile) throws StrategyRemovalException {
+		/* set strategy state in data source, to be removed at settlement */
+		profile.setState("removed");
+		profile.setRemoveDate(PlatirSystem.date());
+		try {
+			qry.updateStrategyProfile(profile);
+		} catch (SQLException e) {
+			throw new StrategyRemovalException(
+					"Can't update strategy(" + profile.getStrategyId() + ") state: " + e.getMessage() + ".", e);
+		}
 	}
 
 	private StrategyContextImpl findStrategyContext(StrategyProfile profile) {

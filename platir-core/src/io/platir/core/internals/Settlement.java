@@ -18,6 +18,7 @@ import io.platir.core.SettlementException;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
+import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.api.Queries;
 
@@ -30,8 +31,6 @@ public class Settlement extends SettlementFacilities {
 	private final Set<Instrument> instruments = new HashSet<>();
 	private File before;
 	private File after;
-
-
 
 	public Settlement(Queries queries) {
 		super();
@@ -60,6 +59,20 @@ public class Settlement extends SettlementFacilities {
 	private void pushTables() throws SQLException {
 		qry.insert(snapshot.accounts().toArray(new Account[1]));
 		qry.insert(snapshot.contracts().toArray(new Contract[1]));
+		/* insert the updated strategy profiles */
+		removeSomeStrategies();
+		qry.insert(snapshot.strategyProfiles().toArray(new StrategyProfile[1]));
+	}
+	
+	private void removeSomeStrategies() {
+		/* remove strategies that have been removed */
+		var stgItr = snapshot.strategyProfiles().iterator();
+		while (stgItr.hasNext()) {
+			var s = stgItr.next();
+			if (s.getState().compareToIgnoreCase("removed") == 0) {
+				stgItr.remove();
+			}
+		}
 	}
 
 	private void clearTables() throws SQLException {
@@ -72,6 +85,8 @@ public class Settlement extends SettlementFacilities {
 		qry.clearTrades();
 		qry.clearOrders();
 		qry.clearTransactions();
+		/* clear strategies for update */
+		qry.clearStrategies();
 	}
 
 	private void computeSettlement() throws SettlementException, SQLException {
@@ -94,7 +109,7 @@ public class Settlement extends SettlementFacilities {
 		u.contracts.values().forEach(cs -> {
 			snapshot.contracts().addAll(cs);
 		});
-		
+
 	}
 
 	private void backup(File target, Object data) {
@@ -126,7 +141,7 @@ public class Settlement extends SettlementFacilities {
 		ticks.addAll(qry.selectTicks());
 		instruments.addAll(qry.selectInstruments());
 	}
-	
+
 	private void requireEmpty(Collection<?> container, String message) throws SettlementException {
 		if (!container.isEmpty()) {
 			throw new SettlementException(message);

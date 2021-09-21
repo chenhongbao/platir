@@ -66,6 +66,8 @@ public interface Queries {
 
 	void clearTicks() throws SQLException;
 
+	void clearStrategies() throws SQLException;
+
 	void oneToMany(Order order, Contract contract) throws SQLException;
 
 	String selectTradingday() throws SQLException;
