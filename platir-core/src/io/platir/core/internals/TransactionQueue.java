@@ -171,7 +171,7 @@ class TransactionQueue implements Runnable {
 		/* save order to data source */
 		query.insert(o);
 		/* create order context. */
-		var ctx = new OrderContextImpl(o);
+		var ctx = new OrderContextImpl(o, transCtx);
 		ctx.lockedContracts().addAll(contracts);
 		/* add order context to transaction context */
 		transCtx.addOrderContext(ctx);
@@ -190,7 +190,7 @@ class TransactionQueue implements Runnable {
 				var ctx = queueing.poll(24, TimeUnit.HOURS);
 				var t = ctx.getTransaction();
 				/* In-front risk assessment. */
-				var r = rsk.before(ctx.getLastTriggerTick(), ctx.getTransaction(), ctx.getQuery());
+				var r = rsk.before(ctx.getLastTriggerTick(), ctx);
 				if (!r.isGood()) {
 					t.setState("in-front-risk-accessment;" + r.getCode());
 					t.setStateMessage(r.getMessage());
@@ -432,7 +432,7 @@ class TransactionQueue implements Runnable {
 		private void afterRisk(Trade trade) {
 			var profile = trCtx.getStrategyContext().getProfile();
 			try {
-				var r = rsk.after(trade, trCtx.getTransaction(), trCtx.getQuery());
+				var r = rsk.after(trade, trCtx);
 				if (!r.isGood()) {
 					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, trCtx.getQuery());
 				}
@@ -514,6 +514,7 @@ class TransactionQueue implements Runnable {
 				signalJoiner(code, message);
 			}
 			timedOnNotice(code, message);
+			rsk.notice(code, message, oCtx);
 		}
 
 		private void signalJoiner(int code, String message) {

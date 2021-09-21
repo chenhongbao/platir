@@ -43,16 +43,17 @@ class TransactionContextImpl implements TransactionContext {
 		triggerTick.set(tick);
 	}
 
-	StrategyContextImpl getStrategyContext() {
-		return stg;
-	}
-
 	void addOrderContext(OrderContextImpl order) {
 		orders.add(order);
 	}
 
 	Set<OrderContextImpl> pendingOrder() {
 		return pending;
+	}
+
+	@Override
+	public StrategyContextImpl getStrategyContext() {
+		return stg;
 	}
 
 	@Override
