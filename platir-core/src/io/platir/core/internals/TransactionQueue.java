@@ -432,7 +432,7 @@ class TransactionQueue implements Runnable {
 	 * Error code explanation:
 	 * <ul>
 	 * <li>3001: Trade response timeout.
-	 * <li>3002: Over open/close position.
+	 * <li>3002: Order over open/close position.
 	 * </ul>
 	 */
 	private class SyncTradeListener implements TradeListener {
@@ -565,6 +565,14 @@ class TransactionQueue implements Runnable {
 				timedOnNotice(0, "trade completed");
 			} else if (cur > vol) {
 				timedOnNotice(3002, "over traded(" + cur + ">" + vol + ")");
+				/* tell risk assessment there is an order over traded */
+				try {
+					rsk.notice(3002, "order(" + oCtx.getOrder().getOrderId() + ") over traded");
+				} catch (Throwable th) {
+					PlatirSystem.err.write(
+							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
+							th);
+				}
 			}
 		}
 

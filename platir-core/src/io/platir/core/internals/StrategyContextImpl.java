@@ -35,6 +35,7 @@ import io.platir.service.api.RiskAssess;
  * <ul>
  * <li>4001: Callback throws exception.
  * <li>4002: Callback is timeout.
+ * <li>4003: transaction over traded.
  * </ul>
  * 
  * @author Chen Hongbao
@@ -131,7 +132,17 @@ class StrategyContextImpl implements StrategyContext {
 			} else if (total > target) {
 				/* trade more than expected */
 				trans.awake();
-				PlatirSystem.err.write("Trade(" + total + ") more than expected(" + target + ").");
+				PlatirSystem.err.write("Transaction(" + trans.getTransaction().getTransactionId() + ") over traded("
+						+ total + ">" + target + ").");
+				/* tell risk assessment transaction over traded */
+				try {
+					rsk.notice(4003, "transaction(" + trans.getTransaction().getTransactionId() + ") over traded("
+							+ total + ">" + target + ").");
+				} catch (Throwable th) {
+					PlatirSystem.err.write(
+							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
+							th);
+				}
 			}
 		}
 	}
@@ -196,7 +207,8 @@ class StrategyContextImpl implements StrategyContext {
 			timedOnNotice(r);
 			/* tell risk assessment there is callback timeout */
 			try {
-				rsk.notice(r.getCode(), r.getMessage());
+				rsk.notice(r.getCode(),
+						"User(" + prof.getUserId() + ") strategy(" + prof.getStrategyId() + ") callback timeout.");
 			} catch (Throwable th) {
 				PlatirSystem.err.write(
 						"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
