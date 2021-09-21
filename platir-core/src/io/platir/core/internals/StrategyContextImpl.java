@@ -1,5 +1,6 @@
 package io.platir.core.internals;
 
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -21,6 +22,7 @@ import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.OrderContext;
 import io.platir.service.PlatirClient;
+import io.platir.service.RiskNotice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
@@ -132,12 +134,14 @@ class StrategyContextImpl implements StrategyContext {
 			} else if (total > target) {
 				/* trade more than expected */
 				trans.awake();
-				PlatirSystem.err.write("Transaction(" + trans.getTransaction().getTransactionId() + ") over traded("
-						+ total + ">" + target + ").");
+				int code = 4003;
+				var msg = "Transaction(" + trans.getTransaction().getTransactionId() + ") over traded(" + total + ">"
+						+ target + ").";
+				PlatirSystem.err.write(msg);
 				/* tell risk assessment transaction over traded */
+				saveCodeMessage(code, msg);
 				try {
-					rsk.notice(4003, "transaction(" + trans.getTransaction().getTransactionId() + ") over traded("
-							+ total + ">" + target + ").");
+					rsk.notice(code, msg);
 				} catch (Throwable th) {
 					PlatirSystem.err.write(
 							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
@@ -206,9 +210,10 @@ class StrategyContextImpl implements StrategyContext {
 			/* tell strategy its callback timeout */
 			timedOnNotice(r);
 			/* tell risk assessment there is callback timeout */
+			var msg = "User(" + prof.getUserId() + ") strategy(" + prof.getStrategyId() + ") callback timeout.";
+			saveCodeMessage(r.getCode(), msg);
 			try {
-				rsk.notice(r.getCode(),
-						"User(" + prof.getUserId() + ") strategy(" + prof.getStrategyId() + ") callback timeout.");
+				rsk.notice(r.getCode(), msg);
 			} catch (Throwable th) {
 				PlatirSystem.err.write(
 						"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
@@ -218,6 +223,22 @@ class StrategyContextImpl implements StrategyContext {
 			if (!fut.isDone()) {
 				fut.cancel(true);
 			}
+		}
+	}
+
+	private void saveCodeMessage(int code, String message) {
+		var r = new RiskNotice();
+		var profile = getProfile();
+		r.setCode(3002);
+		r.setMessage(message);
+		r.setLevel(5);
+		r.setUserId(profile.getUserId());
+		r.setStrategyId(profile.getStrategyId());
+		r.setUpdateTime(PlatirSystem.datetime());
+		try {
+			getPlatirClientImpl().queries().insert(r);
+		} catch (SQLException e) {
+			PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
 		}
 	}
 

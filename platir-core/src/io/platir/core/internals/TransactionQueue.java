@@ -214,10 +214,8 @@ class TransactionQueue implements Runnable {
 					t.setState("in-front-risk-accessment;" + r.getCode());
 					t.setStateMessage(r.getMessage());
 					ctx.awake();
-
 					/* save risk notice */
-					var profile = ctx.getStrategyContext().getProfile();
-					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, ctx.getQueryClient());
+					saveCodeMessage(r.getCode(), r.getMessage(), ctx);
 				} else {
 					if (!ctx.pendingOrder().isEmpty()) {
 						/* the transaction has been processed but order is not completed. */
@@ -246,6 +244,22 @@ class TransactionQueue implements Runnable {
 			} catch (Throwable th) {
 				PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
 			}
+		}
+	}
+	
+	private void saveCodeMessage(int code, String message, TransactionContextImpl ctx) {
+		var r = new RiskNotice();
+		var profile = ctx.getStrategyContext().getProfile();
+		r.setCode(3002);
+		r.setMessage(message);
+		r.setLevel(5);
+		r.setUserId(profile.getUserId());
+		r.setStrategyId(profile.getStrategyId());
+		r.setUpdateTime(PlatirSystem.datetime());
+		try {
+			ctx.getQueryClient().queries().insert(r);
+		} catch (SQLException e) {
+			PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
 		}
 	}
 
@@ -421,13 +435,6 @@ class TransactionQueue implements Runnable {
 		return ro;
 	}
 
-	private void saveRiskNotice(String strategyId, String userId, RiskNotice notice, PlatirQueryClientImpl query)
-			throws SQLException {
-		notice.setStrategyId(strategyId);
-		notice.setUserId(userId);
-		query.queries().insert(notice);
-	}
-
 	/**
 	 * Error code explanation:
 	 * <ul>
@@ -491,11 +498,10 @@ class TransactionQueue implements Runnable {
 		}
 
 		private void afterRisk(Trade trade) {
-			var profile = trCtx.getStrategyContext().getProfile();
 			try {
 				var r = rsk.after(trade, trCtx);
 				if (!r.isGood()) {
-					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, trCtx.getQueryClient());
+					saveCodeMessage0(r.getCode(), r.getMessage());
 				}
 			} catch (Throwable th) {
 				PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
@@ -573,15 +579,35 @@ class TransactionQueue implements Runnable {
 			if (cur == vol) {
 				timedOnNotice(0, "trade completed");
 			} else if (cur > vol) {
-				timedOnNotice(3002, "over traded(" + cur + ">" + vol + ")");
+				int code = 3002;
+				var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
+				
+				timedOnNotice(code, msg);
 				/* tell risk assessment there is an order over traded */
 				try {
-					rsk.notice(3002, "order(" + oCtx.getOrder().getOrderId() + ") over traded", oCtx);
+					saveCodeMessage0(code, msg);
+					rsk.notice(code, msg, oCtx);
 				} catch (Throwable th) {
 					PlatirSystem.err.write(
 							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
 							th);
 				}
+			}
+		}
+
+		private void saveCodeMessage0(int code, String message) {
+			var r = new RiskNotice();
+			var profile = trCtx.getStrategyContext().getProfile();
+			r.setCode(3002);
+			r.setMessage("order(" + oCtx.getOrder().getOrderId() + ") over traded");
+			r.setLevel(5);
+			r.setUserId(profile.getUserId());
+			r.setStrategyId(profile.getStrategyId());
+			r.setUpdateTime(PlatirSystem.datetime());
+			try {
+				trCtx.getQueryClient().queries().insert(r);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
 			}
 		}
 
