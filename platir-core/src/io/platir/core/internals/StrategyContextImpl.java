@@ -69,6 +69,10 @@ class StrategyContextImpl implements StrategyContext {
 		} catch (IntegrityException e) {
 			throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
 		}
+		var r = cli.interrupt(true);
+		if (!r.isGood()) {
+			throw new StrategyRemovalException("Can't interrupt strategy(" + prof.getStrategyId() + "): " + r.getMessage() + ".");
+		}
 		isShutdown.set(true);
 		timedOnDestroy();
 		pool.shutdown();
@@ -318,5 +322,10 @@ class StrategyContextImpl implements StrategyContext {
 	@FunctionalInterface
 	private interface TimedJob {
 		void work();
+	}
+
+	@Override
+	public Notice interruptTransaction(boolean interrupted) {
+		return cli.interrupt(interrupted);
 	}
 }

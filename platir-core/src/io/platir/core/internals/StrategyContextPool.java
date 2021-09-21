@@ -146,10 +146,10 @@ class StrategyContextPool {
 		profile.setState("removed");
 		profile.setRemoveDate(PlatirSystem.date());
 		try {
-			qry.updateStrategyProfile(profile);
+			qry.update(profile);
 		} catch (SQLException e) {
 			throw new StrategyRemovalException(
-					"Can't update strategy(" + profile.getStrategyId() + ") state: " + e.getMessage() + ".", e);
+					"Can't update strategy(" + profile.getStrategyId() + ") state: " + e.getMessage(), e);
 		}
 	}
 

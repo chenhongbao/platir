@@ -257,6 +257,14 @@ class PlatirQueryImpl implements PlatirQuery {
 		return tradingDay;
 	}
 
+	void update(StrategyProfile profile)  {
+		try {
+			qry.update(profile);
+		} catch (SQLException e) {
+			PlatirSystem.err.write("Fail updating strategy profile(" + profile.getStrategyId() + ").", e);
+		}
+	}
+
 	void update(Transaction transaction) {
 		try {
 			qry.update(transaction);

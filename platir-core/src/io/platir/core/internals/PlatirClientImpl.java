@@ -2,22 +2,35 @@ package io.platir.core.internals;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.platir.core.PlatirSystem;
 import io.platir.service.InvalidTransactionException;
+import io.platir.service.Notice;
 import io.platir.service.PlatirClient;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
 import io.platir.service.api.Queries;
 
+/**
+ * Error code explanation:
+ * <ul>
+ * <li>5001: A removed strateggy can't be interrupted.
+ * <li>5002: Cannot update strategy state.
+ * </ul>
+ * @author Chen Hongbao
+ *
+ */
 class PlatirClientImpl extends PlatirQueryImpl implements PlatirClient {
 
 	private final TransactionQueue tr;
 	private final AtomicInteger increId = new AtomicInteger(0);
+	private final AtomicBoolean isInterrupted = new AtomicBoolean(false);
 	private final DateTimeFormatter transIdFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-	PlatirClientImpl(StrategyContextImpl strategyContext, TransactionQueue trQueue, MarketRouter mkRouter, Queries queries) {
+	PlatirClientImpl(StrategyContextImpl strategyContext, TransactionQueue trQueue, MarketRouter mkRouter,
+			Queries queries) {
 		super(strategyContext, mkRouter, queries);
 		tr = trQueue;
 	}
@@ -56,6 +69,9 @@ class PlatirClientImpl extends PlatirQueryImpl implements PlatirClient {
 
 	private void checkTransactionParams(String instrumentId, String direction, Double price, Integer volume)
 			throws InvalidTransactionException {
+		if (isInterrupted.get()) {
+			throw new InvalidTransactionException("Transaction has been interruped.");
+		}
 		if (instrumentId == null || instrumentId.isBlank()) {
 			throw new InvalidTransactionException("Invalid instrument ID(\"" + instrumentId + "\").");
 		}
@@ -89,6 +105,27 @@ class PlatirClientImpl extends PlatirQueryImpl implements PlatirClient {
 		/* send the order and update trades into TransactionContext. */
 		tr.push(transCtx);
 		return transCtx;
+	}
+
+	Notice interrupt(boolean interrupted) {
+		var n = new Notice();
+		var state = getStrategyProfile().getState();
+		if (state.compareToIgnoreCase("removed") == 0) {
+			n.setCode(5001);
+			n.setMessage("can't interrupt a removed strategy");
+			return n;
+		}
+		if (interrupted) {
+			getStrategyProfile().setState("interrupted");
+		} else {
+			getStrategyProfile().setState("running");
+		}
+		update(getStrategyProfile());
+		isInterrupted.set(interrupted);
+		
+		n.setCode(0);
+		n.setMessage("good");
+		return n;
 	}
 
 }

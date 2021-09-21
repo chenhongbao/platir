@@ -50,7 +50,7 @@ public interface Queries {
 
 	void update(User... users) throws SQLException;
 
-	void updateStrategyProfile(StrategyProfile... profiles) throws SQLException;
+	void update(StrategyProfile... profiles) throws SQLException;
 
 	void updateTradingDay(String tradingDay) throws SQLException;
 

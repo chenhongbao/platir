@@ -6,5 +6,4 @@ public interface PlatirClient extends PlatirQuery {
 
 	TransactionContext close(String instrumentId, String direction, Double price, Integer volume)
 			throws InvalidTransactionException;
-
 }
