@@ -7,8 +7,8 @@ public interface StrategyContext {
 	void initialize();
 
 	void shutdown(int reason);
-	
-	Notice interruptTransaction(boolean interrupted);
+
+	void interruptTransaction(boolean interrupted) throws InterruptionException;
 
 	StrategyProfile getProfile();
 

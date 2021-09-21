@@ -16,6 +16,7 @@ import io.platir.core.InvalidLoginException;
 import io.platir.core.PlatirSystem;
 import io.platir.core.StrategyRemovalException;
 import io.platir.service.Bar;
+import io.platir.service.InterruptionException;
 import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.OrderContext;
@@ -27,6 +28,7 @@ import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
 import io.platir.service.api.Queries;
+import io.platir.service.api.RiskAssess;
 
 /**
  * Error code explanation:
@@ -43,6 +45,7 @@ class StrategyContextImpl implements StrategyContext {
 	private final StrategyProfile prof;
 	private final AnnotatedStrategy annStg;
 	private final PlatirClientImpl cli;
+	private final RiskAssess rsk;
 	private final ExecutorService pool = Executors.newCachedThreadPool();
 	private final Set<TransactionContextImpl> transactions = new ConcurrentSkipListSet<>();
 
@@ -53,7 +56,8 @@ class StrategyContextImpl implements StrategyContext {
 	private final AtomicBoolean isShutdown = new AtomicBoolean(true);
 
 	StrategyContextImpl(StrategyProfile profile, Object strategy, TransactionQueue trQueue, MarketRouter mkRouter,
-			Queries queries) throws AnnotationParsingException {
+			RiskAssess riskAssess, Queries queries) throws AnnotationParsingException {
+		rsk = riskAssess;
 		prof = profile;
 		annStg = new AnnotatedStrategy(strategy);
 		cli = new PlatirClientImpl(this, trQueue, mkRouter, queries);
@@ -69,9 +73,11 @@ class StrategyContextImpl implements StrategyContext {
 		} catch (IntegrityException e) {
 			throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
 		}
-		var r = cli.interrupt(true);
-		if (!r.isGood()) {
-			throw new StrategyRemovalException("Can't interrupt strategy(" + prof.getStrategyId() + "): " + r.getMessage() + ".");
+		try {
+			cli.interrupt(true);
+		} catch (InterruptionException e) {
+			throw new StrategyRemovalException(
+					"Can't interrupt strategy(" + prof.getStrategyId() + "): " + e.getMessage() + ".");
 		}
 		isShutdown.set(true);
 		timedOnDestroy();
@@ -186,7 +192,15 @@ class StrategyContextImpl implements StrategyContext {
 			r.setCode(4002);
 			r.setMessage("Callback operation is timeout.");
 			r.setObject(e);
+			/* tell strategy its callback timeout */
 			timedOnNotice(r);
+			/* tell risk assessment there is callback timeout */
+			try {
+				rsk.notice(r.getCode(), r.getMessage());
+			} catch (Throwable th) {
+				PlatirSystem.err.write(
+						"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
+			}
 		} finally {
 			/* the task has to be aborted */
 			if (!fut.isDone()) {
@@ -325,7 +339,7 @@ class StrategyContextImpl implements StrategyContext {
 	}
 
 	@Override
-	public Notice interruptTransaction(boolean interrupted) {
-		return cli.interrupt(interrupted);
+	public void interruptTransaction(boolean interrupted) throws InterruptionException {
+		cli.interrupt(interrupted);
 	}
 }

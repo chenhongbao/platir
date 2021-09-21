@@ -11,7 +11,7 @@ import io.platir.core.AnnotationParsingException;
 import io.platir.service.Bar;
 import io.platir.service.Notice;
 import io.platir.service.PlatirClient;
-import io.platir.service.PlatirQuery;
+import io.platir.service.PlatirQueryClient;
 import io.platir.service.Strategy;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
@@ -269,7 +269,7 @@ class AnnotatedStrategy implements Strategy {
 			return true;
 		}
 
-		void invokeStart(String[] args, PlatirQuery platir) {
+		void invokeStart(String[] args, PlatirQueryClient platir) {
 			if (start != null) {
 				try {
 					start.invoke(obj, args, platir);

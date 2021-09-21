@@ -1,5 +1,6 @@
 package io.platir.core.internals;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -33,6 +34,7 @@ import io.platir.service.api.TradeListener;
  * <li>1002: Missing instrument information.
  * <li>1003: Not enough available money to open.
  * <li>1004: Not enough position to close.
+ * <li>1005: Risk assess callback throws exception.
  * </ul>
  * 
  * @author Chen Hongbao
@@ -63,13 +65,13 @@ class TransactionQueue implements Runnable {
 		return count;
 	}
 
-	void push(TransactionContextImpl ctx) {
+	void push(TransactionContextImpl ctx) throws SQLException {
 		var t = ctx.getTransaction();
 		/* Update states. */
 		t.setState("pending");
 		t.setStateMessage("never enqueued");
-		// Initialize adding transaction to data source.
-		ctx.getQuery().insert(t);
+		/* Initialize adding transaction to data source */
+		ctx.getQueryClient().queries().update(t);
 		pending.add(ctx);
 	}
 
@@ -77,16 +79,22 @@ class TransactionQueue implements Runnable {
 		var id = tick.getInstrumentId();
 		var it = pending.iterator();
 		while (it.hasNext()) {
-			var t = it.next();
-			if (t.getTransaction().getInstrumentId().compareTo(id) == 0) {
+			var ctx = it.next();
+			var t = ctx.getTransaction();
+			if (t.getInstrumentId().compareTo(id) == 0) {
 				it.remove();
 				/* Change state. */
-				t.getTransaction().setState("queueing");
-				t.getTransaction().setStateMessage("tick triggers queueing");
-				t.getQuery().update(t.getTransaction());
+				t.setState("queueing");
+				t.setStateMessage("tick triggers queueing");
+				try {
+					ctx.getQueryClient().queries().update(t);
+				} catch (SQLException e) {
+					PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
+							+ t.getState() + "): " + e.getMessage(), e);
+				}
 				/* Set trigger tick. */
-				t.setTriggerTick(tick);
-				if (!queueing.offer(t)) {
+				ctx.setTriggerTick(tick);
+				if (!queueing.offer(ctx)) {
 					/*
 					 * if it can't offer transaction to be executed, don't check more transaction.
 					 */
@@ -97,14 +105,14 @@ class TransactionQueue implements Runnable {
 		}
 	}
 
-	private Set<Contract> opening(String orderId, PlatirQueryImpl query, Transaction transaction) {
+	private Set<Contract> opening(String orderId, PlatirQueryClientImpl client, Transaction transaction) {
 		/*
 		 * Add contracts for opening. The opening margin and commission are computed
 		 * through the opening contracts, so just add opening contracts and account will
 		 * be changed.
 		 */
 		var r = new HashSet<Contract>();
-		var uid = query.getStrategyProfile().getUserId();
+		var uid = client.getStrategyProfile().getUserId();
 		for (int i = 0; i < transaction.getVolume(); ++i) {
 			var c = new Contract();
 			/*
@@ -116,15 +124,21 @@ class TransactionQueue implements Runnable {
 			c.setDirection(transaction.getDirection());
 			c.setPrice(transaction.getPrice());
 			c.setState("opening");
-			c.setOpenTradingDay(query.getTradingDay());
+			c.setOpenTradingDay(client.getTradingDay());
 			c.setOpenTime(PlatirSystem.datetime());
-			query.insert(c);
 			r.add(c);
+
+			try {
+				client.queries().insert(c);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't insert user(" + c.getUserId() + ") contract(" + c.getContractId()
+						+ ") opening: " + e.getMessage(), e);
+			}
 		}
 		return r;
 	}
 
-	private Notice checkOpen(String oid, PlatirQueryImpl query, Transaction t) {
+	private Notice checkOpen(String oid, PlatirQueryClientImpl query, Transaction t) {
 		var r = new Notice();
 		var available = query.getAccount().getAvailable();
 		if (available <= 0) {
@@ -158,7 +172,7 @@ class TransactionQueue implements Runnable {
 	private OrderContextImpl createOrderContext(String orderId, String transactionId, String instrumentId, Double price,
 			Integer volume, String direction, Collection<Contract> contracts, String offset,
 			TransactionContextImpl transCtx) {
-		var query = transCtx.getStrategyContext().getPlatirClientImpl();
+		var cli = transCtx.getStrategyContext().getPlatirClientImpl();
 		var o = new Order();
 		o.setOrderId(orderId);
 		o.setTransactionId(transactionId);
@@ -167,9 +181,14 @@ class TransactionQueue implements Runnable {
 		o.setVolume(volume);
 		o.setDirection(direction);
 		o.setOffset(offset);
-		o.setTradingDay(query.getTradingDay());
-		/* save order to data source */
-		query.insert(o);
+		o.setTradingDay(cli.getTradingDay());
+		try {
+			/* save order to data source */
+			cli.queries().insert(o);
+		} catch (SQLException e) {
+			/* worker thread can't pass out the exception, just log it */
+			PlatirSystem.err.write("Can't insert order(" + o.getOrderId() + ") to data source: " + e.getMessage(), e);
+		}
 		/* create order context. */
 		var ctx = new OrderContextImpl(o, transCtx);
 		ctx.lockedContracts().addAll(contracts);
@@ -190,7 +209,7 @@ class TransactionQueue implements Runnable {
 				var ctx = queueing.poll(24, TimeUnit.HOURS);
 				var t = ctx.getTransaction();
 				/* In-front risk assessment. */
-				var r = rsk.before(ctx.getLastTriggerTick(), ctx);
+				var r = beforeRisk(ctx.getLastTriggerTick(), ctx);
 				if (!r.isGood()) {
 					t.setState("in-front-risk-accessment;" + r.getCode());
 					t.setStateMessage(r.getMessage());
@@ -198,7 +217,7 @@ class TransactionQueue implements Runnable {
 
 					/* save risk notice */
 					var profile = ctx.getStrategyContext().getProfile();
-					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, ctx.getQuery());
+					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, ctx.getQueryClient());
 				} else {
 					if (!ctx.pendingOrder().isEmpty()) {
 						/* the transaction has been processed but order is not completed. */
@@ -211,7 +230,12 @@ class TransactionQueue implements Runnable {
 						} else {
 							t.setState("invalid");
 							t.setStateMessage("invalid offset(" + t.getOffset() + ")");
-							ctx.getQuery().update(t);
+							try {
+								ctx.getQueryClient().queries().update(t);
+							} catch (SQLException e) {
+								PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
+										+ t.getState() + "): " + e.getMessage(), e);
+							}
 							/* Notify the transaction has failed. */
 							ctx.awake();
 						}
@@ -225,44 +249,56 @@ class TransactionQueue implements Runnable {
 		}
 	}
 
+	private RiskNotice beforeRisk(Tick tick, TransactionContextImpl ctx) {
+		try {
+			return rsk.before(tick, ctx);
+		} catch (Throwable th) {
+			var profile = ctx.getStrategyContext().getProfile();
+			var r = new RiskNotice();
+			r.setCode(1005);
+			r.setMessage("before(Tick, TransactionContext) throws exception");
+			r.setUserId(profile.getUserId());
+			r.setStrategyId(profile.getStrategyId());
+			r.setUpdateTime(PlatirSystem.datetime());
+			r.setLevel(5);
+			return r;
+		}
+	}
+
 	private void close(TransactionContextImpl ctx) {
 		var t = ctx.getTransaction();
 		var oid = getOrderId(t.getTransactionId());
-		var query = ctx.getQuery();
-		var r = checkClose(ctx.getQuery(), t.getInstrumentId(), t.getDirection(), t.getVolume());
+		var client = ctx.getQueryClient();
+		var r = checkClose(ctx.getQueryClient(), t.getInstrumentId(), t.getDirection(), t.getVolume());
 		if (!r.isGood()) {
 			t.setState("check-close;" + r.getCode());
 			t.setStateMessage(r.getMessage());
-			query.update(t);
+			try {
+				client.queries().update(t);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+						+ "): " + e.getMessage(), e);
+			}
 			ctx.awake();
 		} else {
 			@SuppressWarnings("unchecked")
 			var contracts = (Collection<Contract>) r.getObject();
-			var tradingDay = query.getTradingDay();
+			var tradingDay = client.getTradingDay();
 			/* process today's contracts */
 			var today = contracts.stream().filter(c -> c.getOpenTradingDay().equals(tradingDay) ? true : false)
 					.collect(Collectors.toSet());
 			var orderCtxToday = createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
 					t.getVolume(), t.getDirection(), today, "close-today", ctx);
-			/* Set relation of order and contracts of today. */
-			for (var c : today) {
-				query.map(orderCtxToday.getOrder(), c);
-			}
 			send(orderCtxToday, ctx);
-
 			/* process history contracts */
 			var history = contracts.stream().filter(c -> !today.contains(c)).collect(Collectors.toSet());
 			var orderCtxHistory = createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
 					t.getVolume(), t.getDirection(), history, "close-history", ctx);
-			/* Set relation of order and contracts of today. */
-			for (var c : history) {
-				query.map(orderCtxHistory.getOrder(), c);
-			}
 			send(orderCtxHistory, ctx);
 		}
 	}
 
-	private Notice checkClose(PlatirQueryImpl query, String instrumentId, String direction, Integer volume) {
+	private Notice checkClose(PlatirQueryClientImpl query, String instrumentId, String direction, Integer volume) {
 		/* buy-open for sell-closed, sell-open for buy-closed */
 		var r = new Notice();
 		var available = query.getContracts(instrumentId).stream()
@@ -289,23 +325,33 @@ class TransactionQueue implements Runnable {
 		return r;
 	}
 
-	private void closing(Set<Contract> available, PlatirQueryImpl query) {
+	private void closing(Set<Contract> available, PlatirQueryClientImpl client) {
 		for (var c : available) {
 			c.setState("closing");
-			query.update(c);
+			try {
+				client.queries().update(c);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't update user(" + c.getUserId() + ") + contract(" + c.getContractId()
+						+ ") state(" + c.getState() + "): " + e.getMessage(), e);
+			}
 		}
 	}
 
 	private void open(TransactionContextImpl ctx) {
 		var t = ctx.getTransaction();
 		var oid = getOrderId(t.getTransactionId());
-		var query = ctx.getQuery();
+		var client = ctx.getQueryClient();
 		/* Check resource. */
-		var r = checkOpen(oid, query, t);
+		var r = checkOpen(oid, client, t);
 		if (!r.isGood()) {
 			t.setState("check-open;" + r.getCode());
 			t.setStateMessage(r.getMessage());
-			query.update(t);
+			try {
+				client.queries().update(t);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+						+ "): " + e.getMessage(), e);
+			}
 			/* notify joiner the transaction fails. */
 			ctx.awake();
 		} else {
@@ -314,10 +360,6 @@ class TransactionQueue implements Runnable {
 			var contracts = (Collection<Contract>) r.getObject();
 			var orderCtx = createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
 					t.getVolume(), t.getDirection(), contracts, "open", ctx);
-			/* Set relation of order and contracts. */
-			for (var c : contracts) {
-				query.map(orderCtx.getOrder(), c);
-			}
 			send(orderCtx, ctx);
 		}
 	}
@@ -343,7 +385,7 @@ class TransactionQueue implements Runnable {
 		 * pending list.
 		 */
 		var t = ctx.getTransaction();
-		var query = ctx.getQuery();
+		var client = ctx.getQueryClient();
 		var order = orderCtx.getOrder();
 		var tl = new SyncTradeListener(orderCtx, ctx);
 		tr.require(order.getOrderId(), order.getInstrumentId(), order.getOffset(), order.getDirection(),
@@ -354,7 +396,12 @@ class TransactionQueue implements Runnable {
 			/* Update state. */
 			t.setState("pending;" + ro.getCode());
 			t.setStateMessage(ro.getMessage());
-			query.update(t);
+			try {
+				client.queries().update(t);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+						+ "): " + e.getMessage(), e);
+			}
 			/*
 			 * Put order context to pending list of the transaction, and put transaction to
 			 * queue's pending list.
@@ -364,15 +411,21 @@ class TransactionQueue implements Runnable {
 		} else {
 			t.setState("running");
 			t.setStateMessage("order submitted");
-			query.update(t);
+			try {
+				client.queries().update(t);
+			} catch (SQLException e) {
+				PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+						+ "): " + e.getMessage(), e);
+			}
 		}
 		return ro;
 	}
 
-	private void saveRiskNotice(String strategyId, String userId, RiskNotice notice, PlatirQueryImpl query) {
+	private void saveRiskNotice(String strategyId, String userId, RiskNotice notice, PlatirQueryClientImpl query)
+			throws SQLException {
 		notice.setStrategyId(strategyId);
 		notice.setUserId(userId);
-		query.insert(notice);
+		query.queries().insert(notice);
 	}
 
 	/**
@@ -417,8 +470,15 @@ class TransactionQueue implements Runnable {
 		@Override
 		public void onTrade(Trade trade) {
 			var stg = trCtx.getStrategyContext();
-			/* save trade to data source. */
-			stg.getPlatirClientImpl().insert(trade);
+			try {
+				/* save trade to data source. */
+				stg.getPlatirClientImpl().queries().insert(trade);
+			} catch (SQLException e) {
+				/* worker thread sees this exception, just log it */
+				PlatirSystem.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction("
+						+ trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId()
+						+ ") into data source: " + e.getMessage(), e);
+			}
 			/* add trade to order context. */
 			oCtx.addTrade(trade);
 			/* update contracts' states */
@@ -434,7 +494,7 @@ class TransactionQueue implements Runnable {
 			try {
 				var r = rsk.after(trade, trCtx);
 				if (!r.isGood()) {
-					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, trCtx.getQuery());
+					saveRiskNotice(profile.getStrategyId(), profile.getUserId(), r, trCtx.getQueryClient());
 				}
 			} catch (Throwable th) {
 				PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
@@ -464,10 +524,10 @@ class TransactionQueue implements Runnable {
 					continue;
 				}
 				try {
-					stg.getPlatirClientImpl().update(c);
-				} catch (Throwable th) {
-					PlatirSystem.err
-							.write("Fail updating contract(" + c.getContractId() + ") for " + c.getState() + ".", th);
+					stg.getPlatirClientImpl().queries().update(c);
+				} catch (SQLException e) {
+					PlatirSystem.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId()
+							+ ") state(" + c.getState() + ").", e);
 
 					/* roll back state */
 					c.setState(prevState);
@@ -514,7 +574,15 @@ class TransactionQueue implements Runnable {
 				signalJoiner(code, message);
 			}
 			timedOnNotice(code, message);
-			rsk.notice(code, message, oCtx);
+			if (code != 0) {
+				try {
+					rsk.notice(code, message, oCtx);
+				} catch (Throwable th) {
+					PlatirSystem.err.write(
+							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
+							th);
+				}
+			}
 		}
 
 		private void signalJoiner(int code, String message) {

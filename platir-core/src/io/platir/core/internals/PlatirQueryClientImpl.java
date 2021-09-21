@@ -15,15 +15,14 @@ import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.Order;
-import io.platir.service.PlatirQuery;
+import io.platir.service.PlatirQueryClient;
 import io.platir.service.Position;
-import io.platir.service.RiskNotice;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.api.Queries;
 
-class PlatirQueryImpl implements PlatirQuery {
+class PlatirQueryClientImpl implements PlatirQueryClient {
 
 	private final Queries qry;
 	private final MarketRouter market;
@@ -33,7 +32,7 @@ class PlatirQueryImpl implements PlatirQuery {
 	private String whenQryTradingDay = null;
 	private String tradingDay = null;
 
-	PlatirQueryImpl(StrategyContextImpl strategyContext, MarketRouter mkRouter, Queries queries) {
+	PlatirQueryClientImpl(StrategyContextImpl strategyContext, MarketRouter mkRouter, Queries queries) {
 		stg = strategyContext;
 		market = mkRouter;
 		qry = queries;
@@ -42,6 +41,10 @@ class PlatirQueryImpl implements PlatirQuery {
 	protected StrategyContextImpl getStrategyContext() {
 		return stg;
 
+	}
+
+	Queries queries() {
+		return qry;
 	}
 
 	@Override
@@ -255,80 +258,6 @@ class PlatirQueryImpl implements PlatirQuery {
 			return null;
 		}
 		return tradingDay;
-	}
-
-	void update(StrategyProfile profile)  {
-		try {
-			qry.update(profile);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail updating strategy profile(" + profile.getStrategyId() + ").", e);
-		}
-	}
-
-	void update(Transaction transaction) {
-		try {
-			qry.update(transaction);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail updating transaction(" + transaction.getTransactionId() + ").", e);
-		}
-	}
-
-	void insert(Contract contract) {
-		try {
-			qry.insert(contract);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail inserting contract(" + contract.getContractId() + ").", e);
-		}
-	}
-
-	void update(Contract contract) {
-		try {
-			qry.update(contract);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail updating contract(" + contract.getContractId() + ").", e);
-		}
-	}
-
-	void map(Order order, Contract contract) {
-		try {
-			qry.oneToMany(order, contract);
-		} catch (SQLException e) {
-			PlatirSystem.err.write(
-					"Fail inserting new mapping(" + order.getOrderId() + "->" + contract.getContractId() + ").", e);
-		}
-	}
-
-	void insert(Trade trade) {
-		try {
-			qry.insert(trade);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail inserting new trade(" + trade.getTradeId() + ").", e);
-		}
-	}
-
-	void insert(Order order) {
-		try {
-			qry.insert(order);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail inserting new order(" + order.getOrderId() + ").", e);
-		}
-	}
-
-	void insert(Transaction transaction) {
-		try {
-			qry.insert(transaction);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail inserting new transaction(" + transaction.getTransactionId() + ").", e);
-		}
-	}
-
-	void insert(RiskNotice notice) {
-		try {
-			qry.insert(notice);
-		} catch (SQLException e) {
-			PlatirSystem.err.write("Fail inserting new risk notice for strategy(" + notice.getStrategyId()
-					+ ") and user(" + notice.getUserId() + ").", e);
-		}
 	}
 
 	private class InstrumentPosition {

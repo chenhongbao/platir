@@ -68,8 +68,6 @@ public interface Queries {
 
 	void clearStrategies() throws SQLException;
 
-	void oneToMany(Order order, Contract contract) throws SQLException;
-
 	String selectTradingday() throws SQLException;
 
 	Set<Account> selectAccounts() throws SQLException;

@@ -2,7 +2,7 @@ package io.platir.service;
 
 import java.util.Set;
 
-public interface PlatirQuery {
+public interface PlatirQueryClient {
 	String getStrategyId();
 
 	Account getAccount();

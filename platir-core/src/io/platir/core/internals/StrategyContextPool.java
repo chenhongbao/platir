@@ -15,6 +15,7 @@ import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.Queries;
+import io.platir.service.api.RiskAssess;
 
 /**
  * Error code explanation:
@@ -31,12 +32,14 @@ class StrategyContextPool {
 	private final MarketRouter market;
 	private final TransactionQueue trader;
 	private final Queries qry;
+	private final RiskAssess rsk;
 	private final Set<StrategyContextImpl> strategies = new ConcurrentSkipListSet<>();
 
-	StrategyContextPool(TransactionQueue trQueue, MarketRouter mkRouter, Queries queries) {
+	StrategyContextPool(TransactionQueue trQueue, MarketRouter mkRouter, RiskAssess riskAssess, Queries queries) {
 		market = mkRouter;
 		trader = trQueue;
 		qry = queries;
+		rsk = riskAssess;
 	}
 
 	StrategyContext add(StrategyProfile profile, Object strategy)
@@ -50,7 +53,7 @@ class StrategyContextPool {
 		profile.setPassword("");
 
 		try {
-			var ctx = new StrategyContextImpl(profile, strategy, trader, market, qry);
+			var ctx = new StrategyContextImpl(profile, strategy, trader, market, rsk, qry);
 			setStrategyCreated(profile);
 			/* subscribe instruments */
 			market.subscribe(ctx);
@@ -61,14 +64,14 @@ class StrategyContextPool {
 		}
 	}
 
-	private void setStrategyCreated(StrategyProfile profile) {
+	private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
 		/* insert strategy profile into data source */
 		profile.setState("running");
 		profile.setCreateDate(PlatirSystem.date());
 		try {
 			qry.insert(profile);
 		} catch (SQLException e) {
-			PlatirSystem.err.write(
+			throw new StrategyCreateException(
 					"Can't create strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 	}
@@ -148,7 +151,7 @@ class StrategyContextPool {
 		try {
 			qry.update(profile);
 		} catch (SQLException e) {
-			PlatirSystem.err.write(
+			throw new StrategyRemovalException(
 					"Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 	}
@@ -181,7 +184,7 @@ class StrategyContextPool {
 		try {
 			qry.update(profile);
 		} catch (SQLException e) {
-			PlatirSystem.err.write(
+			throw new StrategyUpdateException(
 					"Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 		update(ctx.getProfile(), profile);

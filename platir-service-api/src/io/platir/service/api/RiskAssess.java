@@ -12,4 +12,6 @@ public interface RiskAssess {
 	RiskNotice after(Trade trade, TransactionContext transaction);
 	
 	void notice(int code, String message, OrderContext order);
+	
+	void notice(int code, String message);
 }
