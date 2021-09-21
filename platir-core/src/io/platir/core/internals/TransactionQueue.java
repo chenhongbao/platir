@@ -539,8 +539,9 @@ class TransactionQueue implements Runnable {
 			if (count <= trade.getVolume()) {
 				PlatirSystem.err.write("Insufficient locked contracts for trades(still need "
 						+ (trade.getVolume() - count + 1) + " more).");
+				/* tell risk assessment not enough locked contracts */
 				try {
-					rsk.notice(3003, "Insufficent locked contracts.", oCtx);
+					rsk.notice(3003, "Insufficent(" + count + "<" + trade.getVolume() + ") locked contracts.", oCtx);
 				} catch (Throwable th) {
 					PlatirSystem.err.write(
 							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
@@ -575,7 +576,7 @@ class TransactionQueue implements Runnable {
 				timedOnNotice(3002, "over traded(" + cur + ">" + vol + ")");
 				/* tell risk assessment there is an order over traded */
 				try {
-					rsk.notice(3002, "order(" + oCtx.getOrder().getOrderId() + ") over traded");
+					rsk.notice(3002, "order(" + oCtx.getOrder().getOrderId() + ") over traded", oCtx);
 				} catch (Throwable th) {
 					PlatirSystem.err.write(
 							"Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),

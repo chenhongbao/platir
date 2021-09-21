@@ -8,10 +8,16 @@ import io.platir.service.TransactionContext;
 
 public interface RiskAssess {
 	RiskNotice before(Tick current, TransactionContext transaction);
-	
+
 	RiskNotice after(Trade trade, TransactionContext transaction);
-	
+
+	/**
+	 * Receive non-risk management, but fatal error.
+	 */
 	void notice(int code, String message, OrderContext order);
-	
+
+	/**
+	 * Receive non-risk management, but fatal error.
+	 */
 	void notice(int code, String message);
 }
