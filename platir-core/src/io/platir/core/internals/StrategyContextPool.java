@@ -61,15 +61,15 @@ class StrategyContextPool {
 		}
 	}
 
-	private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
+	private void setStrategyCreated(StrategyProfile profile) {
 		/* insert strategy profile into data source */
 		profile.setState("running");
 		profile.setCreateDate(PlatirSystem.date());
 		try {
 			qry.insert(profile);
 		} catch (SQLException e) {
-			throw new StrategyCreateException(
-					"Can't save strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
+			PlatirSystem.err.write(
+					"Can't create strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 	}
 
@@ -148,8 +148,8 @@ class StrategyContextPool {
 		try {
 			qry.update(profile);
 		} catch (SQLException e) {
-			throw new StrategyRemovalException(
-					"Can't update strategy(" + profile.getStrategyId() + ") state: " + e.getMessage(), e);
+			PlatirSystem.err.write(
+					"Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 	}
 
@@ -177,6 +177,12 @@ class StrategyContextPool {
 		}
 		if (ctx == null) {
 			throw new StrategyUpdateException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
+		}
+		try {
+			qry.update(profile);
+		} catch (SQLException e) {
+			PlatirSystem.err.write(
+					"Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
 		}
 		update(ctx.getProfile(), profile);
 		market.updateSubscription(ctx);
