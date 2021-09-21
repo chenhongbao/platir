@@ -581,7 +581,6 @@ class TransactionQueue implements Runnable {
 			} else if (cur > vol) {
 				int code = 3002;
 				var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
-				timedOnNotice(code, msg);
 				PlatirSystem.err.write(msg);
 				/* tell risk assessment there is an order over traded */
 				try {
