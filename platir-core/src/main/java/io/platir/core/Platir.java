@@ -35,7 +35,7 @@ public abstract class Platir {
 
 	public abstract void join() throws InterruptedException;
 
-	public abstract void start();
+	public abstract void start() throws StartupException;
 
 	public abstract void shutdown(int reason);
 
