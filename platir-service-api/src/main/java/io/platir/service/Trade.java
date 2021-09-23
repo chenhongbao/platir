@@ -13,6 +13,8 @@ public interface Trade {
 	Integer getVolume();
 
 	String getDirection();
+        
+        String getOffset();
 
 	String getTradingDay();
 
