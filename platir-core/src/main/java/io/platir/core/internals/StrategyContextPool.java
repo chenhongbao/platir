@@ -16,8 +16,6 @@ import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Error code explanation:
@@ -182,12 +180,6 @@ class StrategyContextPool {
         }
         if (ctx == null) {
             throw new StrategyUpdateException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
-        }
-        try {
-            qry.update(profile);
-        } catch (SQLException e) {
-            throw new StrategyUpdateException(
-                    "Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
         }
         update(ctx.getProfile(), profile);
         market.updateSubscription(ctx);
