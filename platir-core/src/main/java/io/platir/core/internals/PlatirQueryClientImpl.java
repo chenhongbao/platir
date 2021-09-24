@@ -251,7 +251,7 @@ class PlatirQueryClientImpl implements PlatirQueryClient {
 
 	private String qryTradingDay() {
 		try {
-			tradingDay = qry.selectTradingday();
+			tradingDay = qry.selectTradingDay().getTradingDay();
 			whenQryTradingDay = PlatirSystem.date();
 		} catch (SQLException e) {
 			PlatirSystem.err.write("Fail querying trading day.", e);

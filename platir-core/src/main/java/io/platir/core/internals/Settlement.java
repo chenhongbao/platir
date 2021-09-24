@@ -93,7 +93,7 @@ public class Settlement extends SettlementFacilities {
 		var users = users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
 		requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
 		requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
-		var tradingDay = qry.selectTradingday();
+		var tradingDay = qry.selectTradingDay().getTradingDay();
 		for (var u : users.values()) {
 			settle(u, tradingDay, ticks, instruments);
 			push0(u);
