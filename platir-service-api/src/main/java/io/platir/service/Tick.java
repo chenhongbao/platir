@@ -24,10 +24,6 @@ public interface Tick {
 
 	Double getSettlementPrice();
 
-	Double getYdClosePrice();
-
-	Double getYdSettlementPrice();
-
 	String getUpdateTime();
 
 }
