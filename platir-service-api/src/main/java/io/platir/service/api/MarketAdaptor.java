@@ -14,6 +14,8 @@ public interface MarketAdaptor {
      * Release resource and close connection to remote.
      */
     void shutdown();
+    
+    void setListener(MarketListener listener);
 
-    void add(String instrumentId, MarketListener listener);
+    void add(String instrumentId);
 }

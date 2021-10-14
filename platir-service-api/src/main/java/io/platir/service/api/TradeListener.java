@@ -6,5 +6,5 @@ public interface TradeListener {
 
     void onTrade(Trade trade);
 
-    void onError(int code, String message);
+    void onNotice(String orderId, int code, String message);
 }

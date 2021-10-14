@@ -15,7 +15,8 @@ public interface TradeAdaptor {
      * Release resource and close connection to remote.
      */
     void shutdown();
+    
+    void setListener(TradeListener listener);
 
-    void require(String orderId, String instrumentId, String offset, String direction, Double price, Integer volume,
-            TradeListener listener);
+    void require(String orderId, String instrumentId, String offset, String direction, Double price, Integer volume);
 }

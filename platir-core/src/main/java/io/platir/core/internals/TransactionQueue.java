@@ -9,10 +9,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import io.platir.core.PlatirSystem;
@@ -21,11 +17,9 @@ import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
-import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeAdaptor;
-import io.platir.service.api.TradeListener;
 
 /**
  * Error code explanation:
@@ -44,6 +38,7 @@ class TransactionQueue implements Runnable {
 
     private final RiskAssess rsk;
     private final TradeAdaptor tr;
+    private final TradeListenerContexts lis;
     private final AtomicInteger increId = new AtomicInteger(0);
     private final BlockingQueue<TransactionContextImpl> queueing = new LinkedBlockingQueue<>();
     private final Set<TransactionContextImpl> pending = new ConcurrentSkipListSet<>();
@@ -51,12 +46,15 @@ class TransactionQueue implements Runnable {
     TransactionQueue(TradeAdaptor trader, RiskAssess risk) {
         tr = trader;
         rsk = risk;
+        lis = new TradeListenerContexts(rsk);
+        tr.setListener(lis);
     }
 
     void settle() {
         pending.clear();
         queueing.clear();
         increId.set(0);
+        lis.clearContexts();
     }
 
     int countTransactionRunning(StrategyContextImpl strategy) {
@@ -242,6 +240,8 @@ class TransactionQueue implements Runnable {
                 }
             } catch (InterruptedException e) {
                 PlatirSystem.err.write("Transaction queue worker thread is interrupted.", e);
+            } catch (DuplicatedOrderException e) {
+                PlatirSystem.err.write("Duplicated order(ID): " + e.getMessage(), e);
             } catch (Throwable th) {
                 PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
             }
@@ -280,7 +280,7 @@ class TransactionQueue implements Runnable {
         }
     }
 
-    private void close(TransactionContextImpl ctx) {
+    private void close(TransactionContextImpl ctx) throws DuplicatedOrderException {
         var t = ctx.getTransaction();
         var oid = getOrderId(t.getTransactionId());
         var client = ctx.getQueryClient();
@@ -325,8 +325,8 @@ class TransactionQueue implements Runnable {
             return r;
         }
         /*
-		 * Remove extra contracts from container until it only has the contracts for
-		 * closing and lock those contracts.
+	 * Remove extra contracts from container until it only has the contracts for
+	 * closing and lock those contracts.
          */
         while (available.size() > volume) {
             var h = available.iterator().next();
@@ -354,7 +354,7 @@ class TransactionQueue implements Runnable {
         });
     }
 
-    private void open(TransactionContextImpl ctx) {
+    private void open(TransactionContextImpl ctx) throws DuplicatedOrderException {
         var t = ctx.getTransaction();
         var oid = getOrderId(t.getTransactionId());
         var client = ctx.getQueryClient();
@@ -381,7 +381,7 @@ class TransactionQueue implements Runnable {
         }
     }
 
-    private void sendPending(TransactionContextImpl ctx) {
+    private void sendPending(TransactionContextImpl ctx) throws DuplicatedOrderException {
         var it = ctx.pendingOrder().iterator();
         while (it.hasNext()) {
             var orderCtx = it.next();
@@ -393,22 +393,22 @@ class TransactionQueue implements Runnable {
         }
     }
 
-    private Notice send(OrderContextImpl orderCtx, TransactionContextImpl ctx) {
+    private Notice send(OrderContextImpl orderCtx, TransactionContextImpl ctx) throws DuplicatedOrderException {
         /*
-		 * Precondition: order context is not on transaction's pending order list.
-		 * 
-		 * If order is successful, map order to its locked contracts, or add order
-		 * context to pending list of the transaction, and put transaction to queue's
-		 * pending list.
+         * Precondition: order context is not on transaction's pending order list.
+         * 
+         * If order is successful, map order to its locked contracts, or add order
+         * context to pending list of the transaction, and put transaction to queue's
+         * pending list.
          */
         var t = ctx.getTransaction();
         var client = ctx.getQueryClient();
         var order = orderCtx.getOrder();
-        var tl = new SyncTradeListener(orderCtx, ctx);
+        lis.register(orderCtx, ctx);
         tr.require(order.getOrderId(), order.getInstrumentId(), order.getOffset(), order.getDirection(),
-                order.getPrice(), order.getVolume(), tl);
+                order.getPrice(), order.getVolume());
         /* Wait for the first response telling if the order is accepted. */
-        var ro = tl.waitResponse();
+        var ro = lis.waitResponse(order.getOrderId());
         if (!ro.isGood()) {
             /* Update state. */
             t.setState("pending;" + ro.getCode());
@@ -420,8 +420,8 @@ class TransactionQueue implements Runnable {
                         + "): " + e.getMessage(), e);
             }
             /*
-			 * Put order context to pending list of the transaction, and put transaction to
-			 * queue's pending list.
+             * Put order context to pending list of the transaction, and put transaction to
+             * queue's pending list.
              */
             ctx.pendingOrder().add(orderCtx);
             pending.add(ctx);
@@ -438,201 +438,4 @@ class TransactionQueue implements Runnable {
         return ro;
     }
 
-    /**
-     * Error code explanation:
-     * <ul>
-     * <li>3001: Trade response timeout.
-     * <li>3002: Trade more than expected.
-     * <li>3003: Locked contracts are less than traded contracts.
-     * </ul>
-     */
-    private class SyncTradeListener implements TradeListener {
-
-        private final AtomicInteger count = new AtomicInteger(0);
-        private final AtomicReference<Notice> res = new AtomicReference<>();
-        private final Lock l = new ReentrantLock();
-        private final Condition cond = l.newCondition();
-        private final int timeoutSec = 5;
-        /* when order is completed, set references to null so GC collect the objects */
-        private OrderContextImpl oCtx;
-        private TransactionContextImpl trCtx;
-
-        SyncTradeListener(OrderContextImpl order, TransactionContextImpl transaction) {
-            oCtx = order;
-            trCtx = transaction;
-        }
-
-        Notice waitResponse() {
-            l.lock();
-            try {
-                cond.await(timeoutSec, TimeUnit.SECONDS);
-                return res.get();
-            } catch (InterruptedException e) {
-                var r = new Notice();
-                r.setCode(3001);
-                r.setMessage("fail waiting for trade response");
-                r.setObject(e);
-                return r;
-            } finally {
-                l.unlock();
-            }
-        }
-
-        @Override
-        public void onTrade(Trade trade) {
-            var stg = trCtx.getStrategyContext();
-            try {
-                /* save trade to data source. */
-                stg.getPlatirClientImpl().queries().insert(trade);
-            } catch (SQLException e) {
-                /* worker thread sees this exception, just log it */
-                PlatirSystem.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction("
-                        + trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId()
-                        + ") into data source: " + e.getMessage(), e);
-            }
-            /* add trade to order context. */
-            oCtx.addTrade(trade);
-            /* update contracts' states */
-            updateContracts(trade);
-            stg.timedOnTrade(trade);
-            checkCompleted(trade.getVolume());
-            /* risk assess */
-            afterRisk(trade);
-        }
-
-        private void afterRisk(Trade trade) {
-            try {
-                var r = rsk.after(trade, trCtx);
-                if (!r.isGood()) {
-                    saveCodeMessage0(r.getCode(), r.getMessage());
-                }
-            } catch (Throwable th) {
-                PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
-            }
-        }
-
-        private void updateContracts(Trade trade) {
-            var stg = trCtx.getStrategyContext();
-            var updateCount = 0;
-            var it = oCtx.lockedContracts().iterator();
-            while (++updateCount <= trade.getVolume() && it.hasNext()) {
-                var c = it.next();
-                var prevState = c.getState();
-                if (c.getState().compareToIgnoreCase("opening") == 0) {
-                    /* Update open price because the real traded price may be different. */
-                    c.setState("open");
-                    c.setPrice(trade.getPrice());
-                    c.setOpenTime(PlatirSystem.datetime());
-                    c.setOpenTradingDay(stg.getPlatirClientImpl().getTradingDay());
-                } else if (c.getState().compareToIgnoreCase("closing") == 0) {
-                    /* don't forget the close price here */
-                    c.setState("closed");
-                    c.setClosePrice(trade.getPrice());
-                } else {
-                    PlatirSystem.err.write("Incorrect contract state(" + c.getState() + "/" + c.getContractId()
-                            + ") before completing trade.");
-                    continue;
-                }
-                try {
-                    stg.getPlatirClientImpl().queries().update(c);
-                } catch (SQLException e) {
-                    PlatirSystem.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId()
-                            + ") state(" + c.getState() + ").", e);
-
-                    /* roll back state */
-                    c.setState(prevState);
-                    continue;
-                }
-                it.remove();
-            }
-            if (updateCount <= trade.getVolume()) {
-                var msg = "Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.";
-                PlatirSystem.err.write(msg);
-                /* tell risk assessment not enough locked contracts */
-                try {
-                    rsk.notice(3003, msg, oCtx);
-                } catch (Throwable th) {
-                    PlatirSystem.err.write(
-                            "Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
-                            th);
-                }
-            }
-        }
-
-        private void timedOnNotice(int code, String message) {
-            timedOnNotice(code, message, null);
-        }
-
-        private void timedOnNotice(int code, String message, Throwable error) {
-            var n = new Notice();
-            n.setCode(code);
-            n.setMessage(message);
-            n.setObject(error);
-            trCtx.getStrategyContext().timedOnNotice(n);
-        }
-
-        private void checkCompleted(int addedVolume) {
-            var cur = count.addAndGet(addedVolume);
-            var vol = oCtx.getOrder().getVolume();
-            if (cur >= vol) {
-                /* let garbage collection reclaim the objects */
-                oCtx = null;
-                trCtx = null;
-            }
-            if (cur == vol) {
-                timedOnNotice(0, "trade completed");
-            } else if (cur > vol) {
-                int code = 3002;
-                var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
-                PlatirSystem.err.write(msg);
-                /* tell risk assessment there is an order over traded */
-                try {
-                    saveCodeMessage0(code, msg);
-                    rsk.notice(code, msg, oCtx);
-                } catch (Throwable th) {
-                    PlatirSystem.err.write(
-                            "Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
-                            th);
-                }
-            }
-        }
-
-        private void saveCodeMessage0(int code, String message) {
-            var r = new RiskNotice();
-            var profile = trCtx.getStrategyContext().getProfile();
-            r.setCode(3002);
-            r.setMessage("order(" + oCtx.getOrder().getOrderId() + ") over traded");
-            r.setLevel(5);
-            r.setUserId(profile.getUserId());
-            r.setStrategyId(profile.getStrategyId());
-            r.setUpdateTime(PlatirSystem.datetime());
-            try {
-                trCtx.getQueryClient().queries().insert(r);
-            } catch (SQLException e) {
-                PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public void onError(int code, String message) {
-            if (res.get() == null) {
-                signalJoiner(code, message);
-            }
-            timedOnNotice(code, message);
-        }
-
-        private void signalJoiner(int code, String message) {
-            var r = new Notice();
-            r.setCode(code);
-            r.setMessage(message);
-            res.set(r);
-
-            l.lock();
-            try {
-                cond.signal();
-            } finally {
-                l.unlock();
-            }
-        }
-    }
 }
