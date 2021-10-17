@@ -201,12 +201,6 @@ class TradeListenerContexts implements TradeListener {
             if (updateCount <= trade.getVolume()) {
                 var msg = "Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.";
                 PlatirSystem.err.write(msg);
-                /* tell risk assessment not enough locked contracts */
-                try {
-                    rsk.notice(3003, msg, oCtx);
-                } catch (Throwable th) {
-                    PlatirSystem.err.write("Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
-                }
             }
         }
 
@@ -236,13 +230,6 @@ class TradeListenerContexts implements TradeListener {
                 int code = 3002;
                 var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
                 PlatirSystem.err.write(msg);
-                /* tell risk assessment there is an order over traded */
-                try {
-                    saveCodeMessage0(code, msg);
-                    rsk.notice(code, msg, oCtx);
-                } catch (Throwable th) {
-                    PlatirSystem.err.write("Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
-                }
             }
         }
 

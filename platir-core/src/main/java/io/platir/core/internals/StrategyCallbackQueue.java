@@ -108,16 +108,6 @@ class StrategyCallbackQueue implements Runnable {
             r.setObject(e);
             /* tell strategy its callback timeout */
             timedOnNotice(r);
-            /* tell risk assessment there is callback timeout */
-            var msg = "User(" + prof.getUserId() + ") strategy(" + prof.getStrategyId() + ") callback timeout.";
-            PlatirSystem.err.write(msg);
-            saveCodeMessage(r.getCode(), msg);
-            try {
-                rsk.notice(r.getCode(), msg);
-            } catch (Throwable th) {
-                PlatirSystem.err.write(
-                        "Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
-            }
         } finally {
             /* the task has to be aborted */
             if (!timedFut.isDone()) {

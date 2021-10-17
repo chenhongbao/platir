@@ -217,6 +217,8 @@ class TransactionQueue implements Runnable {
                     ctx.awake();
                     /* save risk notice */
                     saveCodeMessage(r.getCode(), r.getMessage(), ctx);
+                    /* notice callback */
+                    simpleNotice(r.getCode(), r.getMessage(), ctx);
                 } else {
                     if (!ctx.pendingOrder().isEmpty()) {
                         /* the transaction has been processed but order is not completed. */

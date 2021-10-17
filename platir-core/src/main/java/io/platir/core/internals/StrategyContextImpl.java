@@ -127,15 +127,6 @@ class StrategyContextImpl implements StrategyContext {
                 var msg = "Transaction(" + trans.getTransaction().getTransactionId() + ") over traded(" + total + ">"
                         + target + ").";
                 PlatirSystem.err.write(msg);
-                /* tell risk assessment transaction over traded */
-                saveCodeMessage(code, msg);
-                try {
-                    rsk.notice(code, msg);
-                } catch (Throwable th) {
-                    PlatirSystem.err.write(
-                            "Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
-                            th);
-                }
                 /* call strategy callback */
                 simpleNotice(4003, "Over traded");
             }
