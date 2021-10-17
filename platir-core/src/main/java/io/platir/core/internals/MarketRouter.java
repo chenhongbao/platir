@@ -6,12 +6,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import io.platir.core.PlatirSystem;
 import io.platir.service.Tick;
@@ -20,7 +16,6 @@ import io.platir.service.api.MarketListener;
 
 class MarketRouter implements MarketListener {
 
-    private final Map<StrategyContextImpl, TickDaemon> daemons = new ConcurrentHashMap<>();
     private final Map<String, Set<StrategyContextImpl>> subs = new ConcurrentHashMap<>();
     private final Map<String, Tick> ticks = new ConcurrentHashMap<>();
     private final TransactionQueue trQueue;
@@ -57,11 +52,10 @@ class MarketRouter implements MarketListener {
             if (tick != null) {
                 var datetime = PlatirSystem.datetime(tick.getUpdateTime());
                 /* if tick doesn't arrive for over 30 days, the instrument has expired. */
-                if (Duration.between(datetime, LocalDateTime.now()).toDays() > 15) {
-                    return;
+                if (Duration.between(datetime, LocalDateTime.now()).toDays() < 30) {
+                    adaptor.add(key);
                 }
             }
-            adaptor.add(key);
         });
     }
 
@@ -77,15 +71,11 @@ class MarketRouter implements MarketListener {
             if (p == null) {
                 continue;
             }
-             p.remove(strategy);
+            p.remove(strategy);
             /* if no strategy subscribes the instrument, remove it from market */
             if (p.isEmpty()) {
                 subs.remove(i);
             }
-        }
-        var dm = daemons.remove(strategy);
-        if (dm != null) {
-            dm.abort();
         }
     }
 
@@ -94,9 +84,6 @@ class MarketRouter implements MarketListener {
             adaptor.add(key);
             return new ConcurrentSkipListSet<>();
         });
-        if (!daemons.containsKey(strategy)) {
-            createDaemon(strategy);
-        }
         if (!p.contains(strategy)) {
             p.add(strategy);
         }
@@ -106,10 +93,7 @@ class MarketRouter implements MarketListener {
     public void onTick(Tick tick) {
         var x = subs.get(tick.getInstrumentId());
         x.parallelStream().forEach(ctx -> {
-            if (!daemons.containsKey(ctx)) {
-                createDaemon(ctx);
-            }
-            daemons.get(ctx).push(tick);
+            ctx.processTick(tick);
         });
         /* signal transaction queue to work on pending transactions. */
         tryAwake(tick);
@@ -132,54 +116,5 @@ class MarketRouter implements MarketListener {
             return;
         }
         trQueue.awake(tick);
-    }
-
-    private void createDaemon(StrategyContextImpl ctx) {
-        var d = new TickDaemon(ctx);
-        var fut = PlatirSystem.threads.submit(d);
-        d.setFuture(fut);
-        daemons.put(ctx, d);
-    }
-
-    private class TickDaemon implements Runnable {
-
-        private final BlockingQueue<Tick> ticks = new LinkedBlockingQueue<>();
-        private final StrategyContextImpl ctx;
-        private Future<?> future;
-
-        TickDaemon(StrategyContextImpl ctx) {
-            this.ctx = ctx;
-        }
-
-        void push(Tick tick) {
-            if (!ticks.offer(tick)) {
-                PlatirSystem.err.write("Tick queue is full.");
-            }
-        }
-
-        void setFuture(Future<?> fut) {
-            future = fut;
-        }
-
-        void abort() {
-            if (future != null && !future.isDone()) {
-                future.cancel(true);
-            }
-        }
-
-        @Override
-        public void run() {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    ctx.processTick(ticks.poll(24, TimeUnit.HOURS));
-                } catch (InterruptedException e) {
-                    PlatirSystem.err.write("Strategy(" + ctx.getProfile().getStrategyId() + ") onTick(Tick) timeout.");
-                } catch (Throwable th) {
-                    PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
-                }
-            }
-            PlatirSystem.err
-                    .write("Tick daemon for strategy(" + ctx.getProfile().getStrategyId() + ") is about to exit.");
-        }
     }
 }
