@@ -1,13 +1,11 @@
 package io.platir.core.internals;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import io.platir.core.PlatirSystem;
@@ -16,7 +14,6 @@ import io.platir.service.Contract;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
-import io.platir.service.Transaction;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeAdaptor;
@@ -40,7 +37,7 @@ class TransactionQueue implements Runnable {
     private final RiskAssess rsk;
     private final TradeAdaptor tr;
     private final TradeListenerContexts lis;
-    private final AtomicInteger increId = new AtomicInteger(0);
+
     private final BlockingQueue<TransactionContextImpl> queueing = new LinkedBlockingQueue<>();
     private final Set<TransactionContextImpl> pending = new ConcurrentSkipListSet<>();
 
@@ -54,7 +51,6 @@ class TransactionQueue implements Runnable {
     void settle() {
         pending.clear();
         queueing.clear();
-        increId.set(0);
         lis.clearContexts();
     }
 
@@ -106,103 +102,6 @@ class TransactionQueue implements Runnable {
         }
     }
 
-    private Set<Contract> opening(String orderId, PlatirQueryClientImpl client, Transaction transaction) {
-        /*
-         * Add contracts for opening. The opening margin and commission are computed
-         * through the opening contracts, so just add opening contracts and account will
-         * be changed.
-         */
-        var r = new HashSet<Contract>();
-        var uid = client.getStrategyProfile().getUserId();
-        for (int i = 0; i < transaction.getVolume(); ++i) {
-            var c = ObjectFactory.newContract();
-            /*
-             * Contract ID = <order-id>.<some-digits>
-             */
-            c.setContractId(orderId + "." + Integer.toString(i));
-            c.setUserId(uid);
-            c.setInstrumentId(transaction.getInstrumentId());
-            c.setDirection(transaction.getDirection());
-            c.setPrice(transaction.getPrice());
-            c.setState("opening");
-            c.setOpenTradingDay(client.getTradingDay());
-            c.setOpenTime(PlatirSystem.datetime());
-            r.add(c);
-
-            try {
-                client.queries().insert(c);
-            } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't insert user(" + c.getUserId() + ") contract(" + c.getContractId()
-                        + ") opening: " + e.getMessage(), e);
-            }
-        }
-        return r;
-    }
-
-    private Notice checkOpen(String oid, PlatirQueryClientImpl query, Transaction t) {
-        var r = ObjectFactory.newNotice();
-        var available = query.getAccount().getAvailable();
-        if (available <= 0) {
-            r.setCode(1001);
-            r.setMessage("no available(" + available + ") for opening");
-            return r;
-        }
-        var instrument = query.getInstrument(t.getInstrumentId());
-        if (instrument == null) {
-            r.setCode(1002);
-            r.setMessage("no instrument information for " + t.getInstrumentId());
-            return r;
-        }
-        var margin = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(),
-                instrument.getAmountMargin(), instrument.getVolumeMargin()) * t.getVolume();
-        var commission = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(),
-                instrument.getAmountCommission(), instrument.getVolumeCommission()) * t.getVolume();
-        if (available < margin + commission) {
-            r.setCode(1003);
-            r.setMessage("no available(" + available + ") for opening(" + (commission + margin) + ")");
-            return r;
-        }
-
-        r.setCode(0);
-        r.setMessage("good");
-        /* Lock contracts for opening and return those contracts. */
-        r.setObject(opening(oid, query, t));
-        return r;
-    }
-
-    private OrderContextImpl createOrderContext(String orderId, String transactionId, String instrumentId, Double price,
-            Integer volume, String direction, Collection<Contract> contracts, String offset,
-            TransactionContextImpl transCtx) {
-        var cli = transCtx.getStrategyContext().getPlatirClientImpl();
-        var o = ObjectFactory.newOrder();
-        o.setOrderId(orderId);
-        o.setTransactionId(transactionId);
-        o.setInstrumentId(instrumentId);
-        o.setPrice(price);
-        o.setVolume(volume);
-        o.setDirection(direction);
-        o.setOffset(offset);
-        o.setTradingDay(cli.getTradingDay());
-        try {
-            /* save order to data source */
-            cli.queries().insert(o);
-        } catch (DataQueryException e) {
-            /* worker thread can't pass out the exception, just log it */
-            PlatirSystem.err.write("Can't insert order(" + o.getOrderId() + ") to data source: " + e.getMessage(), e);
-        }
-        /* create order context. */
-        var ctx = new OrderContextImpl(o, transCtx);
-        ctx.lockedContracts().addAll(contracts);
-        /* add order context to transaction context */
-        transCtx.addOrderContext(ctx);
-        return ctx;
-    }
-
-    private String getOrderId(String tid) {
-        /* <transaction-id>.<some-digits> */
-        return tid + "." + Integer.toString(increId.incrementAndGet());
-    }
-
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted() || !queueing.isEmpty()) {
@@ -216,9 +115,9 @@ class TransactionQueue implements Runnable {
                     t.setStateMessage(r.getMessage());
                     ctx.awake();
                     /* save risk notice */
-                    saveCodeMessage(r.getCode(), r.getMessage(), ctx);
+                    TransactionFacilities.saveCodeMessage(r.getCode(), r.getMessage(), ctx);
                     /* notice callback */
-                    simpleNotice(r.getCode(), r.getMessage(), ctx);
+                    TransactionFacilities.simpleNotice(r.getCode(), r.getMessage(), ctx);
                 } else {
                     if (!ctx.pendingOrder().isEmpty()) {
                         /* the transaction has been processed but order is not completed. */
@@ -240,7 +139,7 @@ class TransactionQueue implements Runnable {
                             /* Notify the transaction has failed. */
                             ctx.awake();
                             /* notice callback */
-                            simpleNotice(1006, "invalid order offset(" + t.getOffset() + ")", ctx);
+                            TransactionFacilities.simpleNotice(1006, "invalid order offset(" + t.getOffset() + ")", ctx);
                         }
                     }
                 }
@@ -251,22 +150,6 @@ class TransactionQueue implements Runnable {
             } catch (Throwable th) {
                 PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
             }
-        }
-    }
-
-    private void saveCodeMessage(int code, String message, TransactionContextImpl ctx) {
-        var r = ObjectFactory.newRiskNotice();
-        var profile = ctx.getStrategyContext().getProfile();
-        r.setCode(3002);
-        r.setMessage(message);
-        r.setLevel(5);
-        r.setUserId(profile.getUserId());
-        r.setStrategyId(profile.getStrategyId());
-        r.setUpdateTime(PlatirSystem.datetime());
-        try {
-            ctx.getQueryClient().queries().insert(r);
-        } catch (DataQueryException e) {
-            PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
 
@@ -288,9 +171,9 @@ class TransactionQueue implements Runnable {
 
     private void close(TransactionContextImpl ctx) throws DuplicatedOrderException {
         var t = ctx.getTransaction();
-        var oid = getOrderId(t.getTransactionId());
+        var oid = TransactionFacilities.getOrderId(t.getTransactionId());
         var client = ctx.getQueryClient();
-        var r = checkClose(ctx.getQueryClient(), t.getInstrumentId(), t.getDirection(), t.getVolume());
+        var r = TransactionFacilities.checkClose(ctx.getQueryClient(), t.getInstrumentId(), t.getDirection(), t.getVolume());
         if (!r.isGood()) {
             t.setState("check-close;" + r.getCode());
             t.setStateMessage(r.getMessage());
@@ -302,7 +185,7 @@ class TransactionQueue implements Runnable {
             }
             ctx.awake();
             /* notice callback */
-            simpleNotice(r.getCode(), r.getMessage(), ctx);
+            TransactionFacilities.simpleNotice(r.getCode(), r.getMessage(), ctx);
         } else {
             @SuppressWarnings("unchecked")
             var contracts = (Collection<Contract>) r.getObject();
@@ -310,64 +193,23 @@ class TransactionQueue implements Runnable {
             /* process today's contracts */
             var today = contracts.stream().filter(c -> c.getOpenTradingDay().equals(tradingDay))
                     .collect(Collectors.toSet());
-            var orderCtxToday = createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
+            var orderCtxToday = TransactionFacilities.createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
                     t.getVolume(), t.getDirection(), today, "close-today", ctx);
             send(orderCtxToday, ctx);
             /* process history contracts */
             var history = contracts.stream().filter(c -> !today.contains(c)).collect(Collectors.toSet());
-            var orderCtxHistory = createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
+            var orderCtxHistory = TransactionFacilities.createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
                     t.getVolume(), t.getDirection(), history, "close-history", ctx);
             send(orderCtxHistory, ctx);
         }
     }
 
-    private Notice checkClose(PlatirQueryClientImpl query, String instrumentId, String direction, Integer volume) {
-        /* buy-open for sell-closed, sell-open for buy-closed */
-        var r = ObjectFactory.newNotice();
-        var available = query.getContracts(instrumentId).stream()
-                .filter(c -> c.getDirection().compareToIgnoreCase(direction) != 0)
-                .filter(c -> c.getState().compareToIgnoreCase("open") == 0).collect(Collectors.toSet());
-        if (available.size() < volume) {
-            r.setCode(1004);
-            r.setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
-            return r;
-        }
-        /*
-	 * Remove extra contracts from container until it only has the contracts for
-	 * closing and lock those contracts.
-         */
-        while (available.size() > volume) {
-            var h = available.iterator().next();
-            available.remove(h);
-        }
-        closing(available, query);
-        /* return good */
-        r.setCode(0);
-        r.setMessage("good");
-        r.setObject(available);
-        return r;
-    }
-
-    private void closing(Set<Contract> available, PlatirQueryClientImpl client) {
-        available.stream().map(c -> {
-            c.setState("closing");
-            return c;
-        }).forEachOrdered(c -> {
-            try {
-                client.queries().update(c);
-            } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't update user(" + c.getUserId() + ") + contract(" + c.getContractId()
-                        + ") state(" + c.getState() + "): " + e.getMessage(), e);
-            }
-        });
-    }
-
     private void open(TransactionContextImpl ctx) throws DuplicatedOrderException {
         var t = ctx.getTransaction();
-        var oid = getOrderId(t.getTransactionId());
+        var oid = TransactionFacilities.getOrderId(t.getTransactionId());
         var client = ctx.getQueryClient();
         /* Check resource. */
-        var r = checkOpen(oid, client, t);
+        var r = TransactionFacilities.checkOpen(oid, client, t);
         if (!r.isGood()) {
             t.setState("check-open;" + r.getCode());
             t.setStateMessage(r.getMessage());
@@ -380,12 +222,12 @@ class TransactionQueue implements Runnable {
             /* notify joiner the transaction fails. */
             ctx.awake();
             /* notice callback */
-            simpleNotice(r.getCode(), r.getMessage(), ctx);
+            TransactionFacilities.simpleNotice(r.getCode(), r.getMessage(), ctx);
         } else {
             /* Lock resource for opening. */
             @SuppressWarnings("unchecked")
             var contracts = (Collection<Contract>) r.getObject();
-            var orderCtx = createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
+            var orderCtx = TransactionFacilities.createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
                     t.getVolume(), t.getDirection(), contracts, "open", ctx);
             send(orderCtx, ctx);
         }
@@ -466,14 +308,8 @@ class TransactionQueue implements Runnable {
             }
         }
         /* notice callback */
-        simpleNotice(ro.getCode(), ro.getMessage(), ctx);
+        TransactionFacilities.simpleNotice(ro.getCode(), ro.getMessage(), ctx);
         return ro;
     }
 
-    private void simpleNotice(int code, String message, TransactionContextImpl ctx) {
-        var n = ObjectFactory.newNotice();
-        n.setCode(code);
-        n.setMessage(message);
-        ctx.getStrategyContext().processNotice(n);
-    }
 }

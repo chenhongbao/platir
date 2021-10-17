@@ -8,6 +8,7 @@ import java.util.Set;
 
 import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
+import io.platir.core.internals.SettlementFacilities.UserSnapshot;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -16,7 +17,7 @@ import io.platir.service.Tick;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 
-public class Settlement extends SettlementFacilities {
+public class Settlement {
 
     
     private final Queries qry;
@@ -79,12 +80,12 @@ public class Settlement extends SettlementFacilities {
     }
 
     private void computeSettlement() throws SettlementException, DataQueryException {
-        var users = users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
+        var users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
         requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
         requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
         var tradingDay = qry.selectTradingDay().getTradingDay();
         for (var u : users.values()) {
-            settle(u, tradingDay, ticks, instruments);
+            SettlementFacilities.settle(u, tradingDay, ticks, instruments);
             push0(u);
         }
         /* clear snapshot so backup the settled data */

@@ -35,7 +35,7 @@ class SettlementFacilities {
         }
     }
 
-    void settleInDay(UserSnapshot user, String tradingDay, Collection<Tick> ticks, Collection<Instrument> instruments)
+    static void settleInDay(UserSnapshot user, String tradingDay, Collection<Tick> ticks, Collection<Instrument> instruments)
             throws SettlementException {
         var tm = tickMap(ticks);
         var im = instrumentMap(instruments);
@@ -47,7 +47,7 @@ class SettlementFacilities {
         finishSettlement(user.account);
     }
 
-    void settle(UserSnapshot user, String tradingDay, Collection<Tick> ticks, Collection<Instrument> instruments)
+    static void settle(UserSnapshot user, String tradingDay, Collection<Tick> ticks, Collection<Instrument> instruments)
             throws SettlementException {
         var tm = tickMap(ticks);
         var im = instrumentMap(instruments);
@@ -60,14 +60,14 @@ class SettlementFacilities {
         finishSettlement(user.account);
     }
 
-    private void finishSettlement(Account account) {
+    private static void finishSettlement(Account account) {
         account.setBalance(account.getYdBalance() + account.getCloseProfit() + account.getPositionProfit()
                 - account.getCommission());
         account.setAvailable(account.getBalance() - account.getMargin() - account.getOpeningMargin()
                 - account.getOpeningCommission() - account.getCommission() - account.getClosingCommission());
     }
 
-    private void settleInstrument(Account account, Set<Contract> contracts, Tick tick, Instrument instrument)
+    private static void settleInstrument(Account account, Set<Contract> contracts, Tick tick, Instrument instrument)
             throws SettlementException {
         var itr = contracts.iterator();
         while (itr.hasNext()) {
@@ -89,7 +89,7 @@ class SettlementFacilities {
         }
     }
 
-    private void settleInstrumentInDay(Account account, Set<Contract> contracts, Tick tick, Instrument instrument)
+    private static void settleInstrumentInDay(Account account, Set<Contract> contracts, Tick tick, Instrument instrument)
             throws SettlementException {
         var itr = contracts.iterator();
         while (itr.hasNext()) {
@@ -99,7 +99,7 @@ class SettlementFacilities {
         }
     }
 
-    private void settleContract(Account account, Contract c, Double settlementPrice, Instrument instrument)
+    private static void settleContract(Account account, Contract c, Double settlementPrice, Instrument instrument)
             throws SettlementException {
         var state = c.getState();
         if (state.compareToIgnoreCase("open") == 0) {
@@ -115,7 +115,7 @@ class SettlementFacilities {
         }
     }
 
-    private void settleContract0(Account account, Contract c, Double settlementPrice, Instrument instrument)
+    private static void settleContract0(Account account, Contract c, Double settlementPrice, Instrument instrument)
             throws SettlementException {
         var state = c.getState();
         if (state.compareToIgnoreCase("opening") == 0) {
@@ -128,12 +128,12 @@ class SettlementFacilities {
         }
     }
 
-    private Double margin(Contract c, Instrument instrument) {
+    private static Double margin(Contract c, Instrument instrument) {
         return computeRatio(c.getPrice(), instrument.getMultiple(), instrument.getAmountMargin(),
                 instrument.getVolumeMargin());
     }
 
-    private Double positionProfit(Double settlementPrice, Contract c, Instrument instrument)
+    private static Double positionProfit(Double settlementPrice, Contract c, Instrument instrument)
             throws SettlementException {
         if (c.getClosePrice() != null && c.getClosePrice() != 0) {
             throw new SettlementException("Open(closing) contract(" + c.getContractId() + ") has close price.");
@@ -141,19 +141,19 @@ class SettlementFacilities {
         return profit(c, settlementPrice, instrument.getMultiple());
     }
 
-    private Double commission(Contract c, Instrument instrument) {
+    private static Double commission(Contract c, Instrument instrument) {
         return computeRatio(c.getPrice(), instrument.getMultiple(), instrument.getAmountCommission(),
                 instrument.getVolumeCommission());
     }
 
-    private Double closeProfit(Contract c, Instrument instrument) throws SettlementException {
+    private static Double closeProfit(Contract c, Instrument instrument) throws SettlementException {
         if (c.getClosePrice() == null || c.getClosePrice() == 0) {
             throw new SettlementException("Closed contract(" + c.getContractId() + ") has no close price.");
         }
         return profit(c, c.getClosePrice(), instrument.getMultiple());
     }
 
-    private Double profit(Contract c, Double closePrice, Double multiple) throws SettlementException {
+    private static Double profit(Contract c, Double closePrice, Double multiple) throws SettlementException {
         var direction = c.getDirection();
         var price = c.getPrice();
         if (direction.compareToIgnoreCase("buy") == 0) {
@@ -166,7 +166,7 @@ class SettlementFacilities {
         }
     }
 
-    private void resetAccount(Account account, String tradingDay) {
+    private static void resetAccount(Account account, String tradingDay) {
         account.setYdBalance(account.getBalance());
         account.setBalance(0D);
         account.setMargin(0D);
@@ -181,7 +181,7 @@ class SettlementFacilities {
         account.setSettleTime(PlatirSystem.datetime());
     }
 
-    HashMap<String, UserSnapshot> users(Set<User> users, Set<Account> accounts, Set<Contract> contracts)
+    static HashMap<String, UserSnapshot> users(Set<User> users, Set<Account> accounts, Set<Contract> contracts)
             throws SettlementException {
         var m = new HashMap<String, UserSnapshot>();
         var userItr = users.iterator();
@@ -198,7 +198,7 @@ class SettlementFacilities {
         return m;
     }
 
-    void accounts(UserSnapshot o, Set<Account> accounts, Set<Contract> contracts) throws SettlementException {
+    static void accounts(UserSnapshot o, Set<Account> accounts, Set<Contract> contracts) throws SettlementException {
         var u = o.user;
         /* find user's account */
         var accItr = accounts.iterator();
@@ -216,7 +216,7 @@ class SettlementFacilities {
         contracts(o, contracts);
     }
 
-    void contracts(UserSnapshot o, Set<Contract> contracts) {
+    static void contracts(UserSnapshot o, Set<Contract> contracts) {
         /* find user's contracts */
         var cItr = contracts.iterator();
         while (cItr.hasNext()) {
@@ -228,7 +228,7 @@ class SettlementFacilities {
         }
     }
 
-    private Map<String, Tick> tickMap(Collection<Tick> ticks) {
+    private static Map<String, Tick> tickMap(Collection<Tick> ticks) {
         var m = new HashMap<String, Tick>();
         ticks.forEach(t -> {
             m.put(t.getInstrumentId(), t);
@@ -236,7 +236,7 @@ class SettlementFacilities {
         return m;
     }
 
-    private Map<String, Instrument> instrumentMap(Collection<Instrument> instruments) {
+    private static Map<String, Instrument> instrumentMap(Collection<Instrument> instruments) {
         var m = new HashMap<String, Instrument>();
         instruments.forEach(i -> {
             m.put(i.getInstrumentId(), i);
@@ -244,7 +244,7 @@ class SettlementFacilities {
         return m;
     }
 
-    private Tick getTick(String instrumentId, Map<String, Tick> ticks) throws SettlementException {
+    private static Tick getTick(String instrumentId, Map<String, Tick> ticks) throws SettlementException {
         var t = ticks.get(instrumentId);
         if (t == null) {
             throw new SettlementException("Tick(" + instrumentId + ") not found.");
@@ -252,7 +252,7 @@ class SettlementFacilities {
         return t;
     }
 
-    private Instrument getInstrument(String instrumentId, Map<String, Instrument> instruments)
+    private static Instrument getInstrument(String instrumentId, Map<String, Instrument> instruments)
             throws SettlementException {
         var i = instruments.get(instrumentId);
         if (i == null) {
