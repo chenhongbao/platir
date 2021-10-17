@@ -11,12 +11,15 @@ import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
 import io.platir.core.internals.persistence.object.ObjectFactory;
+import io.platir.service.InterruptionException;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Error code explanation:
@@ -127,14 +130,30 @@ class StrategyContextPool {
         var r = verifyLogin(profile);
         if (!r.isGood()) {
             throw new InvalidLoginException(
-                    "Identity check failure(" + r.getCode() + ") on removal: " + r.getMessage() + ".");
+                    "Identity check failure(" + r.getCode() + ") on removal: "
+                    + r.getMessage() + ".");
         }
         var strategy = findStrategyContext(profile);
         if (strategy == null) {
-            throw new StrategyRemovalException("Can't find strategy(" + profile.getStrategyId() + ") context.");
+            throw new StrategyRemovalException("Can't find strategy("
+                    + profile.getStrategyId() + ") context.");
+        }
+        try {
+            /* client can't open/close position as it is being removed */
+            strategy.getPlatirClientImpl().interrupt(true);
+        } catch (InterruptionException ex) {
+            throw new StrategyRemovalException("Can't interrupt client before strategy("
+                    + strategy.getProfile().getStrategyId() + ") removal.");
         }
         var count = trader.countTransactionRunning(strategy);
         if (count > 0) {
+            try {
+                /* restore interrupt state as it can't be removed */
+                strategy.getPlatirClientImpl().interrupt(false);
+            } catch (InterruptionException ex) {
+                throw new StrategyRemovalException("Can't restore client interrupt state for strategy("
+                        + strategy.getProfile().getStrategyId() + ") removal.");
+            }
             throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has "
                     + count + " transaction running.");
         }
@@ -194,7 +213,8 @@ class StrategyContextPool {
             /* update data source */
             qry.update(old);
         } catch (DataQueryException e) {
-            throw new StrategyUpdateException("Can't update strategy(" + old.getStrategyId() + ") profile in data source: " + e.getMessage(), e);
+            throw new StrategyUpdateException("Can't update strategy(" + old.getStrategyId()
+                    + ") profile in data source: " + e.getMessage(), e);
         }
     }
 

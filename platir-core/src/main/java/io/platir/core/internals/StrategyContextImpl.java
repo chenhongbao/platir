@@ -66,17 +66,11 @@ class StrategyContextImpl implements StrategyContext {
         return cli;
     }
 
-    void remove() throws StrategyRemovalException, InvalidLoginException {
+    void remove() throws StrategyRemovalException {
         try {
             checkIntegrity();
         } catch (IntegrityException e) {
             throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
-        }
-        try {
-            cli.interrupt(true);
-        } catch (InterruptionException e) {
-            throw new StrategyRemovalException(
-                    "Can't interrupt strategy(" + prof.getStrategyId() + "): " + e.getMessage() + ".");
         }
         isShutdown.set(true);
         cb.timedOnDestroy();
