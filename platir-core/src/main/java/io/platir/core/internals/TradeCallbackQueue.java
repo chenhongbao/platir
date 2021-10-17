@@ -24,7 +24,7 @@ class TradeCallbackQueue implements Runnable {
     public void run() {
         while (!Thread.currentThread().isInterrupted() || !bundles.isEmpty()) {
             try {
-                io.platir.core.internals.TradeCallbackQueue.TradeCallbackBundle b = bundles.poll(24, TimeUnit.HOURS);
+                var b = bundles.poll(24, TimeUnit.HOURS);
                 b.ctx.processTrade(b.tr);
             } catch (InterruptedException ex) {
                 PlatirSystem.err.write("Trade callback queue daemon is interrupted.", ex);
