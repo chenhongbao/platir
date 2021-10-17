@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -23,6 +22,7 @@ import io.platir.service.api.AdaptorStartupException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
@@ -110,7 +110,7 @@ public class PlatirImpl extends Platir {
     private void dbInit() {
         try {
             qry.initialize();
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new RuntimeException("Fail preparing database.", e);
         }
     }
@@ -118,7 +118,7 @@ public class PlatirImpl extends Platir {
     private void dbDestroy() {
         try {
             qry.destroy();
-        } catch (SQLException ex) {
+        } catch (DataQueryException ex) {
             throw new RuntimeException("Fail closing data source.", ex);
         }
     }
@@ -169,12 +169,12 @@ public class PlatirImpl extends Platir {
         /* need last tick price for settlement price */
         try {
             qry.insert(mkRouter.getLastTicks().toArray(new Tick[1]));
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             PlatirSystem.err.write("Fail inserting tick.", e);
         }
         try {
             new Settlement(qry).settle();
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new SettlementException("Settlement fails: " + e.getMessage(), e);
         }
         try {

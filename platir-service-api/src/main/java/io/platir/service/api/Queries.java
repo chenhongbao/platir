@@ -1,6 +1,5 @@
 package io.platir.service.api;
 
-import java.sql.SQLException;
 import java.util.Set;
 
 import io.platir.service.Account;
@@ -17,78 +16,78 @@ import io.platir.service.User;
 
 public interface Queries {
 
-	void initialize() throws SQLException;
-        
-        void destroy() throws SQLException;
+    void initialize() throws DataQueryException;
 
-	void insert(TradingDay day) throws SQLException;
+    void destroy() throws DataQueryException;
 
-	void insert(Account... accounts) throws SQLException;
+    void insert(TradingDay day) throws DataQueryException;
 
-	void insert(Tick... ticks) throws SQLException;
+    void insert(Account... accounts) throws DataQueryException;
 
-	void insert(Transaction... transactions) throws SQLException;
+    void insert(Tick... ticks) throws DataQueryException;
 
-	void insert(Order... orders) throws SQLException;
+    void insert(Transaction... transactions) throws DataQueryException;
 
-	void insert(Trade... trades) throws SQLException;
+    void insert(Order... orders) throws DataQueryException;
 
-	void insert(Contract... contracts) throws SQLException;
+    void insert(Trade... trades) throws DataQueryException;
 
-	void insert(User... users) throws SQLException;
+    void insert(Contract... contracts) throws DataQueryException;
 
-	void insert(StrategyProfile... profiles) throws SQLException;
+    void insert(User... users) throws DataQueryException;
 
-	void insert(Instrument... instruments) throws SQLException;
+    void insert(StrategyProfile... profiles) throws DataQueryException;
 
-	void insert(RiskNotice... notices) throws SQLException;
+    void insert(Instrument... instruments) throws DataQueryException;
 
-	void update(Account... accounts) throws SQLException;
+    void insert(RiskNotice... notices) throws DataQueryException;
 
-	void update(Contract... contracts) throws SQLException;
+    void update(Account... accounts) throws DataQueryException;
 
-	void update(Transaction... transactions) throws SQLException;
+    void update(Contract... contracts) throws DataQueryException;
 
-	void update(Instrument... instruments) throws SQLException;
+    void update(Transaction... transactions) throws DataQueryException;
 
-	void update(User... users) throws SQLException;
+    void update(Instrument... instruments) throws DataQueryException;
 
-	void update(StrategyProfile... profiles) throws SQLException;
+    void update(User... users) throws DataQueryException;
 
-	void updateTradingDay(TradingDay day) throws SQLException;
+    void update(StrategyProfile... profiles) throws DataQueryException;
 
-	void clearAccounts() throws SQLException;
+    void updateTradingDay(TradingDay day) throws DataQueryException;
 
-	void clearContracts() throws SQLException;
+    void clearAccounts() throws DataQueryException;
 
-	void clearOrders() throws SQLException;
+    void clearContracts() throws DataQueryException;
 
-	void clearTrades() throws SQLException;
+    void clearOrders() throws DataQueryException;
 
-	void clearTransactions() throws SQLException;
+    void clearTrades() throws DataQueryException;
 
-	void clearTicks() throws SQLException;
+    void clearTransactions() throws DataQueryException;
 
-	void clearStrategies() throws SQLException;
+    void clearTicks() throws DataQueryException;
 
-	TradingDay selectTradingDay() throws SQLException;
+    void clearStrategies() throws DataQueryException;
 
-	Set<Account> selectAccounts() throws SQLException;
+    TradingDay selectTradingDay() throws DataQueryException;
 
-	Set<Contract> selectContracts() throws SQLException;
+    Set<Account> selectAccounts() throws DataQueryException;
 
-	Set<Instrument> selectInstruments() throws SQLException;
+    Set<Contract> selectContracts() throws DataQueryException;
 
-	Set<Order> selectOrders() throws SQLException;
+    Set<Instrument> selectInstruments() throws DataQueryException;
 
-	Set<StrategyProfile> selectStrategyProfiles() throws SQLException;
+    Set<Order> selectOrders() throws DataQueryException;
 
-	Set<Trade> selectTrades() throws SQLException;
+    Set<StrategyProfile> selectStrategyProfiles() throws DataQueryException;
 
-	Set<Transaction> selectTransactions() throws SQLException;
+    Set<Trade> selectTrades() throws DataQueryException;
 
-	Set<User> selectUsers() throws SQLException;
+    Set<Transaction> selectTransactions() throws DataQueryException;
 
-	Set<Tick> selectTicks() throws SQLException;
+    Set<User> selectUsers() throws DataQueryException;
+
+    Set<Tick> selectTicks() throws DataQueryException;
 
 }

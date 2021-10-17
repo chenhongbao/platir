@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -18,6 +17,7 @@ import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.Transaction;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeAdaptor;
 
@@ -65,7 +65,7 @@ class TransactionQueue implements Runnable {
         return count;
     }
 
-    void push(TransactionContextImpl ctx) throws SQLException {
+    void push(TransactionContextImpl ctx) throws DataQueryException {
         var t = ctx.getTransaction();
         /* Update states. */
         t.setState("pending");
@@ -88,7 +88,7 @@ class TransactionQueue implements Runnable {
                 t.setStateMessage("tick triggers queueing");
                 try {
                     ctx.getQueryClient().queries().update(t);
-                } catch (SQLException e) {
+                } catch (DataQueryException e) {
                     PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
                             + t.getState() + "): " + e.getMessage(), e);
                 }
@@ -130,7 +130,7 @@ class TransactionQueue implements Runnable {
 
             try {
                 client.queries().insert(c);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't insert user(" + c.getUserId() + ") contract(" + c.getContractId()
                         + ") opening: " + e.getMessage(), e);
             }
@@ -185,7 +185,7 @@ class TransactionQueue implements Runnable {
         try {
             /* save order to data source */
             cli.queries().insert(o);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             /* worker thread can't pass out the exception, just log it */
             PlatirSystem.err.write("Can't insert order(" + o.getOrderId() + ") to data source: " + e.getMessage(), e);
         }
@@ -230,7 +230,7 @@ class TransactionQueue implements Runnable {
                             t.setStateMessage("invalid offset(" + t.getOffset() + ")");
                             try {
                                 ctx.getQueryClient().queries().update(t);
-                            } catch (SQLException e) {
+                            } catch (DataQueryException e) {
                                 PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
                                         + t.getState() + "): " + e.getMessage(), e);
                             }
@@ -260,7 +260,7 @@ class TransactionQueue implements Runnable {
         r.setUpdateTime(PlatirSystem.datetime());
         try {
             ctx.getQueryClient().queries().insert(r);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
@@ -291,7 +291,7 @@ class TransactionQueue implements Runnable {
             t.setStateMessage(r.getMessage());
             try {
                 client.queries().update(t);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }
@@ -348,7 +348,7 @@ class TransactionQueue implements Runnable {
         }).forEachOrdered(c -> {
             try {
                 client.queries().update(c);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't update user(" + c.getUserId() + ") + contract(" + c.getContractId()
                         + ") state(" + c.getState() + "): " + e.getMessage(), e);
             }
@@ -366,7 +366,7 @@ class TransactionQueue implements Runnable {
             t.setStateMessage(r.getMessage());
             try {
                 client.queries().update(t);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }
@@ -416,7 +416,7 @@ class TransactionQueue implements Runnable {
             t.setStateMessage(ro.getMessage());
             try {
                 client.queries().update(t);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }
@@ -431,7 +431,7 @@ class TransactionQueue implements Runnable {
             t.setStateMessage("order submitted");
             try {
                 client.queries().update(t);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }

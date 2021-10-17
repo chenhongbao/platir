@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +19,7 @@ import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 
 public class Settlement extends SettlementFacilities {
@@ -42,7 +42,7 @@ public class Settlement extends SettlementFacilities {
         return new GsonBuilder().serializeNulls().create();
     }
 
-    public void settle() throws SQLException, SettlementException {
+    public void settle() throws DataQueryException, SettlementException {
         prepareDirs();
         snapshot();
         backup(before, snapshot);
@@ -51,12 +51,12 @@ public class Settlement extends SettlementFacilities {
         roll();
     }
 
-    private void roll() throws SQLException {
+    private void roll() throws DataQueryException {
         clearTables();
         pushTables();
     }
 
-    private void pushTables() throws SQLException {
+    private void pushTables() throws DataQueryException {
         qry.insert(snapshot.accounts().toArray(new Account[1]));
         qry.insert(snapshot.contracts().toArray(new Contract[1]));
         /* insert the updated strategy profiles */
@@ -75,7 +75,7 @@ public class Settlement extends SettlementFacilities {
         }
     }
 
-    private void clearTables() throws SQLException {
+    private void clearTables() throws DataQueryException {
         /* ticks are set before settlement */
         qry.clearTicks();
         /* write settled information */
@@ -89,7 +89,7 @@ public class Settlement extends SettlementFacilities {
         qry.clearStrategies();
     }
 
-    private void computeSettlement() throws SettlementException, SQLException {
+    private void computeSettlement() throws SettlementException, DataQueryException {
         var users = users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
         requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
         requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
@@ -129,7 +129,7 @@ public class Settlement extends SettlementFacilities {
         after = PlatirSystem.file(Paths.get(dir.toString(), "settled.json"));
     }
 
-    private void snapshot() throws SQLException {
+    private void snapshot() throws DataQueryException {
         snapshot.accounts().addAll(qry.selectAccounts());
         snapshot.contracts().addAll(qry.selectContracts());
         snapshot.instruments().addAll(qry.selectInstruments());

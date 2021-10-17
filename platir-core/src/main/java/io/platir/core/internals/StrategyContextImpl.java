@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -29,6 +28,7 @@ import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
 
@@ -238,7 +238,7 @@ class StrategyContextImpl implements StrategyContext {
         r.setUpdateTime(PlatirSystem.datetime());
         try {
             getPlatirClientImpl().queries().insert(r);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }

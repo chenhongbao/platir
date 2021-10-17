@@ -4,9 +4,10 @@ import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.Trade;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeListener;
-import java.sql.SQLException;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -99,7 +100,7 @@ class TradeListenerContexts implements TradeListener {
             try {
                 /* save trade to data source. */
                 stg.getPlatirClientImpl().queries().insert(trade);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 /* worker thread sees this exception, just log it */
                 PlatirSystem.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId() + ") into data source: " + e.getMessage(), e);
             }
@@ -189,7 +190,7 @@ class TradeListenerContexts implements TradeListener {
                 }
                 try {
                     stg.getPlatirClientImpl().queries().update(c);
-                } catch (SQLException e) {
+                } catch (DataQueryException e) {
                     PlatirSystem.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId() + ") state(" + c.getState() + ").", e);
                     /* roll back state */
                     c.setState(prevState);
@@ -256,7 +257,7 @@ class TradeListenerContexts implements TradeListener {
             r.setUpdateTime(PlatirSystem.datetime());
             try {
                 trCtx.getQueryClient().queries().insert(r);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
             }
         }
