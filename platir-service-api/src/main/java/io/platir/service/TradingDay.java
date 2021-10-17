@@ -4,25 +4,14 @@ package io.platir.service;
  *
  * @author Chen Hongbao
  */
-public class TradingDay {
+public interface TradingDay {
 
-    private String tradingDay;
-    private String updateTime;
+    String getTradingDay();
 
-    public String getTradingDay() {
-        return tradingDay;
-    }
+    void setTradingDay(String tradingDay);
 
-    public void setTradingDay(String tradingDay) {
-        this.tradingDay = tradingDay;
-    }
+    String getUpdateTime();
 
-    public String getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(String updateTime) {
-        this.updateTime = updateTime;
-    }
+    void setUpdateTime(String updateTime);
 
 }

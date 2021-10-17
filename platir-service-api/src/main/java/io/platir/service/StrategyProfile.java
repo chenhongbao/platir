@@ -1,77 +1,37 @@
 package io.platir.service;
 
-public class StrategyProfile {
-	private String strategyId;
-	private String userId;
-	private String password;
-	private String state;
-	private String createDate;
-	private String removeDate;
-	private String[] instrumentIds;
-	private String[] args;
+public interface StrategyProfile {
 
-	public String getCreateDate() {
-		return createDate;
-	}
+    String getCreateDate();
 
-	public String getRemoveDate() {
-		return removeDate;
-	}
+    String getRemoveDate();
 
-	public void setCreateDate(String createDate) {
-		this.createDate = createDate;
-	}
+    void setCreateDate(String createDate);
 
-	public void setRemoveDate(String removeDate) {
-		this.removeDate = removeDate;
-	}
+    void setRemoveDate(String removeDate);
 
-	public String getUserId() {
-		return userId;
-	}
+    String getUserId();
 
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+    void setUserId(String userId);
 
-	public String[] getArgs() {
-		return args;
-	}
+    String[] getArgs();
 
-	public void setArgs(String[] args) {
-		this.args = args;
-	}
+    void setArgs(String[] args);
 
-	public String getPassword() {
-		return password;
-	}
+    String getPassword();
 
-	public String[] getInstrumentIds() {
-		return instrumentIds;
-	}
+    String[] getInstrumentIds();
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    void setPassword(String password);
 
-	public void setInstrumentIds(String[] instrumentIds) {
-		this.instrumentIds = instrumentIds;
-	}
+    void setInstrumentIds(String[] instrumentIds);
 
-	public String getStrategyId() {
-		return strategyId;
-	}
+    String getStrategyId();
 
-	public void setStrategyId(String strategyId) {
-		this.strategyId = strategyId;
-	}
+    void setStrategyId(String strategyId);
 
-	public String getState() {
-		return state;
-	}
+    String getState();
 
-	public void setState(String state) {
-		this.state = state;
-	}
+    void setState(String state);
 
 }

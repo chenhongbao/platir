@@ -1,6 +1,7 @@
 package io.platir.core.internals;
 
 import io.platir.core.PlatirSystem;
+import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Trade;
@@ -31,7 +32,7 @@ class TradeListenerContexts implements TradeListener {
     TradeListenerContexts(RiskAssess risk) {
         rsk = risk;
     }
-    
+
     void clearContexts() {
         ctxs.clear();
     }
@@ -121,7 +122,7 @@ class TradeListenerContexts implements TradeListener {
             l.lock();
             try {
                 if (notice == null) {
-                    notice = new Notice();
+                    notice = ObjectFactory.newNotice();
                     notice.setCode(code);
                     notice.setMessage(message);
                     cond.signalAll();
@@ -141,7 +142,7 @@ class TradeListenerContexts implements TradeListener {
                     cond.await(timeoutSec, TimeUnit.SECONDS);
                 }
             } catch (InterruptedException e) {
-                notice = new Notice();
+                notice = ObjectFactory.newNotice();
                 notice.setCode(3001);
                 notice.setMessage("response timeout");
                 notice.setObject(e);
@@ -210,7 +211,7 @@ class TradeListenerContexts implements TradeListener {
         }
 
         private void timedOnNotice(int code, String message, Throwable error) {
-            var n = new Notice();
+            var n = ObjectFactory.newNotice();
             n.setCode(code);
             n.setMessage(message);
             n.setObject(error);
@@ -242,7 +243,7 @@ class TradeListenerContexts implements TradeListener {
         }
 
         private void saveCodeMessage0(int code, String message) {
-            var r = new RiskNotice();
+            var r = ObjectFactory.newRiskNotice();
             var profile = trCtx.getStrategyContext().getProfile();
             r.setCode(3002);
             r.setMessage("order(" + oCtx.getOrder().getOrderId() + ") over traded");

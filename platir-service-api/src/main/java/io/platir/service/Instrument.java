@@ -1,77 +1,37 @@
 package io.platir.service;
 
-public class Instrument {
-	private String instrumentId;
-	private String exchangeId;
-	private Double multiple;
-	private Double amountMargin;
-	private Double volumeMargin;
-	private Double amountCommission;
-	private Double volumeCommission;
-	private String updateTime;
+public interface Instrument {
 
-	public String getInstrumentId() {
-		return instrumentId;
-	}
+    String getInstrumentId();
 
-	public void setInstrumentId(String instrumentId) {
-		this.instrumentId = instrumentId;
-	}
+    void setInstrumentId(String instrumentId);
 
-	public String getExchangeId() {
-		return exchangeId;
-	}
+    String getExchangeId();
 
-	public void setExchangeId(String exchangeId) {
-		this.exchangeId = exchangeId;
-	}
+    void setExchangeId(String exchangeId);
 
-	public Double getMultiple() {
-		return multiple;
-	}
+    Double getMultiple();
 
-	public void setMultiple(Double multiple) {
-		this.multiple = multiple;
-	}
+    void setMultiple(Double multiple);
 
-	public Double getAmountMargin() {
-		return amountMargin;
-	}
+    Double getAmountMargin();
 
-	public void setAmountMargin(Double amountMargin) {
-		this.amountMargin = amountMargin;
-	}
+    void setAmountMargin(Double amountMargin);
 
-	public Double getVolumeMargin() {
-		return volumeMargin;
-	}
+    Double getVolumeMargin();
 
-	public void setVolumeMargin(Double volumeMargin) {
-		this.volumeMargin = volumeMargin;
-	}
+    void setVolumeMargin(Double volumeMargin);
 
-	public Double getAmountCommission() {
-		return amountCommission;
-	}
+    Double getAmountCommission();
 
-	public void setAmountCommission(Double amountCommission) {
-		this.amountCommission = amountCommission;
-	}
+    void setAmountCommission(Double amountCommission);
 
-	public Double getVolumeCommission() {
-		return volumeCommission;
-	}
+    Double getVolumeCommission();
 
-	public void setVolumeCommission(Double volumeCommission) {
-		this.volumeCommission = volumeCommission;
-	}
+    void setVolumeCommission(Double volumeCommission);
 
-	public String getUpdateTime() {
-		return updateTime;
-	}
+    String getUpdateTime();
 
-	public void setUpdateTime(String updateTime) {
-		this.updateTime = updateTime;
-	}
+    void setUpdateTime(String updateTime);
 
 }

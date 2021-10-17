@@ -1,77 +1,37 @@
 package io.platir.service;
 
-public class Order {
-	private String orderId;
-	private String transactionId;
-	private String instrumentId;
-	private Double price;
-	private Integer volume;
-	private String direction;
-	private String offset;
-	private String tradingDay;
+public interface Order {
 
-	public String getOrderId() {
-		return orderId;
-	}
+    String getOrderId();
 
-	public void setOrderId(String orderId) {
-		this.orderId = orderId;
-	}
+    void setOrderId(String orderId);
 
-	public String getTransactionId() {
-		return transactionId;
-	}
+    String getTransactionId();
 
-	public void setTransactionId(String transactionId) {
-		this.transactionId = transactionId;
-	}
+    void setTransactionId(String transactionId);
 
-	public String getInstrumentId() {
-		return instrumentId;
-	}
+    String getInstrumentId();
 
-	public void setInstrumentId(String instrumentId) {
-		this.instrumentId = instrumentId;
-	}
+    void setInstrumentId(String instrumentId);
 
-	public Double getPrice() {
-		return price;
-	}
+    Double getPrice();
 
-	public void setPrice(Double price) {
-		this.price = price;
-	}
+    void setPrice(Double price);
 
-	public Integer getVolume() {
-		return volume;
-	}
+    Integer getVolume();
 
-	public void setVolume(Integer volume) {
-		this.volume = volume;
-	}
+    void setVolume(Integer volume);
 
-	public String getDirection() {
-		return direction;
-	}
+    String getDirection();
 
-	public void setDirection(String direction) {
-		this.direction = direction;
-	}
+    void setDirection(String direction);
 
-	public String getTradingDay() {
-		return tradingDay;
-	}
+    String getTradingDay();
 
-	public void setTradingDay(String tradingDay) {
-		this.tradingDay = tradingDay;
-	}
+    void setTradingDay(String tradingDay);
 
-	public String getOffset() {
-		return offset;
-	}
+    String getOffset();
 
-	public void setOffset(String offset) {
-		this.offset = offset;
-	}
+    void setOffset(String offset);
 
 }

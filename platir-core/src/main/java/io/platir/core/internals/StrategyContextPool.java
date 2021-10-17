@@ -11,6 +11,7 @@ import io.platir.core.PlatirSystem;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
+import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
@@ -93,7 +94,7 @@ class StrategyContextPool {
     }
 
     private Notice verifyLogin(StrategyProfile profile) {
-        var n = new Notice();
+        var n = ObjectFactory.newNotice();
         n.setCode(0);
         n.setMessage("good");
         try {

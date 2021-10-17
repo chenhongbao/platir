@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import io.platir.core.PlatirSystem;
+import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Contract;
 import io.platir.service.Notice;
 import io.platir.service.Order;
@@ -113,7 +114,7 @@ class TransactionQueue implements Runnable {
         var r = new HashSet<Contract>();
         var uid = client.getStrategyProfile().getUserId();
         for (int i = 0; i < transaction.getVolume(); ++i) {
-            var c = new Contract();
+            var c = ObjectFactory.newContract();
             /*
              * Contract ID = <order-id>.<some-digits>
              */
@@ -138,7 +139,7 @@ class TransactionQueue implements Runnable {
     }
 
     private Notice checkOpen(String oid, PlatirQueryClientImpl query, Transaction t) {
-        var r = new Notice();
+        var r = ObjectFactory.newNotice();
         var available = query.getAccount().getAvailable();
         if (available <= 0) {
             r.setCode(1001);
@@ -172,7 +173,7 @@ class TransactionQueue implements Runnable {
             Integer volume, String direction, Collection<Contract> contracts, String offset,
             TransactionContextImpl transCtx) {
         var cli = transCtx.getStrategyContext().getPlatirClientImpl();
-        var o = new Order();
+        var o = ObjectFactory.newOrder();
         o.setOrderId(orderId);
         o.setTransactionId(transactionId);
         o.setInstrumentId(instrumentId);
@@ -249,7 +250,7 @@ class TransactionQueue implements Runnable {
     }
 
     private void saveCodeMessage(int code, String message, TransactionContextImpl ctx) {
-        var r = new RiskNotice();
+        var r = ObjectFactory.newRiskNotice();
         var profile = ctx.getStrategyContext().getProfile();
         r.setCode(3002);
         r.setMessage(message);
@@ -269,7 +270,7 @@ class TransactionQueue implements Runnable {
             return rsk.before(tick, ctx);
         } catch (Throwable th) {
             var profile = ctx.getStrategyContext().getProfile();
-            var r = new RiskNotice();
+            var r = ObjectFactory.newRiskNotice();
             r.setCode(1005);
             r.setMessage("before(Tick, TransactionContext) throws exception");
             r.setUserId(profile.getUserId());
@@ -315,7 +316,7 @@ class TransactionQueue implements Runnable {
 
     private Notice checkClose(PlatirQueryClientImpl query, String instrumentId, String direction, Integer volume) {
         /* buy-open for sell-closed, sell-open for buy-closed */
-        var r = new Notice();
+        var r = ObjectFactory.newNotice();
         var available = query.getContracts(instrumentId).stream()
                 .filter(c -> c.getDirection().compareToIgnoreCase(direction) != 0)
                 .filter(c -> c.getState().compareToIgnoreCase("open") == 0).collect(Collectors.toSet());

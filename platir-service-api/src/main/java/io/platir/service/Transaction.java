@@ -1,104 +1,49 @@
 package io.platir.service;
 
-public class Transaction {
-	private String transactionId;
-	private String strategyId;
-	private String instrumentId;
-	private Double price;
-	private Integer volume;
-	private String offset;
-	private String direction;
-	private String state;
-	private String stateMessage;
-	private String tradingDay;
-	private String updateTime;
+public interface Transaction {
 
-	public String getState() {
-		return state;
-	}
+    String getState();
 
-	public void setState(String state) {
-		this.state = state;
-	}
+    void setState(String state);
 
-	public String getStateMessage() {
-		return stateMessage;
-	}
+    String getStateMessage();
 
-	public void setStateMessage(String stateMessage) {
-		this.stateMessage = stateMessage;
-	}
+    void setStateMessage(String stateMessage);
 
-	public String getTransactionId() {
-		return transactionId;
-	}
+    String getTransactionId();
 
-	public void setTransactionId(String transactionId) {
-		this.transactionId = transactionId;
-	}
+    void setTransactionId(String transactionId);
 
-	public String getInstrumentId() {
-		return instrumentId;
-	}
+    String getInstrumentId();
 
-	public void setInstrumentId(String instrumentId) {
-		this.instrumentId = instrumentId;
-	}
+    void setInstrumentId(String instrumentId);
 
-	public Double getPrice() {
-		return price;
-	}
+    Double getPrice();
 
-	public void setPrice(Double price) {
-		this.price = price;
-	}
+    void setPrice(Double price);
 
-	public Integer getVolume() {
-		return volume;
-	}
+    Integer getVolume();
 
-	public void setVolume(Integer volume) {
-		this.volume = volume;
-	}
+    void setVolume(Integer volume);
 
-	public String getDirection() {
-		return direction;
-	}
+    String getDirection();
 
-	public void setDirection(String direction) {
-		this.direction = direction;
-	}
+    void setDirection(String direction);
 
-	public String getTradingDay() {
-		return tradingDay;
-	}
+    String getTradingDay();
 
-	public void setTradingDay(String tradingDay) {
-		this.tradingDay = tradingDay;
-	}
+    void setTradingDay(String tradingDay);
 
-	public String getUpdateTime() {
-		return updateTime;
-	}
+    String getUpdateTime();
 
-	public void setUpdateTime(String updateTime) {
-		this.updateTime = updateTime;
-	}
+    void setUpdateTime(String updateTime);
 
-	public String getOffset() {
-		return offset;
-	}
+    String getOffset();
 
-	public void setOffset(String offset) {
-		this.offset = offset;
-	}
+    void setOffset(String offset);
 
-	public String getStrategyId() {
-		return strategyId;
-	}
+    String getStrategyId();
 
-	public void setStrategyId(String strategyId) {
-		this.strategyId = strategyId;
-	}
+    void setStrategyId(String strategyId);
 
 }

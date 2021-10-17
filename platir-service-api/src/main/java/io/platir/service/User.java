@@ -1,42 +1,21 @@
 package io.platir.service;
 
-public class User {
+public interface User {
 
-	private String userId;
-	private String password;
-	private String createTime;
-	private String lastLoginTime;
+    String getUserId();
 
-	public String getUserId() {
-		return userId;
-	}
+    String getPassword();
 
-	public String getPassword() {
-		return password;
-	}
+    String getCreateTime();
 
-	public String getCreateTime() {
-		return createTime;
-	}
+    String getLastLoginTime();
 
-	public String getLastLoginTime() {
-		return lastLoginTime;
-	}
+    void setUserId(String userId);
 
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+    void setPassword(String password);
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    void setCreateTime(String createTime);
 
-	public void setCreateTime(String createTime) {
-		this.createTime = createTime;
-	}
-
-	public void setLastLoginTime(String lastLoginTime) {
-		this.lastLoginTime = lastLoginTime;
-	}
+    void setLastLoginTime(String lastLoginTime);
 
 }

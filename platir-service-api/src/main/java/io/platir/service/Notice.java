@@ -1,36 +1,19 @@
 package io.platir.service;
 
-public class Notice {
-	private String message;
-	private Integer code;
-	private Object object;
+public interface Notice {
 
-	public String getMessage() {
-		return message;
-	}
+    String getMessage();
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+    void setMessage(String message);
 
-	public Integer getCode() {
-		return code;
-	}
+    Integer getCode();
 
-	public void setCode(Integer code) {
-		this.code = code;
-	}
+    void setCode(Integer code);
 
-	public Object getObject() {
-		return object;
-	}
+    Object getObject();
 
-	public void setObject(Object object) {
-		this.object = object;
-	}
-	
-	public boolean isGood() {
-		return code != null && code == 0;
-	}
+    void setObject(Object object);
+
+    boolean isGood();
 
 }

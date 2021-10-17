@@ -1,77 +1,37 @@
 package io.platir.service;
 
-public class Position {
-	private String instrumentId;
-	private String userId;
-	private String direction;
-	private Integer todayOpenVolume;
-	private Integer openVolume;
-	private Integer closedVolume;
-	private Integer closingVolume;
-	private Integer openingVolume;
+public interface Position {
 
-	public String getInstrumentId() {
-		return instrumentId;
-	}
+    String getInstrumentId();
 
-	public void setInstrumentId(String instrumentId) {
-		this.instrumentId = instrumentId;
-	}
+    void setInstrumentId(String instrumentId);
 
-	public String getUserId() {
-		return userId;
-	}
+    String getUserId();
 
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+    void setUserId(String userId);
 
-	public String getDirection() {
-		return direction;
-	}
+    String getDirection();
 
-	public void setDirection(String direction) {
-		this.direction = direction;
-	}
+    void setDirection(String direction);
 
-	public Integer getClosingVolume() {
-		return closingVolume;
-	}
+    Integer getClosingVolume();
 
-	public void setClosingVolume(Integer closingVolume) {
-		this.closingVolume = closingVolume;
-	}
+    void setClosingVolume(Integer closingVolume);
 
-	public Integer getOpeningVolume() {
-		return openingVolume;
-	}
+    Integer getOpeningVolume();
 
-	public void setOpeningVolume(Integer openingVolume) {
-		this.openingVolume = openingVolume;
-	}
+    void setOpeningVolume(Integer openingVolume);
 
-	public Integer getTodayOpenVolume() {
-		return todayOpenVolume;
-	}
+    Integer getTodayOpenVolume();
 
-	public Integer getOpenVolume() {
-		return openVolume;
-	}
+    Integer getOpenVolume();
 
-	public Integer getClosedVolume() {
-		return closedVolume;
-	}
+    Integer getClosedVolume();
 
-	public void setTodayOpenVolume(Integer todayOpenVolume) {
-		this.todayOpenVolume = todayOpenVolume;
-	}
+    void setTodayOpenVolume(Integer todayOpenVolume);
 
-	public void setOpenVolume(Integer openVolume) {
-		this.openVolume = openVolume;
-	}
+    void setOpenVolume(Integer openVolume);
 
-	public void setClosedVolume(Integer closedVolume) {
-		this.closedVolume = closedVolume;
-	}
+    void setClosedVolume(Integer closedVolume);
 
 }

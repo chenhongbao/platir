@@ -11,39 +11,39 @@ import io.platir.service.Trade;
 import io.platir.service.TransactionContext;
 
 class OrderContextImpl implements OrderContext {
-	
-	private final Order o;
-	private final TransactionContextImpl trCtx;
-	private final Set<Contract> locked = new ConcurrentSkipListSet<>();
-	private final Set<Trade> trades = new ConcurrentSkipListSet<>();
-	
-	OrderContextImpl(Order order, TransactionContextImpl transaction) {
-		o = order;
-		trCtx = transaction;
-	}
-	
-	void addTrade(Trade trade) {
-		trades.add(trade);
-	}
 
-	@Override
-	public Order getOrder() {
-		return o;
-	}
+    private final Order o;
+    private final TransactionContextImpl trCtx;
+    private final Set<Contract> locked = new ConcurrentSkipListSet<>();
+    private final Set<Trade> trades = new ConcurrentSkipListSet<>();
 
-	@Override
-	public Set<Contract> lockedContracts() {
-		return locked;
-	}
+    OrderContextImpl(Order order, TransactionContextImpl transaction) {
+        o = order;
+        trCtx = transaction;
+    }
 
-	@Override
-	public Set<Trade> getTrades() {
-		return new HashSet<>(trades);
-	}
+    void addTrade(Trade trade) {
+        trades.add(trade);
+    }
 
-	@Override
-	public TransactionContext getTransactionContext() {
-		return trCtx;
-	}
+    @Override
+    public Order getOrder() {
+        return o;
+    }
+
+    @Override
+    public Set<Contract> lockedContracts() {
+        return locked;
+    }
+
+    @Override
+    public Set<Trade> getTrades() {
+        return new HashSet<>(trades);
+    }
+
+    @Override
+    public TransactionContext getTransactionContext() {
+        return trCtx;
+    }
 
 }

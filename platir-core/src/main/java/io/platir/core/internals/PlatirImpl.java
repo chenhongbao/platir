@@ -19,7 +19,7 @@ import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
 import io.platir.core.StartupException;
-import io.platir.service.AdaptorStartupException;
+import io.platir.service.api.AdaptorStartupException;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;

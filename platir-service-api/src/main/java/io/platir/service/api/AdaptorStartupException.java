@@ -1,4 +1,4 @@
-package io.platir.service;
+package io.platir.service.api;
 
 /**
  *

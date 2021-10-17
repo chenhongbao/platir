@@ -1,131 +1,61 @@
 package io.platir.service;
 
-public class Account {
-	private String accountId;
-	private String userId;
-	private Double balance;
-	private Double margin;
-	private Double commission;
-	private Double openingMargin;
-	private Double openingCommission;
-	private Double closingCommission;
-	private Double available;
-	private Double positionProfit;
-	private Double closeProfit;
-	private Double ydBalance;
-	private String tradingDay;
-	private String settleTime;
+public interface Account {
 
-	public String getAccountId() {
-		return accountId;
-	}
+    String getAccountId();
 
-	public String getUserId() {
-		return userId;
-	}
+    String getUserId();
 
-	public void setAccountId(String accountId) {
-		this.accountId = accountId;
-	}
+    void setAccountId(String accountId);
 
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+    void setUserId(String userId);
 
-	public Double getOpeningMargin() {
-		return openingMargin;
-	}
+    Double getOpeningMargin();
 
-	public void setOpeningMargin(Double openingMargin) {
-		this.openingMargin = openingMargin;
-	}
+    void setOpeningMargin(Double openingMargin);
 
-	public Double getOpeningCommission() {
-		return openingCommission;
-	}
+    Double getOpeningCommission();
 
-	public void setOpeningCommission(Double openingCommission) {
-		this.openingCommission = openingCommission;
-	}
+    void setOpeningCommission(Double openingCommission);
 
-	public Double getClosingCommission() {
-		return closingCommission;
-	}
+    Double getClosingCommission();
 
-	public void setClosingCommission(Double closingCommission) {
-		this.closingCommission = closingCommission;
-	}
+    void setClosingCommission(Double closingCommission);
 
-	public Double getBalance() {
-		return balance;
-	}
+    Double getBalance();
 
-	public void setBalance(Double balance) {
-		this.balance = balance;
-	}
+    void setBalance(Double balance);
 
-	public Double getMargin() {
-		return margin;
-	}
+    Double getMargin();
 
-	public void setMargin(Double margin) {
-		this.margin = margin;
-	}
+    void setMargin(Double margin);
 
-	public Double getCommission() {
-		return commission;
-	}
+    Double getCommission();
 
-	public void setCommission(Double commission) {
-		this.commission = commission;
-	}
+    void setCommission(Double commission);
 
-	public Double getAvailable() {
-		return available;
-	}
+    Double getAvailable();
 
-	public void setAvailable(Double available) {
-		this.available = available;
-	}
+    void setAvailable(Double available);
 
-	public Double getPositionProfit() {
-		return positionProfit;
-	}
+    Double getPositionProfit();
 
-	public void setPositionProfit(Double positionProfit) {
-		this.positionProfit = positionProfit;
-	}
+    void setPositionProfit(Double positionProfit);
 
-	public Double getCloseProfit() {
-		return closeProfit;
-	}
+    Double getCloseProfit();
 
-	public void setCloseProfit(Double closeProfit) {
-		this.closeProfit = closeProfit;
-	}
+    void setCloseProfit(Double closeProfit);
 
-	public Double getYdBalance() {
-		return ydBalance;
-	}
+    Double getYdBalance();
 
-	public void setYdBalance(Double ydBalance) {
-		this.ydBalance = ydBalance;
-	}
+    void setYdBalance(Double ydBalance);
 
-	public String getTradingDay() {
-		return tradingDay;
-	}
+    String getTradingDay();
 
-	public void setTradingDay(String tradingDay) {
-		this.tradingDay = tradingDay;
-	}
+    void setTradingDay(String tradingDay);
 
-	public String getSettleTime() {
-		return settleTime;
-	}
+    String getSettleTime();
 
-	public void setSettleTime(String settleTime) {
-		this.settleTime = settleTime;
-	}
+    void setSettleTime(String settleTime);
 
 }

@@ -1,86 +1,41 @@
 package io.platir.service;
 
-public class Contract {
-	private String contractId;
-	private String userId;
-	private String instrumentId;
-	private String direction;
-	private Double price;
-	private Double closePrice;
-	private String state;
-	private String openTradingDay;
-	private String openTime;
+public interface Contract {
 
-	public String getContractId() {
-		return contractId;
-	}
+    String getContractId();
 
-	public void setContractId(String contractId) {
-		this.contractId = contractId;
-	}
+    void setContractId(String contractId);
 
-	public String getUserId() {
-		return userId;
-	}
+    String getUserId();
 
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+    void setUserId(String userId);
 
-	public String getInstrumentId() {
-		return instrumentId;
-	}
+    String getInstrumentId();
 
-	public void setInstrumentId(String instrumentId) {
-		this.instrumentId = instrumentId;
-	}
+    void setInstrumentId(String instrumentId);
 
-	public String getDirection() {
-		return direction;
-	}
+    String getDirection();
 
-	public void setDirection(String direction) {
-		this.direction = direction;
-	}
+    void setDirection(String direction);
 
-	public Double getPrice() {
-		return price;
-	}
+    Double getPrice();
 
-	public void setPrice(Double price) {
-		this.price = price;
-	}
+    void setPrice(Double price);
 
-	public String getState() {
-		return state;
-	}
+    String getState();
 
-	public void setState(String state) {
-		this.state = state;
-	}
+    void setState(String state);
 
-	public String getOpenTradingDay() {
-		return openTradingDay;
-	}
+    String getOpenTradingDay();
 
-	public void setOpenTradingDay(String openTradingDay) {
-		this.openTradingDay = openTradingDay;
-	}
+    void setOpenTradingDay(String openTradingDay);
 
-	public String getOpenTime() {
-		return openTime;
-	}
+    String getOpenTime();
 
-	public void setOpenTime(String openTime) {
-		this.openTime = openTime;
-	}
+    void setOpenTime(String openTime);
 
-	public Double getClosePrice() {
-		return closePrice;
-	}
+    Double getClosePrice();
 
-	public void setClosePrice(Double closePrice) {
-		this.closePrice = closePrice;
-	}
+    void setClosePrice(Double closePrice);
 
 }

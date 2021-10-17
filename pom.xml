@@ -18,8 +18,6 @@
     <module>platir-service-api</module>
         
     <module>platir-core</module>
-        
-    <module>platir-queries-sql</module>
       
   </modules>
   
