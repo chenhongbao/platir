@@ -15,7 +15,6 @@ import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Contract;
 import io.platir.service.Notice;
-import io.platir.service.Order;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.Transaction;
@@ -62,6 +61,7 @@ class TransactionQueue implements Runnable {
         int count = 0;
         count += queueing.stream().mapToInt(t -> t.getStrategyContext() == strategy ? 1 : 0).sum();
         count += pending.stream().mapToInt(t -> t.getStrategyContext() == strategy ? 1 : 0).sum();
+        count += lis.countStrategyRunning(strategy);
         return count;
     }
 

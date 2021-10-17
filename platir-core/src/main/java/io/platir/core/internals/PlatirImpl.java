@@ -80,6 +80,7 @@ public class PlatirImpl extends Platir {
             market.shutdown();
             trader.shutdown();
             isShutdown.set(true);
+            dbDestroy();
             // Signal waiting thread on join().
             signalJoiner();
         }
@@ -100,17 +101,25 @@ public class PlatirImpl extends Platir {
             if (!isShutdown.get()) {
                 return;
             }
-            dbTables();
+            dbInit();
             setup();
             isShutdown.set(false);
         }
     }
 
-    private void dbTables() {
+    private void dbInit() {
         try {
-            qry.prepareTables();
+            qry.initialize();
         } catch (SQLException e) {
             throw new RuntimeException("Fail preparing database.", e);
+        }
+    }
+
+    private void dbDestroy() {
+        try {
+            qry.destroy();
+        } catch (SQLException ex) {
+            throw new RuntimeException("Fail closing data source.", ex);
         }
     }
 

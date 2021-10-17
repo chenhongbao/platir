@@ -3,7 +3,6 @@ package io.platir.core.internals;
 import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
-import io.platir.service.RiskNotice;
 import io.platir.service.Trade;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeListener;
@@ -31,6 +30,10 @@ class TradeListenerContexts implements TradeListener {
 
     TradeListenerContexts(RiskAssess risk) {
         rsk = risk;
+    }
+
+    int countStrategyRunning(StrategyContextImpl strategy) {
+        return ctxs.values().stream().mapToInt(ctx -> ctx.trCtx.getStrategyContext() == strategy ? 1 : 0).sum();
     }
 
     void clearContexts() {

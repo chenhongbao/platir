@@ -17,7 +17,9 @@ import io.platir.service.User;
 
 public interface Queries {
 
-	void prepareTables() throws SQLException;
+	void initialize() throws SQLException;
+        
+        void destroy() throws SQLException;
 
 	void insert(TradingDay day) throws SQLException;
 

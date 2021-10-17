@@ -23,7 +23,6 @@ import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.OrderContext;
 import io.platir.service.PlatirClient;
-import io.platir.service.RiskNotice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
