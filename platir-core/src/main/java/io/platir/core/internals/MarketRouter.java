@@ -109,10 +109,7 @@ class MarketRouter implements MarketListener {
         }
         var sec = tick.getUpdateTime().substring(15, 16);
         if (sec.equals("00") || sec.equals("59")) {
-            /*
-			 * don't awake transaction at the edge of a minute, it may be the end of a
-			 * session
-             */
+            /*don't awake transaction at the edge of a minute, it may be the end of a session */
             return;
         }
         trQueue.awake(tick);
