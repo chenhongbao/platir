@@ -3,11 +3,11 @@ package io.platir.core.internals;
 import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
-import io.platir.service.RiskNotice;
 import io.platir.service.Trade;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeListener;
-import java.sql.SQLException;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +31,10 @@ class TradeListenerContexts implements TradeListener {
 
     TradeListenerContexts(RiskAssess risk) {
         rsk = risk;
+    }
+
+    int countStrategyRunning(StrategyContextImpl strategy) {
+        return ctxs.values().stream().mapToInt(ctx -> ctx.trCtx.getStrategyContext() == strategy ? 1 : 0).sum();
     }
 
     void clearContexts() {
@@ -96,7 +100,7 @@ class TradeListenerContexts implements TradeListener {
             try {
                 /* save trade to data source. */
                 stg.getPlatirClientImpl().queries().insert(trade);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 /* worker thread sees this exception, just log it */
                 PlatirSystem.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId() + ") into data source: " + e.getMessage(), e);
             }
@@ -104,7 +108,7 @@ class TradeListenerContexts implements TradeListener {
             oCtx.addTrade(trade);
             /* update contracts' states */
             updateContracts(trade);
-            stg.timedOnTrade(trade);
+            stg.processTrade(trade);
             checkCompleted(trade.getVolume());
             /* risk assess */
             afterRisk(trade);
@@ -112,7 +116,7 @@ class TradeListenerContexts implements TradeListener {
 
         void processNotice(int code, String message) {
             signalResponse(code, message);
-            timedOnNotice(code, message);
+            pushNotice(code, message);
         }
 
         void signalResponse(int code, String message) {
@@ -186,7 +190,7 @@ class TradeListenerContexts implements TradeListener {
                 }
                 try {
                     stg.getPlatirClientImpl().queries().update(c);
-                } catch (SQLException e) {
+                } catch (DataQueryException e) {
                     PlatirSystem.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId() + ") state(" + c.getState() + ").", e);
                     /* roll back state */
                     c.setState(prevState);
@@ -206,16 +210,16 @@ class TradeListenerContexts implements TradeListener {
             }
         }
 
-        private void timedOnNotice(int code, String message) {
-            timedOnNotice(code, message, null);
+        private void pushNotice(int code, String message) {
+            pushNotice(code, message, null);
         }
 
-        private void timedOnNotice(int code, String message, Throwable error) {
+        private void pushNotice(int code, String message, Throwable error) {
             var n = ObjectFactory.newNotice();
             n.setCode(code);
             n.setMessage(message);
             n.setObject(error);
-            trCtx.getStrategyContext().timedOnNotice(n);
+            trCtx.getStrategyContext().processNotice(n);
         }
 
         private void checkCompleted(int addedVolume) {
@@ -227,7 +231,7 @@ class TradeListenerContexts implements TradeListener {
                 trCtx = null;
             }
             if (cur == vol) {
-                timedOnNotice(0, "trade completed");
+                pushNotice(0, "trade completed");
             } else if (cur > vol) {
                 int code = 3002;
                 var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
@@ -253,7 +257,7 @@ class TradeListenerContexts implements TradeListener {
             r.setUpdateTime(PlatirSystem.datetime());
             try {
                 trCtx.getQueryClient().queries().insert(r);
-            } catch (SQLException e) {
+            } catch (DataQueryException e) {
                 PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
             }
         }

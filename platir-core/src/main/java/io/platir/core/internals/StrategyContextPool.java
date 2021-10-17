@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import java.sql.SQLException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -15,6 +14,7 @@ import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
 
@@ -71,7 +71,7 @@ class StrategyContextPool {
         profile.setCreateDate(PlatirSystem.date());
         try {
             qry.insert(profile);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new StrategyCreateException(
                     "Can't create strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
         }
@@ -109,7 +109,7 @@ class StrategyContextPool {
                 n.setCode(5001);
                 n.setMessage("login failure");
             }
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             n.setCode(5002);
             n.setMessage("login SQL operation failure");
         }
@@ -151,7 +151,7 @@ class StrategyContextPool {
         profile.setRemoveDate(PlatirSystem.date());
         try {
             qry.update(profile);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new StrategyRemovalException(
                     "Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
         }
@@ -193,7 +193,7 @@ class StrategyContextPool {
             old.setInstrumentIds(newProf.getInstrumentIds());
             /* update data source */
             qry.update(old);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new StrategyUpdateException("Can't update strategy(" + old.getStrategyId() + ") profile in data source: " + e.getMessage(), e);
         }
     }

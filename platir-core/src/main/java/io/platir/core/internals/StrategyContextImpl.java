@@ -1,14 +1,8 @@
 package io.platir.core.internals;
 
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.platir.core.AnnotationParsingException;
@@ -23,13 +17,13 @@ import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.OrderContext;
 import io.platir.service.PlatirClient;
-import io.platir.service.RiskNotice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
 
@@ -50,7 +44,6 @@ class StrategyContextImpl implements StrategyContext {
     private final AnnotatedStrategy annStg;
     private final PlatirClientImpl cli;
     private final RiskAssess rsk;
-    private final ExecutorService pool = Executors.newCachedThreadPool();
     private final Set<TransactionContextImpl> transactions = new ConcurrentSkipListSet<>();
 
     /*
@@ -58,6 +51,7 @@ class StrategyContextImpl implements StrategyContext {
 	 * still comes in.
      */
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
+    private final StrategyCallbackQueue cb;
 
     StrategyContextImpl(StrategyProfile profile, Object strategy, TransactionQueue trQueue, MarketRouter mkRouter,
             RiskAssess riskAssess, Queries queries) throws AnnotationParsingException {
@@ -65,6 +59,7 @@ class StrategyContextImpl implements StrategyContext {
         prof = profile;
         annStg = new AnnotatedStrategy(strategy);
         cli = new PlatirClientImpl(this, trQueue, mkRouter, queries);
+        cb = new StrategyCallbackQueue(cli, prof, rsk, annStg);
     }
 
     PlatirClientImpl getPlatirClientImpl() {
@@ -84,8 +79,8 @@ class StrategyContextImpl implements StrategyContext {
                     "Can't interrupt strategy(" + prof.getStrategyId() + "): " + e.getMessage() + ".");
         }
         isShutdown.set(true);
-        timedOnDestroy();
-        pool.shutdown();
+        cb.timedOnDestroy();
+        cb.shutdown();
     }
 
     void addTransactionContext(TransactionContextImpl transaction) {
@@ -96,31 +91,29 @@ class StrategyContextImpl implements StrategyContext {
         return annStg;
     }
 
-    void timedOnTick(Tick tick) {
+    void processTick(Tick tick) {
         /* if the strategy is shutdown, no more tick input */
         if (isShutdown.get()) {
             return;
         }
-        timedOperation(true, 1, () -> {
-            annStg.onTick(tick);
-        });
+        cb.push(tick);
     }
 
-    void timedOnBar(Bar bar) {
+    void processBar(Bar bar) {
         /* if the strategy is shutdown, no more bar input */
         if (isShutdown.get()) {
             return;
         }
-        timedOperation(true, 1, () -> {
-            annStg.onBar(bar);
-        });
+        cb.push(bar);
     }
 
-    void timedOnTrade(Trade trade) {
+    void processTrade(Trade trade) {
         checkTransactionCompleted();
-        timedOperation(true, 1, () -> {
-            annStg.onTrade(trade);
-        });
+        cb.push(cb);
+    }
+
+    void processNotice(Notice notice) {
+        cb.push(notice);
     }
 
     private void checkTransactionCompleted() {
@@ -152,94 +145,17 @@ class StrategyContextImpl implements StrategyContext {
         }
     }
 
-    void timedOnNotice(Notice notice) {
-        timedOperation(false, 1, () -> {
-            annStg.onNotice(notice);
-        });
-    }
-
-    void timedOnStart(String[] args, PlatirClientImpl cli) {
-        timedOperation(true, 5, () -> {
-            annStg.onStart(args, cli);
-        });
-    }
-
-    void timedOnStop(int reason) {
-        timedOperation(true, 5, () -> {
-            annStg.onStop(reason);
-        });
-    }
-
-    void timedOnDestroy() {
-        timedOperation(true, 5, () -> {
-            annStg.onDestroy();
-        });
-    }
-
-    private void timedOperation(boolean needNotice, int timeoutSec, TimedJob job) {
-        var fut = pool.submit(() -> {
-            var r = ObjectFactory.newNotice();
-            try {
-                job.work();
-
-                r.setCode(0);
-                r.setMessage("good");
-            } catch (Throwable th) {
-                r.setCode(4001);
-                r.setMessage("Callback throws exception: " + th.getMessage());
-                r.setObject(th);
-            }
-            return r;
-        });
-
-        try {
-            var r = fut.get(timeoutSec, TimeUnit.SECONDS);
-            if (!r.isGood()) {
-                PlatirSystem.err.write(r.getMessage());
-                if (needNotice) {
-                    /* tell strategy its callback fails */
-                    timedOnNotice(r);
-                }
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            PlatirSystem.err.write("Timed operation is interrupted: " + e.getMessage(), e);
-        } catch (TimeoutException e) {
-            var r = ObjectFactory.newNotice();
-            r.setCode(4002);
-            r.setMessage("Callback operation is timeout.");
-            r.setObject(e);
-            /* tell strategy its callback timeout */
-            timedOnNotice(r);
-            /* tell risk assessment there is callback timeout */
-            var msg = "User(" + prof.getUserId() + ") strategy(" + prof.getStrategyId() + ") callback timeout.";
-            PlatirSystem.err.write(msg);
-            saveCodeMessage(r.getCode(), msg);
-            try {
-                rsk.notice(r.getCode(), msg);
-            } catch (Throwable th) {
-                PlatirSystem.err.write(
-                        "Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(), th);
-            }
-        } finally {
-            /* the task has to be aborted */
-            if (!fut.isDone()) {
-                fut.cancel(true);
-            }
-        }
-    }
-
     private void saveCodeMessage(int code, String message) {
         var r = ObjectFactory.newRiskNotice();
-        var profile = getProfile();
-        r.setCode(3002);
+        r.setCode(code);
         r.setMessage(message);
         r.setLevel(5);
-        r.setUserId(profile.getUserId());
-        r.setStrategyId(profile.getStrategyId());
+        r.setUserId(prof.getUserId());
+        r.setStrategyId(prof.getStrategyId());
         r.setUpdateTime(PlatirSystem.datetime());
         try {
             getPlatirClientImpl().queries().insert(r);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
@@ -338,14 +254,14 @@ class StrategyContextImpl implements StrategyContext {
 
     @Override
     public void initialize() {
-        timedOnStart(prof.getArgs(), cli);
+        cb.timedOnStart(prof.getArgs(), cli);
         isShutdown.set(false);
     }
 
     @Override
     public void shutdown(int reason) {
         isShutdown.set(true);
-        timedOnStop(reason);
+        cb.timedOnStop(reason);
     }
 
     @Override
@@ -366,12 +282,6 @@ class StrategyContextImpl implements StrategyContext {
     @Override
     public Set<TransactionContext> getTransactionContexts() {
         return new HashSet<>(transactions);
-    }
-
-    @FunctionalInterface
-    private interface TimedJob {
-
-        void work();
     }
 
     @Override

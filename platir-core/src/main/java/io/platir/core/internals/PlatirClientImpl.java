@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -13,6 +12,7 @@ import io.platir.service.InterruptionException;
 import io.platir.service.PlatirClient;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
+import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 
 /**
@@ -108,7 +108,7 @@ class PlatirClientImpl extends PlatirQueryClientImpl implements PlatirClient {
             getStrategyContext().getPlatirClientImpl().queries().insert(trans);
             /* send the order and update trades into TransactionContext. */
             tr.push(transCtx);
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new TransactionException("Can't insert or update transaction(" + trans.getTransactionId()
                     + ") in data source: " + e.getMessage(), e);
         }
@@ -127,7 +127,7 @@ class PlatirClientImpl extends PlatirQueryClientImpl implements PlatirClient {
         }
         try {
             queries().update(getStrategyProfile());
-        } catch (SQLException e) {
+        } catch (DataQueryException e) {
             throw new InterruptionException(
                     "Can't update strategy state(" + getStrategyProfile().getState() + "): " + e.getMessage(), e);
         }

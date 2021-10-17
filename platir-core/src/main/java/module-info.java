@@ -1,6 +1,5 @@
 module io.platir.core {
 	exports io.platir.core;
-	requires transitive io.platir.service.api;
-	requires java.sql;
+	requires io.platir.service.api;
 	requires com.google.gson;
 }
