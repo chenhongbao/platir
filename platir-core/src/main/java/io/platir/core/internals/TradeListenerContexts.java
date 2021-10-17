@@ -116,7 +116,7 @@ class TradeListenerContexts implements TradeListener {
 
         void processNotice(int code, String message) {
             signalResponse(code, message);
-            timedOnNotice(code, message);
+            pushNotice(code, message);
         }
 
         void signalResponse(int code, String message) {
@@ -210,11 +210,11 @@ class TradeListenerContexts implements TradeListener {
             }
         }
 
-        private void timedOnNotice(int code, String message) {
-            timedOnNotice(code, message, null);
+        private void pushNotice(int code, String message) {
+            pushNotice(code, message, null);
         }
 
-        private void timedOnNotice(int code, String message, Throwable error) {
+        private void pushNotice(int code, String message, Throwable error) {
             var n = ObjectFactory.newNotice();
             n.setCode(code);
             n.setMessage(message);
@@ -231,7 +231,7 @@ class TradeListenerContexts implements TradeListener {
                 trCtx = null;
             }
             if (cur == vol) {
-                timedOnNotice(0, "trade completed");
+                pushNotice(0, "trade completed");
             } else if (cur > vol) {
                 int code = 3002;
                 var msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
