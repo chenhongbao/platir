@@ -17,81 +17,80 @@ import io.platir.service.TransactionContext;
 
 class TransactionContextImpl implements TransactionContext {
 
-	private final Transaction trans;
-	private final StrategyContextImpl stg;
-	private final AtomicBoolean awaken = new AtomicBoolean(false);
-	private final AtomicReference<Tick> triggerTick = new AtomicReference<>();
-	private final Set<OrderContextImpl> pending = new ConcurrentSkipListSet<>();
-	private final Set<OrderContextImpl> orders = new ConcurrentSkipListSet<>();
-	private final Lock l = new ReentrantLock();
-	private final Condition cond = l.newCondition();
+    private final Transaction trans;
+    private final StrategyContextImpl stg;
+    private final AtomicBoolean awaken = new AtomicBoolean(false);
+    private final AtomicReference<Tick> triggerTick = new AtomicReference<>();
+    private final Set<OrderContextImpl> pending = new ConcurrentSkipListSet<>();
+    private final Set<OrderContextImpl> orders = new ConcurrentSkipListSet<>();
+    private final Lock l = new ReentrantLock();
+    private final Condition cond = l.newCondition();
 
-	TransactionContextImpl(Transaction transaction, StrategyContextImpl strategy) {
-		trans = transaction;
-		stg = strategy;
-	}
+    TransactionContextImpl(Transaction transaction, StrategyContextImpl strategy) {
+        trans = transaction;
+        stg = strategy;
+    }
 
-	PlatirQueryClientImpl getQueryClient() {
-		return stg.getPlatirClientImpl();
-	}
+    PlatirQueryClientImpl getQueryClient() {
+        return stg.getPlatirClientImpl();
+    }
 
-	Tick getLastTriggerTick() {
-		return triggerTick.get();
-	}
+    Tick getLastTriggerTick() {
+        return triggerTick.get();
+    }
 
-	void setTriggerTick(Tick tick) {
-		triggerTick.set(tick);
-	}
+    void setTriggerTick(Tick tick) {
+        triggerTick.set(tick);
+    }
 
-	void addOrderContext(OrderContextImpl order) {
-		orders.add(order);
-	}
+    void addOrderContext(OrderContextImpl order) {
+        orders.add(order);
+    }
 
-	Set<OrderContextImpl> pendingOrder() {
-		return pending;
-	}
+    Set<OrderContextImpl> pendingOrder() {
+        return pending;
+    }
 
-	@Override
-	public StrategyContextImpl getStrategyContext() {
-		return stg;
-	}
+    @Override
+    public StrategyContextImpl getStrategyContext() {
+        return stg;
+    }
 
-	@Override
-	public Transaction getTransaction() {
-		return trans;
-	}
+    @Override
+    public Transaction getTransaction() {
+        return trans;
+    }
 
-	@Override
-	public void join() {
-		while (!awaken.get()) {
-			l.lock();
-			try {
-				cond.await();
-			} catch (InterruptedException e) {
-				PlatirSystem.err.write("Joining transaction is interrupted.", e);
-				continue;
-			} finally {
-				l.unlock();
-			}
-		}
-	}
+    @Override
+    public void join() {
+        while (!awaken.get()) {
+            l.lock();
+            try {
+                cond.await();
+            } catch (InterruptedException e) {
+                PlatirSystem.err.write("Joining transaction is interrupted.", e);
+            } finally {
+                l.unlock();
+            }
+        }
+    }
 
-	public void awake() {
-		if (awaken.get()) {
-			return;
-		}
-		awaken.set(true);
-		l.lock();
-		try {
-			cond.signal();
-		} finally {
-			l.unlock();
-		}
-	}
+    public void awake() {
+        if (awaken.get()) {
+            return;
+        }
+        awaken.set(true);
+        l.lock();
+        try {
+            cond.signal();
+        } finally {
+            l.unlock();
+        }
+    }
 
-	@Override
-	public Set<OrderContext> getOrderContexts() {
-		return new HashSet<>(orders);
-	}
+    @Override
+    public Set<OrderContext> getOrderContexts() {
+        return new HashSet<>(orders);
+    }
 
 }
