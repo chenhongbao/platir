@@ -17,11 +17,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Error code explanation:
+ * Error code explaination:
  * <ul>
- * <li>3001: Trade response timeout.
- * <li>3002: Trade more than expected.
- * <li>3003: Locked contracts are less than traded contracts.
+ * <li>3001: Trade response timeout.</li>
+ * <li>3002: Trade more than expected.</li>
+ * <li>3003: Locked contracts are less than traded contracts.</li>
  * </ul>
  */
 class TradeListenerContexts implements TradeListener {

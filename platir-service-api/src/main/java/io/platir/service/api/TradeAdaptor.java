@@ -5,7 +5,7 @@ public interface TradeAdaptor {
     /**
      * Allocate resource and connect to remote.
      *
-     * @throws io.platir.service.AdaptorStartupException
+     * @throws io.platir.service.api.AdaptorStartupException
      */
     void start() throws AdaptorStartupException;
 

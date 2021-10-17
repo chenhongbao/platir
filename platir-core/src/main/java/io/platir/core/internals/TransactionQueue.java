@@ -24,11 +24,12 @@ import io.platir.service.api.TradeAdaptor;
 /**
  * Error code explanation:
  * <ul>
- * <li>1001: Available money is zero or below zero.
- * <li>1002: Missing instrument information.
- * <li>1003: Not enough available money to open.
- * <li>1004: Not enough position to close.
- * <li>1005: Risk assess callback throws exception.
+ * <li>1001: Available money is zero or below zero.</li>
+ * <li>1002: Missing instrument information.</li>
+ * <li>1003: Not enough available money to open.</li>
+ * <li>1004: Not enough position to close.</li>
+ * <li>1005: Risk assess callback throws exception.</li>
+ * <li>1006: Invalid order offset.</li>
  * </ul>
  *
  * @author Chen Hongbao
@@ -236,6 +237,8 @@ class TransactionQueue implements Runnable {
                             }
                             /* Notify the transaction has failed. */
                             ctx.awake();
+                            /* notice callback */
+                            simpleNotice(1006, "invalid order offset(" + t.getOffset() + ")", ctx);
                         }
                     }
                 }
@@ -296,6 +299,8 @@ class TransactionQueue implements Runnable {
                         + "): " + e.getMessage(), e);
             }
             ctx.awake();
+            /* notice callback */
+            simpleNotice(r.getCode(), r.getMessage(), ctx);
         } else {
             @SuppressWarnings("unchecked")
             var contracts = (Collection<Contract>) r.getObject();
@@ -334,7 +339,7 @@ class TransactionQueue implements Runnable {
             available.remove(h);
         }
         closing(available, query);
-
+        /* return good */
         r.setCode(0);
         r.setMessage("good");
         r.setObject(available);
@@ -372,6 +377,8 @@ class TransactionQueue implements Runnable {
             }
             /* notify joiner the transaction fails. */
             ctx.awake();
+            /* notice callback */
+            simpleNotice(r.getCode(), r.getMessage(), ctx);
         } else {
             /* Lock resource for opening. */
             @SuppressWarnings("unchecked")
@@ -411,23 +418,43 @@ class TransactionQueue implements Runnable {
         /* Wait for the first response telling if the order is accepted. */
         var ro = lis.waitResponse(order.getOrderId());
         if (!ro.isGood()) {
-            /* Update state. */
-            t.setState("pending;" + ro.getCode());
-            t.setStateMessage(ro.getMessage());
-            try {
-                client.queries().update(t);
-            } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
-                        + "): " + e.getMessage(), e);
+            if (ro.getCode() == 10001) {
+                /* market is not open, wait until it opens */
+                t.setState("send-pending;" + ro.getCode());
+                t.setStateMessage(ro.getMessage());
+                try {
+                    client.queries().update(t);
+                } catch (DataQueryException e) {
+                    PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                            + "): " + e.getMessage(), e);
+                }
+                /*
+                 * Put order context to pending list of the transaction, and put transaction to
+                 * queue's pending list.
+                 */
+                ctx.pendingOrder().add(orderCtx);
+                if (!pending.contains(ctx)) {
+                    /*
+                     * Call send() more than once in a batch, it may be added to pending 
+                     * list for more then once, Need to check if it has been added. 
+                     */
+                    pending.add(ctx);
+                }
+            } else {
+                /* can't fill order because it is invalid or account is insufficient */
+                t.setState("send-aborted;" + ro.getCode());
+                t.setStateMessage(ro.getMessage());
+                try {
+                    client.queries().update(t);
+                } catch (DataQueryException e) {
+                    PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                            + "): " + e.getMessage(), e);
+                }
+                /* notify joiner the transaction fails. */
+                ctx.awake();
             }
-            /*
-             * Put order context to pending list of the transaction, and put transaction to
-             * queue's pending list.
-             */
-            ctx.pendingOrder().add(orderCtx);
-            pending.add(ctx);
         } else {
-            t.setState("running");
+            t.setState("send-running");
             t.setStateMessage("order submitted");
             try {
                 client.queries().update(t);
@@ -436,7 +463,15 @@ class TransactionQueue implements Runnable {
                         + "): " + e.getMessage(), e);
             }
         }
+        /* notice callback */
+        simpleNotice(ro.getCode(), ro.getMessage(), ctx);
         return ro;
     }
 
+    private void simpleNotice(int code, String message, TransactionContextImpl ctx) {
+        var n = ObjectFactory.newNotice();
+        n.setCode(code);
+        n.setMessage(message);
+        ctx.getStrategyContext().processNotice(n);
+    }
 }

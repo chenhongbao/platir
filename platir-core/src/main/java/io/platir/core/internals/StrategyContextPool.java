@@ -22,8 +22,8 @@ import io.platir.service.api.RiskAssess;
 /**
  * Error code explanation:
  * <ul>
- * <li>5001: Login failure.
- * <li>5002: Login SQL operation failure.
+ * <li>5001: Login failure.</li>
+ * <li>5002: Login SQL operation failure.</li>
  * </ul>
  *
  * @author chenh

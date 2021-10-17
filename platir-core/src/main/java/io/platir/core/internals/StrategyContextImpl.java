@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
-import io.platir.core.InvalidLoginException;
 import io.platir.core.PlatirSystem;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.internals.persistence.object.ObjectFactory;
@@ -30,9 +29,9 @@ import io.platir.service.api.RiskAssess;
 /**
  * Error code explanation:
  * <ul>
- * <li>4001: Callback throws exception.
- * <li>4002: Callback is timeout.
- * <li>4003: transaction over traded.
+ * <li>4001: Callback throws exception.</li>
+ * <li>4002: Callback is timeout.</li>
+ * <li>4003: transaction over traded.</li>
  * </ul>
  *
  * @author Chen Hongbao
@@ -119,6 +118,8 @@ class StrategyContextImpl implements StrategyContext {
             if (total == target) {
                 /* transaction is completed, awake. */
                 trans.awake();
+                /* call strategy callback */
+                simpleNotice(0, "Completed");
             } else if (total > target) {
                 /* trade more than expected */
                 trans.awake();
@@ -135,8 +136,17 @@ class StrategyContextImpl implements StrategyContext {
                             "Risk assessment notice(int, String, OrderContext) throws exception: " + th.getMessage(),
                             th);
                 }
+                /* call strategy callback */
+                simpleNotice(4003, "Over traded");
             }
         }
+    }
+
+    private void simpleNotice(int code, String message) {
+        var n = ObjectFactory.newNotice();
+        n.setCode(code);
+        n.setMessage(message);
+        processNotice(n);
     }
 
     private void saveCodeMessage(int code, String message) {
