@@ -18,8 +18,6 @@ import io.platir.service.StrategyProfile;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Error code explanation:
