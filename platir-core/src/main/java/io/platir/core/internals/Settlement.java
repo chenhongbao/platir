@@ -1,18 +1,12 @@
 package io.platir.core.internals;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import io.platir.core.PlatirSystem;
-import io.platir.core.RuntimeSnapshot;
 import io.platir.core.SettlementException;
 import io.platir.service.Account;
 import io.platir.service.Contract;
@@ -24,7 +18,7 @@ import io.platir.service.api.Queries;
 
 public class Settlement extends SettlementFacilities {
 
-    private final Gson g;
+    
     private final Queries qry;
     private final RuntimeSnapshot snapshot = new RuntimeSnapshot();
     private final Set<Tick> ticks = new HashSet<>();
@@ -34,21 +28,16 @@ public class Settlement extends SettlementFacilities {
 
     public Settlement(Queries queries) {
         super();
-        g = setupGson();
         qry = queries;
-    }
-
-    private Gson setupGson() {
-        return new GsonBuilder().serializeNulls().create();
     }
 
     public void settle() throws DataQueryException, SettlementException {
         prepareDirs();
+        qry.backup(before);
         snapshot();
-        backup(before, snapshot);
         computeSettlement();
-        backup(after, snapshot);
         roll();
+        qry.backup(after);
     }
 
     private void roll() throws DataQueryException {
@@ -109,17 +98,6 @@ public class Settlement extends SettlementFacilities {
         u.contracts.values().forEach(cs -> {
             snapshot.contracts().addAll(cs);
         });
-
-    }
-
-    private void backup(File target, Object data) {
-        try (FileWriter fw = new FileWriter(target)) {
-            fw.write(g.toJson(data));
-            fw.flush();
-        } catch (IOException e) {
-            PlatirSystem.err.write(
-                    "Can't write snapshot data to file \'" + target.getAbsolutePath() + "\'. " + e.getMessage(), e);
-        }
 
     }
 

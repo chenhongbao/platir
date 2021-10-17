@@ -1,4 +1,4 @@
-package io.platir.core;
+package io.platir.core.internals;
 
 import java.util.HashSet;
 import java.util.Set;

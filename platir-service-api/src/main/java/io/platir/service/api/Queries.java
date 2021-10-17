@@ -13,12 +13,15 @@ import io.platir.service.Trade;
 import io.platir.service.TradingDay;
 import io.platir.service.Transaction;
 import io.platir.service.User;
+import java.io.File;
 
 public interface Queries {
 
     void initialize() throws DataQueryException;
 
     void destroy() throws DataQueryException;
+    
+    void backup(File target);
 
     void insert(TradingDay day) throws DataQueryException;
 
