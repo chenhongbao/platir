@@ -33,7 +33,6 @@ public class PlatirImpl extends Platir {
     private final Lock l = new ReentrantLock();
     private final Condition cond = l.newCondition();
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
-    private final ExecutorService es = Executors.newCachedThreadPool();
     private RiskAssess rsk;
     private MarketRouter mkRouter;
     private TransactionQueue trQueue;
@@ -134,7 +133,7 @@ public class PlatirImpl extends Platir {
         mkRouter.refreshAllSubscriptions();
         if (trQueue == null) {
             trQueue = new TransactionQueue(trader, rsk);
-            es.submit(trQueue);
+            PlatirSystem.threads.submit(trQueue);
         }
         if (mkRouter == null) {
             mkRouter = new MarketRouter(market, trQueue);

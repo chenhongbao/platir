@@ -96,7 +96,7 @@ class TransactionQueue implements Runnable {
                 ctx.setTriggerTick(tick);
                 if (!queueing.offer(ctx)) {
                     /*
-					 * if it can't offer transaction to be executed, don't check more transaction.
+                     * if it can't offer transaction to be executed, don't check more transaction.
                      */
                     PlatirSystem.err.write("Transaction queueing queue is full.");
                     break;
@@ -204,7 +204,7 @@ class TransactionQueue implements Runnable {
 
     @Override
     public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() || !queueing.isEmpty()) {
             try {
                 var ctx = queueing.poll(24, TimeUnit.HOURS);
                 var t = ctx.getTransaction();

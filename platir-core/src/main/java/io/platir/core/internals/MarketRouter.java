@@ -9,8 +9,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +23,6 @@ class MarketRouter implements MarketListener {
     private final Map<StrategyContextImpl, TickDaemon> daemons = new ConcurrentHashMap<>();
     private final Map<String, Set<StrategyContextImpl>> subs = new ConcurrentHashMap<>();
     private final Map<String, Tick> ticks = new ConcurrentHashMap<>();
-    private final ExecutorService es = Executors.newCachedThreadPool();
     private final TransactionQueue trQueue;
     private final MarketAdaptor adaptor;
 
@@ -139,7 +136,7 @@ class MarketRouter implements MarketListener {
 
     private void createDaemon(StrategyContextImpl ctx) {
         var d = new TickDaemon(ctx);
-        var fut = es.submit(d);
+        var fut = PlatirSystem.threads.submit(d);
         d.setFuture(fut);
         daemons.put(ctx, d);
     }
@@ -174,7 +171,7 @@ class MarketRouter implements MarketListener {
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    ctx.timedOnTick(ticks.poll(24, TimeUnit.HOURS));
+                    ctx.processTick(ticks.poll(24, TimeUnit.HOURS));
                 } catch (InterruptedException e) {
                     PlatirSystem.err.write("Strategy(" + ctx.getProfile().getStrategyId() + ") onTick(Tick) timeout.");
                 } catch (Throwable th) {

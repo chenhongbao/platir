@@ -108,7 +108,7 @@ class TradeListenerContexts implements TradeListener {
             oCtx.addTrade(trade);
             /* update contracts' states */
             updateContracts(trade);
-            stg.timedOnTrade(trade);
+            stg.processTrade(trade);
             checkCompleted(trade.getVolume());
             /* risk assess */
             afterRisk(trade);
@@ -219,7 +219,7 @@ class TradeListenerContexts implements TradeListener {
             n.setCode(code);
             n.setMessage(message);
             n.setObject(error);
-            trCtx.getStrategyContext().timedOnNotice(n);
+            trCtx.getStrategyContext().processNotice(n);
         }
 
         private void checkCompleted(int addedVolume) {
