@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,6 +13,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class PlatirSystem {
 
@@ -100,7 +103,8 @@ public final class PlatirSystem {
     }
 
     public static Path cwd() {
-        var p = Paths.get(System.getProperty("user.dir"), "PlatirCWD");
+        var c = Integer.toString(physicalJarLocation().hashCode());
+        var p = Paths.get(System.getProperty("user.dir"), "PlatirWorking", c);
         dir(p);
         return p;
     }
@@ -109,19 +113,27 @@ public final class PlatirSystem {
         if (!Files.isDirectory(p)) {
             try {
                 Files.createDirectories(p);
-                setAccessible(p);
+                access(p);
             } catch (IOException e) {
-                err.write("Can't create working directory \'" + p.toAbsolutePath().toString() + "\'.", e);
+                err.write("Can't create directory \'" + p.toAbsolutePath().toString() + "\'.", e);
             }
         }
         return p;
+    }
+
+    public static String physicalJarLocation() {
+        try {
+            return new File(PlatirSystem.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
+        }catch (Throwable th) {
+            throw new RuntimeException("Fail obtaining jar physical path.");
+        }
     }
 
     public static File file(Path p) {
         if (Files.isRegularFile(p)) {
             try {
                 Files.createFile(p);
-                setAccessible(p);
+                access(p);
             } catch (IOException e) {
                 err.write("Can't create file \'" + p.toAbsolutePath().toString() + "\'.", e);
             }
@@ -129,7 +141,7 @@ public final class PlatirSystem {
         return null;
     }
 
-    protected static void setAccessible(Path p) {
+    protected static void access(Path p) {
         if (!Files.exists(p)) {
             return;
         }
