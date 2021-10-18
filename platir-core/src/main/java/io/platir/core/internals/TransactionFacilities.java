@@ -152,12 +152,12 @@ class TransactionFacilities {
         return tid + "." + Integer.toString(increId.incrementAndGet());
     }
 
-    static void saveCodeMessage(int code, String message, TransactionContextImpl ctx) {
+    static void saveRiskNotice(int code, String message, Integer level, TransactionContextImpl ctx) {
         RiskNotice r = ObjectFactory.newRiskNotice();
         StrategyProfile profile = ctx.getStrategyContext().getProfile();
-        r.setCode(3002);
+        r.setCode(code);
         r.setMessage(message);
-        r.setLevel(5);
+        r.setLevel(level);
         r.setUserId(profile.getUserId());
         r.setStrategyId(profile.getStrategyId());
         r.setUpdateTime(PlatirSystem.datetime());
@@ -168,7 +168,7 @@ class TransactionFacilities {
         }
     }
 
-    static void simpleNotice(int code, String message, TransactionContextImpl ctx) {
+    static void processNotice(int code, String message, TransactionContextImpl ctx) {
         Notice n = ObjectFactory.newNotice();
         n.setCode(code);
         n.setMessage(message);

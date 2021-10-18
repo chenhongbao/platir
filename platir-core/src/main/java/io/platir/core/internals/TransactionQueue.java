@@ -115,9 +115,9 @@ class TransactionQueue implements Runnable {
                     t.setStateMessage(r.getMessage());
                     ctx.awake();
                     /* save risk notice */
-                    TransactionFacilities.saveCodeMessage(r.getCode(), r.getMessage(), ctx);
+                    TransactionFacilities.saveRiskNotice(r.getCode(), r.getMessage(), r.getLevel(), ctx);
                     /* notice callback */
-                    TransactionFacilities.simpleNotice(r.getCode(), r.getMessage(), ctx);
+                    TransactionFacilities.processNotice(r.getCode(), r.getMessage(), ctx);
                 } else {
                     if (!ctx.pendingOrder().isEmpty()) {
                         /* the transaction has been processed but order is not completed. */
@@ -139,7 +139,7 @@ class TransactionQueue implements Runnable {
                             /* Notify the transaction has failed. */
                             ctx.awake();
                             /* notice callback */
-                            TransactionFacilities.simpleNotice(1006, "invalid order offset(" + t.getOffset() + ")", ctx);
+                            TransactionFacilities.processNotice(1006, "invalid order offset(" + t.getOffset() + ")", ctx);
                         }
                     }
                 }
@@ -157,14 +157,11 @@ class TransactionQueue implements Runnable {
         try {
             return rsk.before(tick, ctx);
         } catch (Throwable th) {
-            var profile = ctx.getStrategyContext().getProfile();
+            PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
             var r = ObjectFactory.newRiskNotice();
             r.setCode(1005);
             r.setMessage("before(Tick, TransactionContext) throws exception");
-            r.setUserId(profile.getUserId());
-            r.setStrategyId(profile.getStrategyId());
-            r.setUpdateTime(PlatirSystem.datetime());
-            r.setLevel(5);
+            r.setLevel(RiskNotice.ERROR);
             return r;
         }
     }
@@ -185,7 +182,7 @@ class TransactionQueue implements Runnable {
             }
             ctx.awake();
             /* notice callback */
-            TransactionFacilities.simpleNotice(r.getCode(), r.getMessage(), ctx);
+            TransactionFacilities.processNotice(r.getCode(), r.getMessage(), ctx);
         } else {
             @SuppressWarnings("unchecked")
             var contracts = (Collection<Contract>) r.getObject();
@@ -222,7 +219,7 @@ class TransactionQueue implements Runnable {
             /* notify joiner the transaction fails. */
             ctx.awake();
             /* notice callback */
-            TransactionFacilities.simpleNotice(r.getCode(), r.getMessage(), ctx);
+            TransactionFacilities.processNotice(r.getCode(), r.getMessage(), ctx);
         } else {
             /* Lock resource for opening. */
             @SuppressWarnings("unchecked")
@@ -308,7 +305,7 @@ class TransactionQueue implements Runnable {
             }
         }
         /* notice callback */
-        TransactionFacilities.simpleNotice(ro.getCode(), ro.getMessage(), ctx);
+        TransactionFacilities.processNotice(ro.getCode(), ro.getMessage(), ctx);
         return ro;
     }
 

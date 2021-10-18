@@ -3,6 +3,7 @@ package io.platir.core.internals;
 import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
+import io.platir.service.RiskNotice;
 import io.platir.service.Trade;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.RiskAssess;
@@ -23,7 +24,7 @@ class OrderExecutionContext {
     TransactionContextImpl trCtx;
     private final AtomicInteger count = new AtomicInteger(0);
     private final RiskAssess rsk;
-    
+
     /* first notice waiting facilities */
     private final Lock l = new ReentrantLock();
     private final Condition cond = l.newCondition();
@@ -98,12 +99,13 @@ class OrderExecutionContext {
 
     private void afterRisk(Trade trade) {
         try {
-            io.platir.service.RiskNotice r = rsk.after(trade, trCtx);
+            var r = rsk.after(trade, trCtx);
             if (!r.isGood()) {
-                saveCodeMessage0(r.getCode(), r.getMessage());
+                TransactionFacilities.saveRiskNotice(r.getCode(), r.getMessage(), RiskNotice.WARNING, trCtx);
             }
         } catch (Throwable th) {
             PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
+            TransactionFacilities.saveRiskNotice(1005, "after(Trade) throws exception", RiskNotice.ERROR, trCtx);
         }
     }
 
@@ -170,22 +172,6 @@ class OrderExecutionContext {
             int code = 3002;
             java.lang.String msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
             PlatirSystem.err.write(msg);
-        }
-    }
-
-    private void saveCodeMessage0(int code, String message) {
-        io.platir.service.RiskNotice r = ObjectFactory.newRiskNotice();
-        io.platir.service.StrategyProfile profile = trCtx.getStrategyContext().getProfile();
-        r.setCode(3002);
-        r.setMessage("order(" + oCtx.getOrder().getOrderId() + ") over traded");
-        r.setLevel(5);
-        r.setUserId(profile.getUserId());
-        r.setStrategyId(profile.getStrategyId());
-        r.setUpdateTime(PlatirSystem.datetime());
-        try {
-            trCtx.getQueryClient().queries().insert(r);
-        } catch (DataQueryException e) {
-            PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
 
