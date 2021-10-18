@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.InvalidLoginException;
-import io.platir.core.PlatirSystem;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
@@ -69,7 +68,7 @@ class StrategyContextPool {
     private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
         /* insert strategy profile into data source */
         profile.setState("running");
-        profile.setCreateDate(PlatirSystem.date());
+        profile.setCreateDate(Utils.date());
         try {
             qry.insert(profile);
         } catch (DataQueryException e) {
@@ -165,7 +164,7 @@ class StrategyContextPool {
     private void setStrategyRemoved(StrategyProfile profile) throws StrategyRemovalException {
         /* set strategy state in data source, to be removed at settlement */
         profile.setState("removed");
-        profile.setRemoveDate(PlatirSystem.date());
+        profile.setRemoveDate(Utils.date());
         try {
             qry.update(profile);
         } catch (DataQueryException e) {

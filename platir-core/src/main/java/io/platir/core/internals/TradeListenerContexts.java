@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.Trade;
@@ -29,8 +28,8 @@ class TradeListenerContexts implements TradeListener {
         rsk = risk;
         tradeQueue = new TradeCallbackQueue();
         noticeQueue = new NoticeCallbackQueue();
-        PlatirSystem.threads.submit(tradeQueue);
-        PlatirSystem.threads.submit(noticeQueue);
+        Utils.threads.submit(tradeQueue);
+        Utils.threads.submit(noticeQueue);
     }
 
     int countStrategyRunning(StrategyContextImpl strategy) {
@@ -64,7 +63,7 @@ class TradeListenerContexts implements TradeListener {
         if (ctx != null) {
             tradeQueue.push(trade, ctx);
         } else {
-            PlatirSystem.err.write("Order execution context not found for order(" + trade.getOrderId() + ").");
+            Utils.err.write("Order execution context not found for order(" + trade.getOrderId() + ").");
         }
     }
 
@@ -77,7 +76,7 @@ class TradeListenerContexts implements TradeListener {
             n.setMessage(message);
             noticeQueue.push(n, ctx);
         } else {
-            PlatirSystem.err.write("Order execution context not found for order(" + orderId + ").");
+            Utils.err.write("Order execution context not found for order(" + orderId + ").");
         }
     }
 

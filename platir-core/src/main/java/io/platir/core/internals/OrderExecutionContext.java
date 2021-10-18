@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
@@ -43,7 +42,7 @@ class OrderExecutionContext {
             stg.getPlatirClientImpl().queries().insert(trade);
         } catch (DataQueryException e) {
             /* worker thread sees this exception, just log it */
-            PlatirSystem.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId() + ") into data source: " + e.getMessage(), e);
+            Utils.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId() + ") into data source: " + e.getMessage(), e);
         }
         /* add trade to order context. */
         oCtx.addTrade(trade);
@@ -104,7 +103,7 @@ class OrderExecutionContext {
                 TransactionFacilities.saveRiskNotice(r.getCode(), r.getMessage(), RiskNotice.WARNING, trCtx);
             }
         } catch (Throwable th) {
-            PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
+            Utils.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
             TransactionFacilities.saveRiskNotice(1005, "after(Trade) throws exception", RiskNotice.ERROR, trCtx);
         }
     }
@@ -120,20 +119,20 @@ class OrderExecutionContext {
                 /* Update open price because the real traded price may be different. */
                 c.setState("open");
                 c.setPrice(trade.getPrice());
-                c.setOpenTime(PlatirSystem.datetime());
+                c.setOpenTime(Utils.datetime());
                 c.setOpenTradingDay(stg.getPlatirClientImpl().getTradingDay());
             } else if (c.getState().compareToIgnoreCase("closing") == 0) {
                 /* don't forget the close price here */
                 c.setState("closed");
                 c.setClosePrice(trade.getPrice());
             } else {
-                PlatirSystem.err.write("Incorrect contract state(" + c.getState() + "/" + c.getContractId() + ") before completing trade.");
+                Utils.err.write("Incorrect contract state(" + c.getState() + "/" + c.getContractId() + ") before completing trade.");
                 continue;
             }
             try {
                 stg.getPlatirClientImpl().queries().update(c);
             } catch (DataQueryException e) {
-                PlatirSystem.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId() + ") state(" + c.getState() + ").", e);
+                Utils.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId() + ") state(" + c.getState() + ").", e);
                 /* roll back state */
                 c.setState(prevState);
                 continue;
@@ -142,7 +141,7 @@ class OrderExecutionContext {
         }
         if (updateCount <= trade.getVolume()) {
             java.lang.String msg = "Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.";
-            PlatirSystem.err.write(msg);
+            Utils.err.write(msg);
         }
     }
 
@@ -171,7 +170,7 @@ class OrderExecutionContext {
         } else if (cur > vol) {
             int code = 3002;
             java.lang.String msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
-            PlatirSystem.err.write(msg);
+            Utils.err.write(msg);
         }
     }
 

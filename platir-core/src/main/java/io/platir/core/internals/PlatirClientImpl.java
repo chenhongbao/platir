@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.TransactionException;
 import io.platir.service.InterruptionException;
@@ -59,7 +58,7 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
         trans.setOffset(offset);
         trans.setDirection(direction);
         trans.setTradingDay(getTradingDay());
-        trans.setUpdateTime(PlatirSystem.datetime());
+        trans.setUpdateTime(Utils.datetime());
         return trans;
     }
 

@@ -8,7 +8,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Contract;
 import io.platir.service.Notice;
@@ -86,7 +85,7 @@ class TransactionQueue implements Runnable {
                 try {
                     ctx.getQueryClient().queries().update(t);
                 } catch (DataQueryException e) {
-                    PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
+                    Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
                             + t.getState() + "): " + e.getMessage(), e);
                 }
                 /* Set trigger tick. */
@@ -95,7 +94,7 @@ class TransactionQueue implements Runnable {
                     /*
                      * if it can't offer transaction to be executed, don't check more transaction.
                      */
-                    PlatirSystem.err.write("Transaction queueing queue is full.");
+                    Utils.err.write("Transaction queueing queue is full.");
                     break;
                 }
             }
@@ -133,7 +132,7 @@ class TransactionQueue implements Runnable {
                             try {
                                 ctx.getQueryClient().queries().update(t);
                             } catch (DataQueryException e) {
-                                PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
+                                Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state("
                                         + t.getState() + "): " + e.getMessage(), e);
                             }
                             /* Notify the transaction has failed. */
@@ -144,11 +143,11 @@ class TransactionQueue implements Runnable {
                     }
                 }
             } catch (InterruptedException e) {
-                PlatirSystem.err.write("Transaction queue worker thread is interrupted.", e);
+                Utils.err.write("Transaction queue worker thread is interrupted.", e);
             } catch (DuplicatedOrderException e) {
-                PlatirSystem.err.write("Duplicated order(ID): " + e.getMessage(), e);
+                Utils.err.write("Duplicated order(ID): " + e.getMessage(), e);
             } catch (Throwable th) {
-                PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
+                Utils.err.write("Uncaught error: " + th.getMessage(), th);
             }
         }
     }
@@ -157,7 +156,7 @@ class TransactionQueue implements Runnable {
         try {
             return rsk.before(tick, ctx);
         } catch (Throwable th) {
-            PlatirSystem.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
+            Utils.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
             var r = ObjectFactory.newRiskNotice();
             r.setCode(1005);
             r.setMessage("before(Tick, TransactionContext) throws exception");
@@ -177,7 +176,7 @@ class TransactionQueue implements Runnable {
             try {
                 client.queries().update(t);
             } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }
             ctx.awake();
@@ -213,7 +212,7 @@ class TransactionQueue implements Runnable {
             try {
                 client.queries().update(t);
             } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }
             /* notify joiner the transaction fails. */
@@ -266,7 +265,7 @@ class TransactionQueue implements Runnable {
                 try {
                     client.queries().update(t);
                 } catch (DataQueryException e) {
-                    PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                    Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                             + "): " + e.getMessage(), e);
                 }
                 /*
@@ -288,7 +287,7 @@ class TransactionQueue implements Runnable {
                 try {
                     client.queries().update(t);
                 } catch (DataQueryException e) {
-                    PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                    Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                             + "): " + e.getMessage(), e);
                 }
                 /* notify joiner the transaction fails. */
@@ -300,7 +299,7 @@ class TransactionQueue implements Runnable {
             try {
                 client.queries().update(t);
             } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
                         + "): " + e.getMessage(), e);
             }
         }

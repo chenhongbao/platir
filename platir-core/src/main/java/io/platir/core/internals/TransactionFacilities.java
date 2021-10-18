@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -44,12 +43,12 @@ class TransactionFacilities {
             c.setPrice(transaction.getPrice());
             c.setState("opening");
             c.setOpenTradingDay(client.getTradingDay());
-            c.setOpenTime(PlatirSystem.datetime());
+            c.setOpenTime(Utils.datetime());
             r.add(c);
             try {
                 client.queries().insert(c);
             } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't insert user(" + c.getUserId() + ") contract(" + c.getContractId() + ") opening: " + e.getMessage(), e);
+                Utils.err.write("Can't insert user(" + c.getUserId() + ") contract(" + c.getContractId() + ") opening: " + e.getMessage(), e);
             }
         }
         return r;
@@ -116,7 +115,7 @@ class TransactionFacilities {
             try {
                 client.queries().update(c);
             } catch (DataQueryException e) {
-                PlatirSystem.err.write("Can't update user(" + c.getUserId() + ") + contract(" + c.getContractId() + ") state(" + c.getState() + "): " + e.getMessage(), e);
+                Utils.err.write("Can't update user(" + c.getUserId() + ") + contract(" + c.getContractId() + ") state(" + c.getState() + "): " + e.getMessage(), e);
             }
         });
     }
@@ -137,7 +136,7 @@ class TransactionFacilities {
             cli.queries().insert(o);
         } catch (DataQueryException e) {
             /* worker thread can't pass out the exception, just log it */
-            PlatirSystem.err.write("Can't insert order(" + o.getOrderId() + ") to data source: " + e.getMessage(), e);
+            Utils.err.write("Can't insert order(" + o.getOrderId() + ") to data source: " + e.getMessage(), e);
         }
         /* create order context. */
         OrderContextImpl ctx = new OrderContextImpl(o, transCtx);
@@ -160,11 +159,11 @@ class TransactionFacilities {
         r.setLevel(level);
         r.setUserId(profile.getUserId());
         r.setStrategyId(profile.getStrategyId());
-        r.setUpdateTime(PlatirSystem.datetime());
+        r.setUpdateTime(Utils.datetime());
         try {
             ctx.getQueryClient().queries().insert(r);
         } catch (DataQueryException e) {
-            PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
+            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
 

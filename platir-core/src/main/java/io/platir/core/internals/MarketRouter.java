@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-import io.platir.core.PlatirSystem;
 import io.platir.service.Tick;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.MarketListener;
@@ -50,7 +49,7 @@ class MarketRouter implements MarketListener {
         subs.keySet().forEach(key -> {
             var tick = ticks.get(key);
             if (tick != null) {
-                var datetime = PlatirSystem.datetime(tick.getUpdateTime());
+                var datetime = Utils.datetime(tick.getUpdateTime());
                 /* if tick doesn't arrive for over 30 days, the instrument has expired. */
                 if (Duration.between(datetime, LocalDateTime.now()).toDays() < 30) {
                     adaptor.add(key);
@@ -104,7 +103,7 @@ class MarketRouter implements MarketListener {
     private void tryAwake(Tick tick) {
         var ut = tick.getUpdateTime();
         if (ut.length() != 17) {
-            PlatirSystem.err.write("Malformed update time " + ut + ".");
+            Utils.err.write("Malformed update time " + ut + ".");
             return;
         }
         var sec = tick.getUpdateTime().substring(15, 16);

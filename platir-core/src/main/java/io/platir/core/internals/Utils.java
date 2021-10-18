@@ -1,4 +1,4 @@
-package io.platir.core;
+package io.platir.core.internals;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public final class PlatirSystem {
+public final class Utils {
 
     private static DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static DateTimeFormatter datetimeFmt = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss");
@@ -124,7 +124,7 @@ public final class PlatirSystem {
 
     public static String physicalJarLocation() {
         try {
-            return new File(PlatirSystem.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
+            return new File(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
         } catch (Throwable th) {
             throw new RuntimeException("Fail obtaining jar physical path.");
         }

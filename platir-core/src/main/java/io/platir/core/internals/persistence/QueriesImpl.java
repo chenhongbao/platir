@@ -1,7 +1,7 @@
 package io.platir.core.internals.persistence;
 
 import com.google.gson.Gson;
-import io.platir.core.PlatirSystem;
+import io.platir.core.internals.Utils;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Account;
 import io.platir.service.Contract;
@@ -105,7 +105,7 @@ public class QueriesImpl implements Queries {
     public void backup(File target) {
         try {
             var schema = new QuerySchema();
-            schema.backupTime = PlatirSystem.datetime();
+            schema.backupTime = Utils.datetime();
             schema.tradingDay = tradingDay.get();
             schema.accounts.addAll(selectAccounts());
             schema.ticks.addAll(selectTicks());
@@ -118,7 +118,7 @@ public class QueriesImpl implements Queries {
             schema.instruments.addAll(selectInstruments());
             writeJson(target, schema);
         } catch (DataQueryException ex) {
-            PlatirSystem.err.write("Can't backup schema: " + ex.getMessage(), ex);
+            Utils.err.write("Can't backup schema: " + ex.getMessage(), ex);
         }
     }
 
@@ -613,7 +613,7 @@ public class QueriesImpl implements Queries {
         try (FileReader fr = new FileReader(target.toFile())) {
             return g.fromJson(fr, new Table<T>().getClass());
         } catch (IOException ex) {
-            PlatirSystem.err.write("Can't read table: " + ex.getMessage(), ex);
+            Utils.err.write("Can't read table: " + ex.getMessage(), ex);
             var t = new Table<T>();
             t.name = clazz.getCanonicalName();
             return t;
@@ -621,27 +621,27 @@ public class QueriesImpl implements Queries {
     }
 
     private Path tablePath(String name) {
-        return Paths.get(PlatirSystem.cwd().toString(), "Schema", name);
+        return Paths.get(Utils.cwd().toString(), "Schema", name);
     }
 
     private void writeTradingDay() {
         var tbl = new Table<TradingDay>();
         tbl.name = TradingDay.class.getCanonicalName();
-        tbl.updateTime = PlatirSystem.datetime();
+        tbl.updateTime = Utils.datetime();
         tbl.rows.add(tradingDay.get());
         writeJsonTable(tbl);
     }
 
     private void writeJsonTable(Table table) {
         var target = tablePath(table.name);
-        PlatirSystem.file(target);
+        Utils.file(target);
         writeJson(target.toFile(), table);
     }
 
     private <T> void writeTable(Class<T> clazz, Collection<T> rows) {
         var tbl = new Table<T>();
         tbl.name = clazz.getCanonicalName();
-        tbl.updateTime = PlatirSystem.datetime();
+        tbl.updateTime = Utils.datetime();
         tbl.rows.addAll(rows);
         writeJsonTable(tbl);
     }
@@ -651,7 +651,7 @@ public class QueriesImpl implements Queries {
             /* write json */
             fw.write(g.toJson(object));
         } catch (IOException ex) {
-            PlatirSystem.err.write("Can't write schema: " + ex.getMessage(), ex);
+            Utils.err.write("Can't write schema: " + ex.getMessage(), ex);
         }
     }
 

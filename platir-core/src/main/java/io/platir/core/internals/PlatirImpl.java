@@ -10,7 +10,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import io.platir.core.IntegrityException;
 import io.platir.core.InvalidLoginException;
 import io.platir.core.Platir;
-import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
@@ -115,9 +114,9 @@ public class PlatirImpl extends Platir {
     }
 
     private void acquireInstance() throws StartupException {
-        var p = Paths.get(PlatirSystem.cwd().toString(), ".lock");
+        var p = Paths.get(Utils.cwd().toString(), ".lock");
         if (!Files.exists(p)) {
-            PlatirSystem.file(p);
+            Utils.file(p);
         }
         try {
             instanceLock = FileChannel.open(p, StandardOpenOption.APPEND);
@@ -131,7 +130,7 @@ public class PlatirImpl extends Platir {
             instanceLock.close();
         } catch (IOException ex) {
             /* slient shutdown */
-            PlatirSystem.err.write("Can;t release instance lock: " + ex.getMessage(), ex);
+            Utils.err.write("Can;t release instance lock: " + ex.getMessage(), ex);
         }
     }
 
@@ -162,7 +161,7 @@ public class PlatirImpl extends Platir {
         mkRouter.refreshAllSubscriptions();
         if (trQueue == null) {
             trQueue = new TransactionQueue(trader, rsk);
-            PlatirSystem.threads.submit(trQueue);
+            Utils.threads.submit(trQueue);
         }
         if (mkRouter == null) {
             mkRouter = new MarketRouter(market, trQueue);
@@ -198,7 +197,7 @@ public class PlatirImpl extends Platir {
         try {
             qry.insert(mkRouter.getLastTicks().toArray(new Tick[1]));
         } catch (DataQueryException e) {
-            PlatirSystem.err.write("Fail inserting tick.", e);
+            Utils.err.write("Fail inserting tick.", e);
         }
         try {
             new Settlement(qry).settle();

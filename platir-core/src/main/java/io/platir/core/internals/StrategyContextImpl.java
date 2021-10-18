@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
-import io.platir.core.PlatirSystem;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Bar;
@@ -87,7 +86,7 @@ class StrategyContextImpl implements StrategyContext {
             fh.setFormatter(new SimpleFormatter());
             l.addHandler(fh);
         } catch (IOException | SecurityException ex) {
-            PlatirSystem.err.write("Can't add file handler to logging handler: " + ex.getMessage(), ex);
+            Utils.err.write("Can't add file handler to logging handler: " + ex.getMessage(), ex);
         }
         return l;
     }
@@ -102,8 +101,8 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     Path getStrategyCwd() {
-        var root = Paths.get(PlatirSystem.cwd().toString(), prof.getStrategyId());
-        PlatirSystem.dir(root);
+        var root = Paths.get(Utils.cwd().toString(), prof.getStrategyId());
+        Utils.dir(root);
         return root;
     }
 
@@ -172,7 +171,7 @@ class StrategyContextImpl implements StrategyContext {
                 int code = 4003;
                 var msg = "Transaction(" + trans.getTransaction().getTransactionId() + ") over traded(" + total + ">"
                         + target + ").";
-                PlatirSystem.err.write(msg);
+                Utils.err.write(msg);
                 /* call strategy callback */
                 simpleNotice(4003, "Over traded");
             }
@@ -193,11 +192,11 @@ class StrategyContextImpl implements StrategyContext {
         r.setLevel(5);
         r.setUserId(prof.getUserId());
         r.setStrategyId(prof.getStrategyId());
-        r.setUpdateTime(PlatirSystem.datetime());
+        r.setUpdateTime(Utils.datetime());
         try {
             getPlatirClientImpl().queries().insert(r);
         } catch (DataQueryException e) {
-            PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
+            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
 

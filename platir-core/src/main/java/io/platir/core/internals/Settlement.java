@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
 import io.platir.core.internals.SettlementFacilities.UserSnapshot;
 import io.platir.service.Account;
@@ -103,9 +102,9 @@ public class Settlement {
     }
 
     private void prepareDirs() {
-        var dir = PlatirSystem.dir(Paths.get(PlatirSystem.cwd().toString(), PlatirSystem.date()));
-        before = PlatirSystem.file(Paths.get(dir.toString(), "before_settlement.json"));
-        after = PlatirSystem.file(Paths.get(dir.toString(), "settled.json"));
+        var dir = Utils.dir(Paths.get(Utils.cwd().toString(), Utils.date()));
+        before = Utils.file(Paths.get(dir.toString(), "before_settlement.json"));
+        after = Utils.file(Paths.get(dir.toString(), "settled.json"));
     }
 
     private void snapshot() throws DataQueryException {

@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 import io.platir.core.BrokenSettingException;
-import io.platir.core.PlatirSystem;
 import io.platir.core.SettlementException;
 import io.platir.service.Account;
 import io.platir.service.Contract;
@@ -178,7 +177,7 @@ class SettlementFacilities {
         account.setPositionProfit(0D);
         account.setCloseProfit(0D);
         account.setTradingDay(tradingDay);
-        account.setSettleTime(PlatirSystem.datetime());
+        account.setSettleTime(Utils.datetime());
     }
 
     static HashMap<String, UserSnapshot> users(Set<User> users, Set<Account> accounts, Set<Contract> contracts)

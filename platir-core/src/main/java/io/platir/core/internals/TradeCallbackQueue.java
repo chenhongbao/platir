@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import io.platir.core.PlatirSystem;
 import io.platir.service.Trade;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -16,7 +15,7 @@ class TradeCallbackQueue implements Runnable {
 
     void push(Trade trade, OrderExecutionContext context) {
         if (!bundles.offer(new TradeCallbackBundle(trade, context))) {
-            PlatirSystem.err.write("Trade callback queue is full.");
+            Utils.err.write("Trade callback queue is full.");
         }
     }
 
@@ -27,9 +26,9 @@ class TradeCallbackQueue implements Runnable {
                 var b = bundles.poll(24, TimeUnit.HOURS);
                 b.ctx.processTrade(b.tr);
             } catch (InterruptedException ex) {
-                PlatirSystem.err.write("Trade callback queue daemon is interrupted.", ex);
+                Utils.err.write("Trade callback queue daemon is interrupted.", ex);
             } catch (Throwable th) {
-                PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
+                Utils.err.write("Uncaught error: " + th.getMessage(), th);
             }
         }
     }

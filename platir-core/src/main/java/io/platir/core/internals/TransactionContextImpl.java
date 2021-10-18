@@ -9,7 +9,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import io.platir.core.PlatirSystem;
 import io.platir.service.OrderContext;
 import io.platir.service.Tick;
 import io.platir.service.Transaction;
@@ -68,7 +67,7 @@ class TransactionContextImpl implements TransactionContext {
             try {
                 cond.await();
             } catch (InterruptedException e) {
-                PlatirSystem.err.write("Joining transaction is interrupted.", e);
+                Utils.err.write("Joining transaction is interrupted.", e);
             } finally {
                 l.unlock();
             }

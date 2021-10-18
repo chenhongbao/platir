@@ -1,6 +1,5 @@
 package io.platir.core.internals;
 
-import io.platir.core.PlatirSystem;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Bar;
 import io.platir.service.Notice;
@@ -37,12 +36,12 @@ class StrategyCallbackQueue implements Runnable {
         rsk = risk;
         stg = strategy;
         prof = profile;
-        daemonFut = PlatirSystem.threads.submit(this);
+        daemonFut = Utils.threads.submit(this);
     }
 
     void push(Object object) {
         if (!q.offer(object)) {
-            PlatirSystem.err.write("Strategy callback queueing queue is full.");
+            Utils.err.write("Strategy callback queueing queue is full.");
         }
     }
 
@@ -64,18 +63,18 @@ class StrategyCallbackQueue implements Runnable {
                 } else if (object instanceof Bar) {
                     timedOnBar((Bar) object);
                 } else {
-                    PlatirSystem.err.write("Unknown instance: " + object);
+                    Utils.err.write("Unknown instance: " + object);
                 }
             } catch (InterruptedException ex) {
                 Logger.getLogger(StrategyCallbackQueue.class.getName()).log(Level.SEVERE, null, ex);
             } catch (Throwable th) {
-                PlatirSystem.err.write("Uncaught error: " + th.getMessage(), th);
+                Utils.err.write("Uncaught error: " + th.getMessage(), th);
             }
         }
     }
 
     private void timedOperation(boolean needNotice, int timeoutSec, TimedJob job) {
-        var timedFut = PlatirSystem.threads.submit(() -> {
+        var timedFut = Utils.threads.submit(() -> {
             var r = ObjectFactory.newNotice();
             try {
                 job.work();
@@ -93,14 +92,14 @@ class StrategyCallbackQueue implements Runnable {
         try {
             var r = timedFut.get(timeoutSec, TimeUnit.SECONDS);
             if (!r.isGood()) {
-                PlatirSystem.err.write(r.getMessage());
+                Utils.err.write(r.getMessage());
                 if (needNotice) {
                     /* tell strategy its callback fails */
                     timedOnNotice(r);
                 }
             }
         } catch (InterruptedException | ExecutionException e) {
-            PlatirSystem.err.write("Timed operation is interrupted: " + e.getMessage(), e);
+            Utils.err.write("Timed operation is interrupted: " + e.getMessage(), e);
         } catch (TimeoutException e) {
             var r = ObjectFactory.newNotice();
             r.setCode(4002);
@@ -123,11 +122,11 @@ class StrategyCallbackQueue implements Runnable {
         r.setLevel(5);
         r.setUserId(prof.getUserId());
         r.setStrategyId(prof.getStrategyId());
-        r.setUpdateTime(PlatirSystem.datetime());
+        r.setUpdateTime(Utils.datetime());
         try {
             cli.queries().insert(r);
         } catch (DataQueryException e) {
-            PlatirSystem.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
+            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
 
