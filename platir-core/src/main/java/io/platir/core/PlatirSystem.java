@@ -36,7 +36,7 @@ public final class PlatirSystem {
             err = new Console(System.err);
         }
     }
-    
+
     public static final ExecutorService threads = Executors.newCachedThreadPool();
 
     public static class Console {
@@ -125,27 +125,26 @@ public final class PlatirSystem {
     public static String physicalJarLocation() {
         try {
             return new File(PlatirSystem.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
-        }catch (Throwable th) {
+        } catch (Throwable th) {
             throw new RuntimeException("Fail obtaining jar physical path.");
         }
     }
 
     public static File file(Path p) {
-        if (Files.isRegularFile(p)) {
+        File r = null;
+        if (!Files.isRegularFile(p)) {
             try {
                 Files.createFile(p);
                 access(p);
+                r = p.toFile();
             } catch (IOException e) {
                 err.write("Can't create file \'" + p.toAbsolutePath().toString() + "\'.", e);
             }
         }
-        return null;
+        return r;
     }
 
     protected static void access(Path p) {
-        if (!Files.exists(p)) {
-            return;
-        }
         if (!Files.isWritable(p)) {
             p.toFile().setWritable(true);
         }

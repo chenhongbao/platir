@@ -25,6 +25,13 @@ import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeAdaptor;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PlatirImpl extends Platir {
 
@@ -38,6 +45,7 @@ public class PlatirImpl extends Platir {
     private MarketAdaptor market;
     private Queries qry;
     private StrategyContextPool stgCtxPool;
+    private FileChannel instanceLock;
 
     @Override
     public void setQueries(Queries queries) {
@@ -78,8 +86,10 @@ public class PlatirImpl extends Platir {
             trader.shutdown();
             isShutdown.set(true);
             dbDestroy();
-            // Signal waiting thread on join().
+            /* signal waiting thread on join() */
             signalJoiner();
+            /* release instance lock */
+            releaseInstance();
         }
     }
 
@@ -98,9 +108,32 @@ public class PlatirImpl extends Platir {
             if (!isShutdown.get()) {
                 return;
             }
+            /* ensure single instance */
+            acquireInstance();
             dbInit();
             setup();
             isShutdown.set(false);
+        }
+    }
+
+    private void acquireInstance() throws StartupException {
+        var p = Paths.get(PlatirSystem.cwd().toString(), ".lock");
+        if (!Files.exists(p)) {
+            PlatirSystem.file(p);
+        }
+        try {
+            instanceLock = FileChannel.open(p, StandardOpenOption.APPEND);
+        } catch (IOException ex) {
+            throw new StartupException("Two or more instances are not allowed.");
+        }
+    }
+
+    private void releaseInstance()  {
+        try {
+            instanceLock.close();
+        } catch (IOException ex) {
+            /* slient shutdown */
+            PlatirSystem.err.write("Can;t release instance lock: " + ex.getMessage(), ex);
         }
     }
 
