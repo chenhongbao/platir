@@ -416,6 +416,13 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
+    public void clearRiskNotices() throws DataQueryException {
+        synchronized (riskNoticeTable) {
+            riskNoticeTable.clear();
+        }
+    }
+
+    @Override
     public TradingDay selectTradingDay() throws DataQueryException {
         var day = ObjectFactory.newTradingDay();
         day.setTradingDay(tradingDay.get().getTradingDay());

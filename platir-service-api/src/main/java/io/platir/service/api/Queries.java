@@ -72,6 +72,8 @@ public interface Queries {
     void clearTicks() throws DataQueryException;
 
     void clearStrategies() throws DataQueryException;
+    
+    void clearRiskNotices() throws DataQueryException;
 
     TradingDay selectTradingDay() throws DataQueryException;
 
