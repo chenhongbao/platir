@@ -1,8 +1,9 @@
 package io.platir.service;
 
+import java.util.logging.Logger;
 import java.util.Set;
 
-public interface PlatirQueryClient {
+public interface PlatirInfoClient {
 	String getStrategyId();
 
 	Account getAccount();
@@ -23,4 +24,5 @@ public interface PlatirQueryClient {
 
 	String getTradingDay();
 
+        Logger getLogger();
 }

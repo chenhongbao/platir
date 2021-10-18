@@ -24,7 +24,7 @@ class TransactionFacilities {
 
     private final static AtomicInteger increId = new AtomicInteger(0);
 
-    static Set<Contract> opening(String orderId, PlatirQueryClientImpl client, Transaction transaction) {
+    static Set<Contract> opening(String orderId, PlatirInfoClientImpl client, Transaction transaction) {
         /*
          * Add contracts for opening. The opening margin and commission are computed
          * through the opening contracts, so just add opening contracts and account will
@@ -55,7 +55,7 @@ class TransactionFacilities {
         return r;
     }
 
-    static Notice checkOpen(String oid, PlatirQueryClientImpl query, Transaction t) {
+    static Notice checkOpen(String oid, PlatirInfoClientImpl query, Transaction t) {
         Notice r = ObjectFactory.newNotice();
         Double available = query.getAccount().getAvailable();
         if (available <= 0) {
@@ -83,7 +83,7 @@ class TransactionFacilities {
         return r;
     }
 
-    static Notice checkClose(PlatirQueryClientImpl query, String instrumentId, String direction, Integer volume) {
+    static Notice checkClose(PlatirInfoClientImpl query, String instrumentId, String direction, Integer volume) {
         /* buy-open for sell-closed, sell-open for buy-closed */
         Notice r = ObjectFactory.newNotice();
         Set<Contract> available = query.getContracts(instrumentId).stream().filter(c -> c.getDirection().compareToIgnoreCase(direction) != 0).filter(c -> c.getState().compareToIgnoreCase("open") == 0).collect(Collectors.toSet());
@@ -108,7 +108,7 @@ class TransactionFacilities {
         return r;
     }
 
-    static void closing(Set<Contract> available, PlatirQueryClientImpl client) {
+    static void closing(Set<Contract> available, PlatirInfoClientImpl client) {
         available.stream().map(c -> {
             c.setState("closing");
             return c;

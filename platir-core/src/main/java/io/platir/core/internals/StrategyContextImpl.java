@@ -25,6 +25,14 @@ import io.platir.service.TransactionContext;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.api.RiskAssess;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  * Error code explanation:
@@ -39,15 +47,16 @@ import io.platir.service.api.RiskAssess;
  */
 class StrategyContextImpl implements StrategyContext {
 
+    private final Logger logger;
     private final StrategyProfile prof;
     private final AnnotatedStrategy annStg;
     private final PlatirClientImpl cli;
     private final RiskAssess rsk;
     private final Set<TransactionContextImpl> transactions = new ConcurrentSkipListSet<>();
-
+    private final StrategyLoggingHandler loggingHandler;
     /*
-	 * If the strategy is shutdown, no more market data input, but trade response
-	 * still comes in.
+     * If the strategy is shutdown, no more market data input, but trade response
+     * still comes in.
      */
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
     private final StrategyCallbackQueue cb;
@@ -59,10 +68,43 @@ class StrategyContextImpl implements StrategyContext {
         annStg = new AnnotatedStrategy(strategy);
         cli = new PlatirClientImpl(this, trQueue, mkRouter, queries);
         cb = new StrategyCallbackQueue(cli, prof, rsk, annStg);
+        loggingHandler = new StrategyLoggingHandler();
+        logger = createLogger();
+    }
+
+    @Override
+    public void clearLogs() {
+        loggingHandler.clear();
+    }
+
+    private Logger createLogger() {
+        var l = Logger.getLogger(prof.getStrategyId());
+        l.setUseParentHandlers(false);
+        l.addHandler(loggingHandler);
+        try {
+            var loggingFile = Paths.get(getStrategyCwd().toString(), "logging.txt");
+            var fh = new FileHandler(loggingFile.toString());
+            fh.setFormatter(new SimpleFormatter());
+            l.addHandler(fh);
+        } catch (IOException | SecurityException ex) {
+            PlatirSystem.err.write("Can't add file handler to logging handler: " + ex.getMessage(), ex);
+        }
+        return l;
+    }
+
+    @Override
+    public List<LogRecord> getLogs() {
+        return loggingHandler.getLogRecords();
     }
 
     PlatirClientImpl getPlatirClientImpl() {
         return cli;
+    }
+
+    Path getStrategyCwd() {
+        var root = Paths.get(PlatirSystem.cwd().toString(), prof.getStrategyId());
+        PlatirSystem.dir(root);
+        return root;
     }
 
     void remove() throws StrategyRemovalException {
@@ -107,6 +149,10 @@ class StrategyContextImpl implements StrategyContext {
 
     void processNotice(Notice notice) {
         cb.push(notice);
+    }
+
+    Logger getStrategyLogger() {
+        return logger;
     }
 
     private void checkTransactionCompleted() {

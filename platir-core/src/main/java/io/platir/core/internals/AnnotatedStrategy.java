@@ -11,7 +11,6 @@ import io.platir.core.AnnotationParsingException;
 import io.platir.service.Bar;
 import io.platir.service.Notice;
 import io.platir.service.PlatirClient;
-import io.platir.service.PlatirQueryClient;
 import io.platir.service.Strategy;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
@@ -22,6 +21,7 @@ import io.platir.service.annotations.OnStart;
 import io.platir.service.annotations.OnStop;
 import io.platir.service.annotations.OnTick;
 import io.platir.service.annotations.OnTrade;
+import io.platir.service.PlatirInfoClient;
 
 /**
  * Wrapper for invoking annotated methods or interface.
@@ -269,7 +269,7 @@ class AnnotatedStrategy implements Strategy {
             return true;
         }
 
-        void invokeStart(String[] args, PlatirQueryClient platir) {
+        void invokeStart(String[] args, PlatirInfoClient platir) {
             if (start != null) {
                 try {
                     start.invoke(obj, args, platir);

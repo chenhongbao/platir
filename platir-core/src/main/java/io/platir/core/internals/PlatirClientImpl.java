@@ -25,7 +25,7 @@ import io.platir.service.api.Queries;
  * @author Chen Hongbao
  *
  */
-class PlatirClientImpl extends PlatirQueryClientImpl implements PlatirClient {
+class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
 
     private final TransactionQueue tr;
     private final AtomicInteger increId = new AtomicInteger(0);

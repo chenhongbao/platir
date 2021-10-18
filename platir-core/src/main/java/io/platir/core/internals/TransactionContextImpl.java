@@ -31,7 +31,7 @@ class TransactionContextImpl implements TransactionContext {
         stg = strategy;
     }
 
-    PlatirQueryClientImpl getQueryClient() {
+    PlatirInfoClientImpl getQueryClient() {
         return stg.getPlatirClientImpl();
     }
 

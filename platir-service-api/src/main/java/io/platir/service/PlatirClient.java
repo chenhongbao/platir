@@ -1,6 +1,6 @@
 package io.platir.service;
 
-public interface PlatirClient extends PlatirQueryClient {
+public interface PlatirClient extends PlatirInfoClient {
 	TransactionContext open(String instrumentId, String direction, Double price, Integer volume)
 			throws TransactionException;
 

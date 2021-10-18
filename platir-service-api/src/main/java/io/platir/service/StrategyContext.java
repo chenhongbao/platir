@@ -1,6 +1,8 @@
 package io.platir.service;
 
+import java.util.List;
 import java.util.Set;
+import java.util.logging.LogRecord;
 
 public interface StrategyContext {
 
@@ -17,4 +19,8 @@ public interface StrategyContext {
 	PlatirClient getPlatirClient();
 
 	Set<TransactionContext> getTransactionContexts();
+        
+        List<LogRecord> getLogs();
+        
+        void clearLogs();
 }

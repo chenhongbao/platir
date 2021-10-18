@@ -15,33 +15,42 @@ import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.Order;
-import io.platir.service.PlatirQueryClient;
 import io.platir.service.Position;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
+import io.platir.service.PlatirInfoClient;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
-class PlatirQueryClientImpl implements PlatirQueryClient {
+class PlatirInfoClientImpl implements PlatirInfoClient {
 
+    
     private final Queries qry;
     private final MarketRouter market;
     private final StrategyContextImpl stg;
     private final Map<String, Instrument> instruments = new ConcurrentHashMap<>();
-    private String sid;
     private String whenQryTradingDay = null;
     private String tradingDay = null;
 
-    PlatirQueryClientImpl(StrategyContextImpl strategyContext, MarketRouter mkRouter, Queries queries) {
+    PlatirInfoClientImpl(StrategyContextImpl strategyContext, MarketRouter mkRouter, Queries queries) {
         stg = strategyContext;
         market = mkRouter;
         qry = queries;
     }
 
+    @Override
+    public Logger getLogger() {
+        return stg.getStrategyLogger();
+    }
+
     protected StrategyContextImpl getStrategyContext() {
         return stg;
-
     }
 
     Queries queries() {
@@ -50,10 +59,7 @@ class PlatirQueryClientImpl implements PlatirQueryClient {
 
     @Override
     public String getStrategyId() {
-        if (sid == null) {
-            sid = getStrategyContext().getProfile().getStrategyId();
-        }
-        return sid;
+        return getStrategyContext().getProfile().getStrategyId();
     }
 
     @Override
