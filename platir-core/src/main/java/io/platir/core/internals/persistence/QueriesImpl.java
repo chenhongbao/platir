@@ -17,8 +17,10 @@ import io.platir.service.User;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,7 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class QueriesImpl implements Queries {
 
-    private AtomicReference<TradingDay> tradingDay = new AtomicReference<>();
+    private final AtomicReference<TradingDay> tradingDay = new AtomicReference<>();
     private final Map<String, Account> accountTable = new HashMap<>();
     private final Map<String, Tick> tickTable = new HashMap<>();
     private final Map<String, Transaction> transactionTable = new HashMap<>();
@@ -56,12 +58,47 @@ public class QueriesImpl implements Queries {
 
     @Override
     public void initialize() throws DataQueryException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        readTable(Account.class).rows.forEach(item -> {
+            accountTable.put(item.getAccountId(), item);
+        });
+        readTable(Tick.class).rows.forEach(item -> {
+            tickTable.put(item.getInstrumentId(), item);
+        });
+        readTable(Transaction.class).rows.forEach(item -> {
+            transactionTable.put(item.getTransactionId(), item);
+        });
+        readTable(Order.class).rows.forEach(item -> {
+            orderTable.put(item.getOrderId(), item);
+        });
+        readTable(Trade.class).rows.forEach(item -> {
+            tradeTable.put(item.getTradeId(), item);
+        });
+        readTable(Contract.class).rows.forEach(item -> {
+            contractTable.put(item.getContractId(), item);
+        });
+        readTable(User.class).rows.forEach(item -> {
+            userTable.put(item.getUserId(), item);
+        });
+        readTable(StrategyProfile.class).rows.forEach(item -> {
+            profileTable.put(item.getStrategyId(), item);
+        });
+        readTable(Instrument.class).rows.forEach(item -> {
+            instrumentTable.put(item.getInstrumentId(), item);
+        });
     }
 
     @Override
     public void destroy() throws DataQueryException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        tradingDay.set(null);
+        instrumentTable.clear();
+        userTable.clear();
+        clearAccounts();
+        clearContracts();
+        clearOrders();
+        clearStrategies();
+        clearTicks();
+        clearTrades();
+        clearTransactions();
     }
 
     @Override
@@ -564,6 +601,22 @@ public class QueriesImpl implements Queries {
         }
     }
 
+    private <T> Table<T> readTable(Class<T> clazz) {
+        var target = tablePath(clazz.getCanonicalName());
+        try (FileReader fr = new FileReader(target.toFile())) {
+            return g.fromJson(fr, new Table<T>().getClass());
+        } catch (IOException ex) {
+            PlatirSystem.err.write("Can't read table: " + ex.getMessage(), ex);
+            var t = new Table<T>();
+            t.name = clazz.getCanonicalName();
+            return t;
+        }
+    }
+
+    private Path tablePath(String name) {
+        return Paths.get(PlatirSystem.cwd().toString(), "Schema", name);
+    }
+
     private void writeTradingDay() {
         var tbl = new Table<TradingDay>();
         tbl.name = TradingDay.class.getCanonicalName();
@@ -573,7 +626,7 @@ public class QueriesImpl implements Queries {
     }
 
     private void writeJsonTable(Table table) {
-        var target = Paths.get(PlatirSystem.cwd().toString(), "Schema", table.name);
+        var target = tablePath(table.name);
         PlatirSystem.file(target);
         writeJson(target.toFile(), table);
     }
