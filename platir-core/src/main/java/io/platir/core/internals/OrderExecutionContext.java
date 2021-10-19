@@ -5,12 +5,12 @@ import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Trade;
 import io.platir.service.api.DataQueryException;
-import io.platir.service.api.RiskAssess;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import io.platir.service.api.RiskManager;
 
 /**
  *
@@ -18,37 +18,37 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 class OrderExecutionContext {
 
-    private Notice notice;
-    private OrderContextImpl oCtx;
-    TransactionContextImpl trCtx;
-    private final AtomicInteger count = new AtomicInteger(0);
-    private final RiskAssess rsk;
+    private Notice responseNotice;
+    private OrderContextImpl orderContext;
+    TransactionContextImpl transactionContext;
+    private final AtomicInteger volumeCounter = new AtomicInteger(0);
+    private final RiskManager riskManager;
 
     /* first notice waiting facilities */
-    private final Lock l = new ReentrantLock();
-    private final Condition cond = l.newCondition();
-    private final int timeoutSec = 5;
+    private final Lock responseLock = new ReentrantLock();
+    private final Condition responseCondition = responseLock.newCondition();
+    private final int responseTimeoutSeconds = 5;
 
-    OrderExecutionContext(OrderContextImpl orderCtx, TransactionContextImpl ctx, RiskAssess risk) {
-        oCtx = orderCtx;
-        trCtx = ctx;
-        rsk = risk;
+    OrderExecutionContext(OrderContextImpl orderContext, TransactionContextImpl transactionContext, RiskManager riskManager) {
+        this.orderContext = orderContext;
+        this.transactionContext = transactionContext;
+        this.riskManager = riskManager;
     }
 
     void processTrade(Trade trade) {
-        io.platir.core.internals.StrategyContextImpl stg = trCtx.getStrategyContext();
+        var strategyContext = transactionContext.getStrategyContext();
         try {
             /* save trade to data source. */
-            stg.getPlatirClientImpl().queries().insert(trade);
-        } catch (DataQueryException e) {
+            strategyContext.getPlatirClientImpl().queries().insert(trade);
+        } catch (DataQueryException exception) {
             /* worker thread sees this exception, just log it */
-            Utils.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + trCtx.getTransaction() + ") and strategy(" + stg.getProfile().getStrategyId() + ") into data source: " + e.getMessage(), e);
+            Utils.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + transactionContext.getTransaction() + ") and strategy(" + strategyContext.getProfile().getStrategyId() + ") into data source: " + exception.getMessage(), exception);
         }
         /* add trade to order context. */
-        oCtx.addTrade(trade);
+        orderContext.addTrade(trade);
         /* update contracts' states */
         updateContracts(trade);
-        stg.processTrade(trade);
+        strategyContext.processTrade(trade);
         checkCompleted(trade.getVolume());
         /* risk assess */
         afterRisk(trade);
@@ -60,89 +60,88 @@ class OrderExecutionContext {
     }
 
     void signalResponse(int code, String message) {
-        if (notice != null) {
+        if (responseNotice != null) {
             return;
         }
-        l.lock();
+        responseLock.lock();
         try {
-            if (notice == null) {
-                notice = ObjectFactory.newNotice();
-                notice.setCode(code);
-                notice.setMessage(message);
-                cond.signalAll();
+            if (responseNotice == null) {
+                responseNotice = ObjectFactory.newNotice();
+                responseNotice.setCode(code);
+                responseNotice.setMessage(message);
+                responseCondition.signalAll();
             }
         } finally {
-            l.unlock();
+            responseLock.unlock();
         }
     }
 
     Notice waitResponse() {
-        if (notice != null) {
-            return notice;
+        if (responseNotice != null) {
+            return responseNotice;
         }
-        l.lock();
+        responseLock.lock();
         try {
-            if (notice == null) {
-                cond.await(timeoutSec, TimeUnit.SECONDS);
+            if (responseNotice == null) {
+                responseCondition.await(responseTimeoutSeconds, TimeUnit.SECONDS);
             }
         } catch (InterruptedException e) {
-            notice = ObjectFactory.newNotice();
-            notice.setCode(3001);
-            notice.setMessage("response timeout");
-            notice.setError(e);
-            notice.setContext(trCtx);
+            responseNotice = ObjectFactory.newNotice();
+            responseNotice.setCode(3001);
+            responseNotice.setMessage("response timeout");
+            responseNotice.setError(e);
+            responseNotice.setContext(transactionContext);
         } finally {
-            l.unlock();
+            responseLock.unlock();
         }
-        return notice;
+        return responseNotice;
     }
 
     private void afterRisk(Trade trade) {
         try {
-            var r = rsk.after(trade, trCtx);
-            if (!r.isGood()) {
-                TransactionFacilities.saveRiskNotice(r.getCode(), r.getMessage(), RiskNotice.WARNING, trCtx);
+            var riskNotice = riskManager.after(trade, transactionContext);
+            if (!riskNotice.isGood()) {
+                TransactionFacilities.saveRiskNotice(riskNotice.getCode(), riskNotice.getMessage(), RiskNotice.WARNING, transactionContext);
             }
-        } catch (Throwable th) {
-            Utils.err.write("Risk assess after() throws exception: " + th.getMessage(), th);
-            TransactionFacilities.saveRiskNotice(1005, "after(Trade) throws exception", RiskNotice.ERROR, trCtx);
+        } catch (Throwable throwable) {
+            Utils.err.write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
+            TransactionFacilities.saveRiskNotice(1005, "after(Trade) throws exception", RiskNotice.ERROR, transactionContext);
         }
     }
 
     private void updateContracts(Trade trade) {
-        io.platir.core.internals.StrategyContextImpl stg = trCtx.getStrategyContext();
+        var strategyContext = transactionContext.getStrategyContext();
         int updateCount = 0;
-        java.util.Iterator<io.platir.service.Contract> it = oCtx.lockedContracts().iterator();
-        while (++updateCount <= trade.getVolume() && it.hasNext()) {
-            io.platir.service.Contract c = it.next();
-            java.lang.String prevState = c.getState();
-            if (c.getState().compareToIgnoreCase("opening") == 0) {
+        var lockedContractIterator = orderContext.lockedContracts().iterator();
+        while (++updateCount <= trade.getVolume() && lockedContractIterator.hasNext()) {
+            var lockedContract = lockedContractIterator.next();
+            var prevState = lockedContract.getState();
+            if (lockedContract.getState().compareToIgnoreCase("opening") == 0) {
                 /* Update open price because the real traded price may be different. */
-                c.setState("open");
-                c.setPrice(trade.getPrice());
-                c.setOpenTime(Utils.datetime());
-                c.setOpenTradingDay(stg.getPlatirClientImpl().getTradingDay());
-            } else if (c.getState().compareToIgnoreCase("closing") == 0) {
-                /* don't forget the close price here */
-                c.setState("closed");
-                c.setClosePrice(trade.getPrice());
+                lockedContract.setState("open");
+                lockedContract.setPrice(trade.getPrice());
+                lockedContract.setOpenTime(Utils.datetime());
+                lockedContract.setOpenTradingDay(strategyContext.getPlatirClientImpl().getTradingDay());
+            } else if (lockedContract.getState().compareToIgnoreCase("closing") == 0) {
+                /* Don't forget the close price here. */
+                lockedContract.setState("closed");
+                lockedContract.setClosePrice(trade.getPrice());
             } else {
-                Utils.err.write("Incorrect contract state(" + c.getState() + "/" + c.getContractId() + ") before completing trade.");
+                Utils.err.write("Incorrect contract state(" + lockedContract.getState() + "/" + lockedContract.getContractId() + ") before completing trade.");
                 continue;
             }
             try {
-                stg.getPlatirClientImpl().queries().update(c);
-            } catch (DataQueryException e) {
-                Utils.err.write("Fail updating user(" + c.getUserId() + ") contract(" + c.getContractId() + ") state(" + c.getState() + ").", e);
-                /* roll back state */
-                c.setState(prevState);
+                strategyContext.getPlatirClientImpl().queries().update(lockedContract);
+            } catch (DataQueryException exception) {
+                Utils.err.write("Fail updating user(" + lockedContract.getUserId() + ") contract(" + lockedContract.getContractId() + ") state(" + lockedContract.getState() + ").", exception);
+                /* Roll back state. */
+                lockedContract.setState(prevState);
                 continue;
             }
-            it.remove();
+            lockedContractIterator.remove();
         }
         if (updateCount <= trade.getVolume()) {
-            java.lang.String msg = "Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.";
-            Utils.err.write(msg);
+            Utils.err.write("Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.");
         }
     }
 
@@ -151,28 +150,26 @@ class OrderExecutionContext {
     }
 
     private void pushNotice(int code, String message, Throwable error) {
-        io.platir.service.Notice n = ObjectFactory.newNotice();
-        n.setCode(code);
-        n.setMessage(message);
-        n.setError(error);
-        n.setContext(trCtx);
-        trCtx.getStrategyContext().processNotice(n);
+        var notice = ObjectFactory.newNotice();
+        notice.setCode(code);
+        notice.setMessage(message);
+        notice.setError(error);
+        notice.setContext(transactionContext);
+        transactionContext.getStrategyContext().processNotice(notice);
     }
 
     private void checkCompleted(int addedVolume) {
-        int cur = count.addAndGet(addedVolume);
-        java.lang.Integer vol = oCtx.getOrder().getVolume();
-        if (cur >= vol) {
-            /* let garbage collection reclaim the objects */
-            oCtx = null;
-            trCtx = null;
+        int tradedVolume = volumeCounter.addAndGet(addedVolume);
+        var totalVolume = orderContext.getOrder().getVolume();
+        if (tradedVolume >= totalVolume) {
+            /* Let garbage collection reclaim the objects. */
+            orderContext = null;
+            transactionContext = null;
+            /* Tell strategy trades are completed. */
+             pushNotice(0, "trade completed");
         }
-        if (cur == vol) {
-            pushNotice(0, "trade completed");
-        } else if (cur > vol) {
-            int code = 3002;
-            java.lang.String msg = "order(" + oCtx.getOrder().getOrderId() + ") over traded";
-            Utils.err.write(msg);
+        if (tradedVolume > totalVolume) {
+            Utils.err.write("Order(" + orderContext.getOrder().getOrderId() + ") over traded.");
         }
     }
 

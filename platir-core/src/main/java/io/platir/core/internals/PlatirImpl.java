@@ -22,51 +22,50 @@ import io.platir.service.Tick;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.Queries;
-import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeAdaptor;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import io.platir.service.api.RiskManager;
 
 public class PlatirImpl extends Platir {
 
-    private final Lock l = new ReentrantLock();
-    private final Condition cond = l.newCondition();
+    private final Lock shutdownLock = new ReentrantLock();
+    private final Condition shutdownCondition = shutdownLock.newCondition();
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
-    private RiskAssess rsk;
-    private MarketRouter mkRouter;
-    private TransactionQueue trQueue;
-    private TradeAdaptor trader;
-    private MarketAdaptor market;
-    private Queries qry;
-    private StrategyContextPool stgCtxPool;
+    private RiskManager riskManager;
+    private MarketRouter marketRouter;
+    private TransactionQueue transactionQueue;
+    private TradeAdaptor tradeAdaptor;
+    private MarketAdaptor marketAdaptor;
+    private Queries queries;
+    private StrategyContextPool strategyContextPool;
     private FileChannel instanceLock;
 
     @Override
     public void setQueries(Queries queries) {
-        qry = queries;
+        this.queries = queries;
     }
 
     @Override
-    public StrategyContext addStrategy(StrategyProfile profile, Object strategy)
-            throws InvalidLoginException, StrategyCreateException {
-        return stgCtxPool.add(profile, strategy);
+    public StrategyContext addStrategy(StrategyProfile strategyProfile, Object strategyObject) throws InvalidLoginException, StrategyCreateException {
+        return strategyContextPool.add(strategyProfile, strategyObject);
     }
 
     @Override
     public Set<StrategyContext> getStrategies() {
-        return new HashSet<>(stgCtxPool.strategyContexts());
+        return new HashSet<>(strategyContextPool.strategyContexts());
     }
 
     @Override
     public void join() throws InterruptedException {
-        l.lock();
+        shutdownLock.lock();
         try {
-            cond.await();
+            shutdownCondition.await();
         } finally {
-            l.unlock();
+            shutdownLock.unlock();
         }
     }
 
@@ -77,12 +76,12 @@ public class PlatirImpl extends Platir {
                 return;
             }
             /* first shutdown strategies */
-            stgCtxPool.shutdown(reason);
+            strategyContextPool.shutdown(reason);
             /* then shutdown broker connection */
-            market.shutdown();
-            trader.shutdown();
+            marketAdaptor.shutdown();
+            tradeAdaptor.shutdown();
             isShutdown.set(true);
-            dbDestroy();
+            queriesDestroy();
             /* signal waiting thread on join() */
             signalJoiner();
             /* release instance lock */
@@ -91,11 +90,11 @@ public class PlatirImpl extends Platir {
     }
 
     private void signalJoiner() {
-        l.lock();
+        shutdownLock.lock();
         try {
-            cond.signal();
+            shutdownCondition.signal();
         } finally {
-            l.unlock();
+            shutdownLock.unlock();
         }
     }
 
@@ -107,25 +106,25 @@ public class PlatirImpl extends Platir {
             }
             /* ensure single instance */
             acquireInstance();
-            dbInit();
+            queriesInit();
             setup();
             isShutdown.set(false);
         }
     }
 
     private void acquireInstance() throws StartupException {
-        var p = Paths.get(Utils.cwd().toString(), ".lock");
-        if (!Files.exists(p)) {
-            Utils.file(p);
+        var instanceLockingFile = Paths.get(Utils.cwd().toString(), ".lock");
+        if (!Files.exists(instanceLockingFile)) {
+            Utils.file(instanceLockingFile);
         }
         try {
-            instanceLock = FileChannel.open(p, StandardOpenOption.APPEND);
+            instanceLock = FileChannel.open(instanceLockingFile, StandardOpenOption.APPEND);
         } catch (IOException ex) {
             throw new StartupException("Two or more instances are not allowed.");
         }
     }
 
-    private void releaseInstance()  {
+    private void releaseInstance() {
         try {
             instanceLock.close();
         } catch (IOException ex) {
@@ -134,17 +133,17 @@ public class PlatirImpl extends Platir {
         }
     }
 
-    private void dbInit() {
+    private void queriesInit() {
         try {
-            qry.initialize();
+            queries.initialize();
         } catch (DataQueryException e) {
             throw new RuntimeException("Fail preparing database.", e);
         }
     }
 
-    private void dbDestroy() {
+    private void queriesDestroy() {
         try {
-            qry.destroy();
+            queries.destroy();
         } catch (DataQueryException ex) {
             throw new RuntimeException("Fail closing data source.", ex);
         }
@@ -152,79 +151,77 @@ public class PlatirImpl extends Platir {
 
     private void setup() throws StartupException {
         try {
-            trader.start();
-            market.start();
+            tradeAdaptor.start();
+            marketAdaptor.start();
         } catch (AdaptorStartupException e) {
             throw new StartupException("Adaptor startup failure: " + e.getMessage(), e);
         }
-        /* if there are subscribed instruments, re-subscribe them. */
-        mkRouter.refreshAllSubscriptions();
-        if (trQueue == null) {
-            trQueue = new TransactionQueue(trader, rsk);
-            Utils.threads.submit(trQueue);
+        if (transactionQueue == null) {
+            transactionQueue = new TransactionQueue(tradeAdaptor, riskManager);
+            Utils.threads.submit(transactionQueue);
         }
-        if (mkRouter == null) {
-            mkRouter = new MarketRouter(market, trQueue);
+        if (marketRouter == null) {
+            marketRouter = new MarketRouter(marketAdaptor, transactionQueue);
         } else {
-            /* need subscribe again after re-login */
-            mkRouter.refreshAllSubscriptions();
+            /* Need subscribe again after re-login. */
+            marketRouter.refreshAllSubscriptions();
         }
-        if (stgCtxPool == null) {
-            stgCtxPool = new StrategyContextPool(trQueue, mkRouter, rsk, qry);
+        if (strategyContextPool == null) {
+            strategyContextPool = new StrategyContextPool(transactionQueue, marketRouter, queries);
         }
-        /* finally initialize strategies when all are ready */
-        stgCtxPool.initialize();
+        /* Finally initialize strategies when all are ready. */
+        strategyContextPool.initialize();
     }
 
     @Override
     public void setTradeAdaptor(TradeAdaptor adaptor) {
-        trader = adaptor;
+        tradeAdaptor = adaptor;
     }
 
     @Override
     public void setMarketAdaptor(MarketAdaptor adaptor) {
-        market = adaptor;
+        marketAdaptor = adaptor;
     }
 
     @Override
-    public void setRiskAssess(RiskAssess assess) {
-        rsk = assess;
+    public void setRiskAssess(RiskManager assess) {
+        riskManager = assess;
     }
 
     @Override
     public void settle() throws SettlementException {
-        /* need last tick price for settlement price */
+        /* Need last tick price for settlement price. */
         try {
-            qry.insert(mkRouter.getLastTicks().toArray(new Tick[1]));
-        } catch (DataQueryException e) {
-            Utils.err.write("Fail inserting tick.", e);
+            queries.insert(marketRouter.getLastTicks().toArray(new Tick[1]));
+        } catch (DataQueryException exception) {
+            Utils.err.write("Fail inserting tick.", exception);
         }
         try {
-            new Settlement(qry).settle();
-        } catch (DataQueryException e) {
-            throw new SettlementException("Settlement fails: " + e.getMessage(), e);
+            new Settlement(queries).settle();
+        } catch (DataQueryException exception) {
+            throw new SettlementException("Settlement fails: " + exception.getMessage(), exception);
         }
         try {
-            stgCtxPool.settle();
-        } catch (IntegrityException e) {
-            throw new SettlementException("Integrity check fails before settlement: " + e.getMessage(), e);
+            strategyContextPool.settle();
+        } catch (IntegrityException exception) {
+            throw new SettlementException("Integrity check fails before settlement: " + exception.getMessage(), exception);
         }
-        trQueue.settle();
+        transactionQueue.settle();
     }
 
     @Override
     public void checkIntegrity() throws IntegrityException {
-        stgCtxPool.checkIntegrity();
+        strategyContextPool.checkIntegrity();
     }
 
     @Override
     public void updateStrategyProfile(StrategyProfile profile) throws StrategyUpdateException, InvalidLoginException {
-        stgCtxPool.update(profile);
+        strategyContextPool.update(profile);
     }
 
     @Override
     public void removeStrategy(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
-        stgCtxPool.remove(profile);
+        strategyContextPool.remove(profile);
     }
 
 }

@@ -104,52 +104,52 @@ public final class Utils {
     }
 
     public static Path cwd() {
-        var c = Integer.toString(physicalJarLocation().hashCode());
-        var p = Paths.get(System.getProperty("user.dir"), "PlatirWorking", c);
-        dir(p);
-        return p;
+        var code = Integer.toString(physicalJarLocation().hashCode());
+        var path = Paths.get(System.getProperty("user.dir"), "PlatirWorking", code);
+        dir(path);
+        return path;
     }
 
-    public static Path dir(Path p) {
-        if (!Files.isDirectory(p)) {
+    public static Path dir(Path path) {
+        if (!Files.isDirectory(path)) {
             try {
-                Files.createDirectories(p);
-                access(p);
-            } catch (IOException e) {
-                err.write("Can't create directory \'" + p.toAbsolutePath().toString() + "\'.", e);
+                Files.createDirectories(path);
+                access(path);
+            } catch (IOException exception) {
+                err.write("Can't create directory \'" + path.toAbsolutePath().toString() + "\'.", exception);
             }
         }
-        return p;
+        return path;
     }
 
     public static String physicalJarLocation() {
         try {
             return new File(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
-        } catch (Throwable th) {
-            throw new RuntimeException("Fail obtaining jar physical path.");
+        } catch (Throwable throwable) {
+            throw new RuntimeException("Fail obtaining jar physical path: " + throwable.getMessage(), throwable);
         }
     }
 
-    public static File file(Path p) {
-        File r = null;
-        if (!Files.isRegularFile(p)) {
+    public static File file(Path path) {
+        File file = null;
+        if (!Files.isRegularFile(path)) {
             try {
-                Files.createFile(p);
-                access(p);
-                r = p.toFile();
-            } catch (IOException e) {
-                err.write("Can't create file \'" + p.toAbsolutePath().toString() + "\'.", e);
+                Files.createFile(path);
+                access(path);
+                file = path.toFile();
+            } catch (IOException exception) {
+                err.write("Can't create file \'" + path.toAbsolutePath().toString() + "\', " + exception.getMessage(), exception);
             }
         }
-        return r;
+        return file;
     }
 
-    protected static void access(Path p) {
-        if (!Files.isWritable(p)) {
-            p.toFile().setWritable(true);
+    protected static void access(Path path) {
+        if (!Files.isWritable(path)) {
+            path.toFile().setWritable(true);
         }
-        if (!Files.isReadable(p)) {
-            p.toFile().setReadable(true);
+        if (!Files.isReadable(path)) {
+            path.toFile().setReadable(true);
         }
     }
 }

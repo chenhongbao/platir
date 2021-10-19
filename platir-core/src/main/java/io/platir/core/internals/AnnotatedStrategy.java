@@ -32,28 +32,19 @@ import io.platir.service.PlatirInfoClient;
 class AnnotatedStrategy implements Strategy {
 
     private final AnnotatedStrategyInvoker invoker = new AnnotatedStrategyInvoker();
-    private Strategy stg;
+    private Strategy strategy;
 
-    /**
-     * Create a new strategy wrapper and parse the annotated methods if they are
-     * presented.
-     *
-     * @param object An object that is a subclass of {@link Strategy} or has
-     * annotated callback methods.
-     * @throws AnnotationParsingException if the specified object has errors in
-     * annotation.
-     */
-    AnnotatedStrategy(Object object) throws AnnotationParsingException {
-        Objects.requireNonNull(object, "Constructed strategy is null.");
-        invoker.parse(object);
-        if (object instanceof Strategy) {
-            stg = (Strategy) object;
+    AnnotatedStrategy(Object strategyObject) throws AnnotationParsingException {
+        Objects.requireNonNull(strategyObject, "Constructed strategy is null.");
+        invoker.parse(strategyObject);
+        if (strategyObject instanceof Strategy) {
+            strategy = (Strategy) strategyObject;
         }
     }
 
     Object getStrategy() {
-        if (stg != null) {
-            return stg;
+        if (strategy != null) {
+            return strategy;
         } else {
             return invoker.getStrategy();
         }
@@ -62,8 +53,8 @@ class AnnotatedStrategy implements Strategy {
     @Override
     public void onTrade(Trade trade) {
         Objects.requireNonNull(trade, "Input trade is null.");
-        if (stg != null) {
-            stg.onTrade(trade);
+        if (strategy != null) {
+            strategy.onTrade(trade);
         }
         invoker.invokeTrade(trade);
     }
@@ -71,8 +62,8 @@ class AnnotatedStrategy implements Strategy {
     @Override
     public void onTick(Tick tick) {
         Objects.requireNonNull(tick, "Input tick is null.");
-        if (stg != null) {
-            stg.onTick(tick);
+        if (strategy != null) {
+            strategy.onTick(tick);
         }
         invoker.invokeTick(tick);
     }
@@ -80,8 +71,8 @@ class AnnotatedStrategy implements Strategy {
     @Override
     public void onBar(Bar bar) {
         Objects.requireNonNull(bar, "Input bar is null.");
-        if (stg != null) {
-            stg.onBar(bar);
+        if (strategy != null) {
+            strategy.onBar(bar);
         }
         invoker.invokeBar(bar);
     }
@@ -89,34 +80,34 @@ class AnnotatedStrategy implements Strategy {
     @Override
     public void onNotice(Notice notice) {
         Objects.requireNonNull(notice, "Input notice is null.");
-        if (stg != null) {
-            stg.onNotice(notice);
+        if (strategy != null) {
+            strategy.onNotice(notice);
         }
         invoker.invokeNotice(notice);
     }
 
     @Override
-    public void onStart(String[] args, PlatirClient platir) {
+    public void onStart(String[] args, PlatirClient platirClient) {
         Objects.requireNonNull(args, "Input arguments array is null.");
-        Objects.requireNonNull(platir, "Input client is null.");
-        if (stg != null) {
-            stg.onStart(args, platir);
+        Objects.requireNonNull(platirClient, "Input client is null.");
+        if (strategy != null) {
+            strategy.onStart(args, platirClient);
         }
-        invoker.invokeStart(args, platir);
+        invoker.invokeStart(args, platirClient);
     }
 
     @Override
     public void onStop(int reason) {
-        if (stg != null) {
-            stg.onStop(reason);
+        if (strategy != null) {
+            strategy.onStop(reason);
         }
         invoker.invokeStop(reason);
     }
 
     @Override
     public void onDestroy() {
-        if (stg != null) {
-            stg.onDestroy();
+        if (strategy != null) {
+            strategy.onDestroy();
         }
         invoker.invokeDestroy();
     }
@@ -126,108 +117,105 @@ class AnnotatedStrategy implements Strategy {
      */
     private class AnnotatedStrategyInvoker {
 
-        private Object obj;
-        private Method start, stop, destroy, noticer;
-        private Map<String, Method> trades = new ConcurrentHashMap<>();
-        private Map<String, Method> ticks = new ConcurrentHashMap<>();
-        private Map<String, Map<Integer, Method>> bars = new ConcurrentHashMap<>();
+        private Object target;
+        private Method startMethod, stopMethod, destroyMethod, noticeMethod;
+        private final Map<String, Method> tradeMethods = new ConcurrentHashMap<>();
+        private final Map<String, Method> tickMethods = new ConcurrentHashMap<>();
+        private final Map<String, Map<Integer, Method>> barMethods = new ConcurrentHashMap<>();
 
         AnnotatedStrategyInvoker() {
         }
 
-        void parse(Object object) throws AnnotationParsingException {
-            obj = object;
-            for (Method m : obj.getClass().getMethods()) {
+        void parse(Object strategyObject) throws AnnotationParsingException {
+            target = strategyObject;
+            for (Method m : target.getClass().getMethods()) {
                 parseMethod(m);
             }
         }
 
-        private void parseMethod(Method m) throws AnnotationParsingException {
-            if (parseOnBar(m) || parseOnTick(m) || parseOnTrade(m) || parseOnNotice(m) || parseOnStart(m)) {
+        private void parseMethod(Method method) throws AnnotationParsingException {
+            if (parseOnBar(method) || parseOnTick(method) || parseOnTrade(method) || parseOnNotice(method) || parseOnStart(method)) {
                 return;
             }
-            parseOnStop(m);
-            parseOnDestroy(m);
+            parseOnStop(method);
+            parseOnDestroy(method);
         }
 
-        private boolean parseOnStart(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnStart.class, m, String[].class, PlatirClient.class)) {
-                if (start != null) {
+        private boolean parseOnStart(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnStart.class, method, String[].class, PlatirClient.class)) {
+                if (startMethod != null) {
                     throw new AnnotationParsingException("Ambiguious OnStart annotation.");
                 }
-                start = m;
+                startMethod = method;
                 return true;
             }
             return false;
         }
 
-        private boolean parseOnNotice(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnNotice.class, m, Notice.class)) {
-                if (noticer != null) {
+        private boolean parseOnNotice(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnNotice.class, method, Notice.class)) {
+                if (noticeMethod != null) {
                     throw new AnnotationParsingException("Ambiguious OnNotice annotation.");
                 }
-                noticer = m;
+                noticeMethod = method;
                 return true;
             }
             return false;
         }
 
-        private boolean parseOnTrade(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnTrade.class, m, Trade.class)) {
-                var a = m.getAnnotation(OnTrade.class);
+        private boolean parseOnTrade(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnTrade.class, method, Trade.class)) {
+                var a = method.getAnnotation(OnTrade.class);
                 if (a.id().length == 0) {
                     throw new AnnotationParsingException("No instrument ID specified for OnTrade annotation.");
                 }
                 for (String id : a.id()) {
-                    if (trades.containsKey(id)) {
-                        throw new AnnotationParsingException(
-                                "Ambiguious OnTrade annotation for instrument(" + id + ").");
+                    if (tradeMethods.containsKey(id)) {
+                        throw new AnnotationParsingException("Ambiguious OnTrade annotation for instrument(" + id + ").");
                     }
-                    trades.put(id, m);
+                    tradeMethods.put(id, method);
                 }
                 return true;
             }
             return false;
         }
 
-        private boolean parseOnTick(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnTick.class, m, Tick.class)) {
-                var a = m.getAnnotation(OnTick.class);
-                if (a.id().length == 0) {
+        private boolean parseOnTick(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnTick.class, method, Tick.class)) {
+                var annotation = method.getAnnotation(OnTick.class);
+                if (annotation.id().length == 0) {
                     throw new AnnotationParsingException("No instrument ID specified for OnTick annotation.");
                 }
-                for (String id : a.id()) {
-                    if (ticks.containsKey(id)) {
-                        throw new AnnotationParsingException(
-                                "Ambiguious OnTick annotation for instrument(" + id + ").");
+                for (String id : annotation.id()) {
+                    if (tickMethods.containsKey(id)) {
+                        throw new AnnotationParsingException("Ambiguious OnTick annotation for instrument(" + id + ").");
                     }
-                    ticks.put(id, m);
+                    tickMethods.put(id, method);
                 }
                 return true;
             }
             return false;
         }
 
-        private boolean parseOnBar(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnBar.class, m, Bar.class)) {
-                var a = m.getAnnotation(OnBar.class);
-                if (a.id().length == 0) {
+        private boolean parseOnBar(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnBar.class, method, Bar.class)) {
+                var annotation = method.getAnnotation(OnBar.class);
+                if (annotation.id().length == 0) {
                     throw new AnnotationParsingException("No instrument ID specified for OnBar annotation.");
                 }
-                for (String id : a.id()) {
-                    var ms = bars.computeIfAbsent(id, k -> new ConcurrentHashMap<Integer, Method>());
-                    if (a.minute().length == 0) {
+                for (String id : annotation.id()) {
+                    var ms = barMethods.computeIfAbsent(id, k -> new ConcurrentHashMap<Integer, Method>());
+                    if (annotation.minute().length == 0) {
                         if (ms.containsKey(0)) {
                             throw new AnnotationParsingException("Ambiguious OnBar annotation for unspecified minute.");
                         }
-                        ms.put(0, m);
+                        ms.put(0, method);
                     } else {
-                        for (int minute : a.minute()) {
+                        for (int minute : annotation.minute()) {
                             if (ms.containsKey(minute)) {
-                                throw new AnnotationParsingException(
-                                        "Ambiguious OnBar annotation for minute(" + minute + ").");
+                                throw new AnnotationParsingException("Ambiguious OnBar annotation for minute(" + minute + ").");
                             }
-                            ms.put(minute, m);
+                            ms.put(minute, method);
                         }
                     }
                 }
@@ -236,43 +224,42 @@ class AnnotatedStrategy implements Strategy {
             return false;
         }
 
-        private void parseOnDestroy(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnDestroy.class, m, int.class)) {
-                if (destroy != null) {
+        private void parseOnDestroy(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnDestroy.class, method, int.class)) {
+                if (destroyMethod != null) {
                     throw new AnnotationParsingException("Ambiguious OnDestroy annotation.");
                 }
-                destroy = m;
+                destroyMethod = method;
             }
         }
 
-        private void parseOnStop(Method m) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnStop.class, m, int.class)) {
-                if (stop != null) {
+        private void parseOnStop(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnStop.class, method, int.class)) {
+                if (stopMethod != null) {
                     throw new AnnotationParsingException("Ambiguious OnStop annotation.");
                 }
-                stop = m;
+                stopMethod = method;
             }
         }
 
-        private <T extends Annotation> boolean checkMethodAndParameters(Class<T> annotationClass, Method m,
-                Class<?>... paramTypes) {
-            var a = m.getAnnotation(annotationClass);
-            if (a == null || paramTypes.length != m.getParameterCount()) {
+        private <T extends Annotation> boolean checkMethodAndParameters(Class<T> annotationClass, Method m, Class<?>... paramTypes) {
+            var annotation = m.getAnnotation(annotationClass);
+            if (annotation == null || paramTypes.length != m.getParameterCount()) {
                 return false;
             }
-            var p = m.getParameterTypes();
+            var types = m.getParameterTypes();
             for (int i = 0; i < m.getParameterCount(); ++i) {
-                if (paramTypes[i] != p[i]) {
+                if (paramTypes[i] != types[i]) {
                     return false;
                 }
             }
             return true;
         }
 
-        void invokeStart(String[] args, PlatirInfoClient platir) {
-            if (start != null) {
+        void invokeStart(String[] args, PlatirInfoClient infoClient) {
+            if (startMethod != null) {
                 try {
-                    start.invoke(obj, args, platir);
+                    startMethod.invoke(target, args, infoClient);
                 } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                     throw new RuntimeException("Fail invoking onStart(String[], PlatirClient).", e);
                 }
@@ -280,45 +267,45 @@ class AnnotatedStrategy implements Strategy {
         }
 
         void invokeStop(int reason) {
-            if (stop != null) {
+            if (stopMethod != null) {
                 try {
-                    stop.invoke(obj, reason);
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    throw new RuntimeException("Fail invoking onStop(int).", e);
+                    stopMethod.invoke(target, reason);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                    throw new RuntimeException("Fail invoking onStop(int).", exception);
                 }
             }
         }
 
         void invokeDestroy() {
-            if (destroy != null) {
+            if (destroyMethod != null) {
                 try {
-                    destroy.invoke(obj);
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    throw new RuntimeException("Fail invoking onDestroy(int).", e);
+                    destroyMethod.invoke(target);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                    throw new RuntimeException("Fail invoking onDestroy(int).", exception);
                 }
             }
         }
 
         void invokeTrade(Trade trade) {
             Objects.requireNonNull(trade.getInstrumentId(), "Trade instrument ID is null.");
-            var m = trades.get(trade.getInstrumentId());
-            if (m != null) {
+            var method = tradeMethods.get(trade.getInstrumentId());
+            if (method != null) {
                 try {
-                    m.invoke(obj, trade);
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    throw new RuntimeException("Fail invoking onTrade(Trade).", e);
+                    method.invoke(target, trade);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                    throw new RuntimeException("Fail invoking onTrade(Trade).", exception);
                 }
             }
         }
 
         void invokeTick(Tick tick) {
             Objects.requireNonNull(tick.getInstrumentId(), "Tick instrument ID is null.");
-            var m = ticks.get(tick.getInstrumentId());
-            if (m != null) {
+            var method = tickMethods.get(tick.getInstrumentId());
+            if (method != null) {
                 try {
-                    m.invoke(obj, tick);
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    throw new RuntimeException("Fail invoking onTick(Tick).", e);
+                    method.invoke(target, tick);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                    throw new RuntimeException("Fail invoking onTick(Tick).", exception);
                 }
             }
         }
@@ -326,31 +313,31 @@ class AnnotatedStrategy implements Strategy {
         void invokeBar(Bar bar) {
             Objects.requireNonNull(bar.getInstrumentId(), "Bar instrument ID is null.");
             Objects.requireNonNull(bar.getMinute(), "Bar minute is null.");
-            var set = bars.get(bar.getInstrumentId());
-            if (set != null) {
-                var m = set.get(bar.getMinute());
-                if (m != null) {
+            var methods = barMethods.get(bar.getInstrumentId());
+            if (methods != null) {
+                var method = methods.get(bar.getMinute());
+                if (method != null) {
                     try {
-                        m.invoke(obj, bar);
-                    } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                        throw new RuntimeException("Fail invoking onBar(Bar).", e);
+                        method.invoke(target, bar);
+                    } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                        throw new RuntimeException("Fail invoking onBar(Bar).", exception);
                     }
                 }
             }
         }
 
         void invokeNotice(Notice notice) {
-            if (noticer != null) {
+            if (noticeMethod != null) {
                 try {
-                    noticer.invoke(obj, notice);
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    throw new RuntimeException("Fail invoking onNotice(Notice).", e);
+                    noticeMethod.invoke(target, notice);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                    throw new RuntimeException("Fail invoking onNotice(Notice).", exception);
                 }
             }
         }
 
         Object getStrategy() {
-            return obj;
+            return target;
         }
     }
 }

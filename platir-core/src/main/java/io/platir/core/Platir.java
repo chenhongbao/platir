@@ -7,15 +7,15 @@ import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.Queries;
-import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeAdaptor;
+import io.platir.service.api.RiskManager;
 
 public abstract class Platir {
 	public static Platir create() {
 		return new PlatirImpl();
 	}
 
-	public abstract void setRiskAssess(RiskAssess assess);
+	public abstract void setRiskAssess(RiskManager assess);
 
 	public abstract void setTradeAdaptor(TradeAdaptor trade);
 

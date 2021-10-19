@@ -4,19 +4,14 @@ import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Bar;
 import io.platir.service.Notice;
 import io.platir.service.Strategy;
-import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
-import io.platir.service.api.DataQueryException;
-import io.platir.service.api.RiskAssess;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -24,36 +19,30 @@ import java.util.logging.Logger;
  */
 class StrategyCallbackQueue implements Runnable {
 
-    private final RiskAssess rsk;
-    private final Strategy stg;
-    private final StrategyProfile prof;
-    private final PlatirClientImpl cli;
-    private final BlockingQueue<Object> q = new LinkedBlockingQueue<>();
-    private final Future daemonFut;
+    private final Strategy strategy;
+    private final BlockingQueue<Object> callbackObjects = new LinkedBlockingQueue<>();
+    private final Future daemonFuture;
 
-    StrategyCallbackQueue(PlatirClientImpl client, StrategyProfile profile, RiskAssess risk, Strategy strategy) {
-        cli = client;
-        rsk = risk;
-        stg = strategy;
-        prof = profile;
-        daemonFut = Utils.threads.submit(this);
+    StrategyCallbackQueue(Strategy strategy) {
+        this.strategy = strategy;
+        this.daemonFuture = Utils.threads.submit(this);
     }
 
     void push(Object object) {
-        if (!q.offer(object)) {
+        if (!callbackObjects.offer(object)) {
             Utils.err.write("Strategy callback queueing queue is full.");
         }
     }
 
     void shutdown() {
-        daemonFut.cancel(true);
+        daemonFuture.cancel(true);
     }
 
     @Override
     public void run() {
-        while (!Thread.currentThread().isInterrupted() || !q.isEmpty()) {
+        while (!Thread.currentThread().isInterrupted() || !callbackObjects.isEmpty()) {
             try {
-                var object = q.poll(24, TimeUnit.HOURS);
+                var object = callbackObjects.poll(24, TimeUnit.HOURS);
                 if (object instanceof Notice) {
                     timedOnNotice((Notice) object);
                 } else if (object instanceof Trade) {
@@ -66,7 +55,7 @@ class StrategyCallbackQueue implements Runnable {
                     Utils.err.write("Unknown instance: " + object);
                 }
             } catch (InterruptedException ex) {
-                Logger.getLogger(StrategyCallbackQueue.class.getName()).log(Level.SEVERE, null, ex);
+                Utils.err.write("Strategy callback daemon is interrupted.");
             } catch (Throwable th) {
                 Utils.err.write("Uncaught error: " + th.getMessage(), th);
             }
@@ -74,85 +63,85 @@ class StrategyCallbackQueue implements Runnable {
     }
 
     private void timedOperation(boolean needNotice, int timeoutSec, TimedJob job) {
-        var timedFut = Utils.threads.submit(() -> {
-            var r = ObjectFactory.newNotice();
+        var future = Utils.threads.submit(() -> {
+            var notice = ObjectFactory.newNotice();
             try {
                 job.work();
-                r.setCode(0);
-                r.setMessage("good");
+                notice.setCode(0);
+                notice.setMessage("good");
             } catch (Throwable th) {
-                r.setCode(4001);
-                r.setMessage("Callback throws exception: " + th.getMessage());
-                r.setError(th);
+                notice.setCode(4001);
+                notice.setMessage("Callback throws exception: " + th.getMessage());
+                notice.setError(th);
             }
-            return r;
+            return notice;
         });
 
         try {
-            var r = timedFut.get(timeoutSec, TimeUnit.SECONDS);
-            if (!r.isGood()) {
-                Utils.err.write(r.getMessage());
+            var taskNotice = future.get(timeoutSec, TimeUnit.SECONDS);
+            if (!taskNotice.isGood()) {
+                Utils.err.write(taskNotice.getMessage());
                 if (needNotice) {
-                    /* tell strategy its callback fails */
-                    timedOnNotice(r);
+                    /* Tell strategy its callback fails. */
+                    timedOnNotice(taskNotice);
                 }
             }
-        } catch (InterruptedException | ExecutionException e) {
-            Utils.err.write("Timed operation is interrupted: " + e.getMessage(), e);
-        } catch (TimeoutException e) {
-            var r = ObjectFactory.newNotice();
-            r.setCode(4002);
-            r.setMessage("Callback operation is timeout.");
-            r.setError(e);
-            /* tell strategy its callback timeout */
-            timedOnNotice(r);
+        } catch (InterruptedException | ExecutionException exception) {
+            Utils.err.write("Timed operation is interrupted: " + exception.getMessage(), exception);
+        } catch (TimeoutException exception) {
+            var notice = ObjectFactory.newNotice();
+            notice.setCode(4002);
+            notice.setMessage("Callback operation is timeout.");
+            notice.setError(exception);
+            /* Tell strategy its callback timeout. */
+            timedOnNotice(notice);
         } finally {
-            /* the task has to be aborted */
-            if (!timedFut.isDone()) {
-                timedFut.cancel(true);
+            /* The task has to be aborted. */
+            if (!future.isDone()) {
+                future.cancel(true);
             }
         }
     }
 
     private void timedOnBar(Bar bar) {
         timedOperation(true, 1, () -> {
-            stg.onBar(bar);
+            strategy.onBar(bar);
         });
     }
 
     private void timedOnTick(Tick tick) {
         timedOperation(true, 1, () -> {
-            stg.onTick(tick);
+            strategy.onTick(tick);
         });
     }
 
     private void timedOnTrade(Trade trade) {
         timedOperation(true, 1, () -> {
-            stg.onTrade(trade);
+            strategy.onTrade(trade);
         });
     }
 
     private void timedOnNotice(Notice notice) {
         timedOperation(false, 1, () -> {
-            stg.onNotice(notice);
+            strategy.onNotice(notice);
         });
     }
 
     void timedOnStart(String[] args, PlatirClientImpl cli) {
         timedOperation(true, 5, () -> {
-            stg.onStart(args, cli);
+            strategy.onStart(args, cli);
         });
     }
 
     void timedOnStop(int reason) {
         timedOperation(true, 5, () -> {
-            stg.onStop(reason);
+            strategy.onStop(reason);
         });
     }
 
     void timedOnDestroy() {
         timedOperation(true, 5, () -> {
-            stg.onDestroy();
+            strategy.onDestroy();
         });
     }
 

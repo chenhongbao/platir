@@ -3,11 +3,11 @@ package io.platir.core.internals;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Notice;
 import io.platir.service.Trade;
-import io.platir.service.api.RiskAssess;
 import io.platir.service.api.TradeListener;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import io.platir.service.api.RiskManager;
 
 /**
  * Error code explaination:
@@ -20,11 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 class TradeListenerContexts implements TradeListener {
 
     private final Map<String, OrderExecutionContext> ctxs = new ConcurrentHashMap<>();
-    private final RiskAssess rsk;
+    private final RiskManager rsk;
     private final TradeCallbackQueue tradeQueue;
     private final NoticeCallbackQueue noticeQueue;
 
-    TradeListenerContexts(RiskAssess risk) {
+    TradeListenerContexts(RiskManager risk) {
         rsk = risk;
         tradeQueue = new TradeCallbackQueue();
         noticeQueue = new NoticeCallbackQueue();
@@ -33,7 +33,7 @@ class TradeListenerContexts implements TradeListener {
     }
 
     int countStrategyRunning(StrategyContextImpl strategy) {
-        return ctxs.values().stream().mapToInt(ctx -> ctx.trCtx.getStrategyContext() == strategy ? 1 : 0).sum();
+        return ctxs.values().stream().mapToInt(ctx -> ctx.transactionContext.getStrategyContext() == strategy ? 1 : 0).sum();
     }
 
     void clearContexts() {

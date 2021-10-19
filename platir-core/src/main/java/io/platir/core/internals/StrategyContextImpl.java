@@ -23,7 +23,6 @@ import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
-import io.platir.service.api.RiskAssess;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,10 +46,9 @@ import java.util.logging.SimpleFormatter;
 class StrategyContextImpl implements StrategyContext {
 
     private final Logger logger;
-    private final StrategyProfile prof;
-    private final AnnotatedStrategy annStg;
-    private final PlatirClientImpl cli;
-    private final RiskAssess rsk;
+    private final StrategyProfile strategyProfile;
+    private final AnnotatedStrategy annotatedStrategy;
+    private final PlatirClientImpl platirClient;
     private final Set<TransactionContextImpl> transactions = new ConcurrentSkipListSet<>();
     private final StrategyLoggingHandler loggingHandler;
     /*
@@ -58,17 +56,15 @@ class StrategyContextImpl implements StrategyContext {
      * still comes in.
      */
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
-    private final StrategyCallbackQueue cb;
+    private final StrategyCallbackQueue callbackQueue;
 
-    StrategyContextImpl(StrategyProfile profile, Object strategy, TransactionQueue trQueue, MarketRouter mkRouter,
-            RiskAssess riskAssess, Queries queries) throws AnnotationParsingException {
-        rsk = riskAssess;
-        prof = profile;
-        annStg = new AnnotatedStrategy(strategy);
-        cli = new PlatirClientImpl(this, trQueue, mkRouter, queries);
-        cb = new StrategyCallbackQueue(cli, prof, rsk, annStg);
-        loggingHandler = new StrategyLoggingHandler();
-        logger = createLogger();
+    StrategyContextImpl(StrategyProfile strategyProfile, Object strategyObject, TransactionQueue transactionQueue, MarketRouter marketQueue, Queries queries) throws AnnotationParsingException {
+        this.strategyProfile = strategyProfile;
+        this.annotatedStrategy = new AnnotatedStrategy(strategyObject);
+        this.platirClient = new PlatirClientImpl(this, transactionQueue, marketQueue, queries);
+        this.callbackQueue = new StrategyCallbackQueue(annotatedStrategy);
+        this.loggingHandler = new StrategyLoggingHandler();
+        this.logger = createLogger();
     }
 
     @Override
@@ -77,18 +73,18 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     private Logger createLogger() {
-        var l = Logger.getLogger(prof.getStrategyId());
-        l.setUseParentHandlers(false);
-        l.addHandler(loggingHandler);
+        var newLogger = Logger.getLogger(strategyProfile.getStrategyId());
+        newLogger.setUseParentHandlers(false);
+        newLogger.addHandler(loggingHandler);
         try {
             var loggingFile = Paths.get(getStrategyCwd().toString(), "logging.txt");
-            var fh = new FileHandler(loggingFile.toString());
-            fh.setFormatter(new SimpleFormatter());
-            l.addHandler(fh);
-        } catch (IOException | SecurityException ex) {
-            Utils.err.write("Can't add file handler to logging handler: " + ex.getMessage(), ex);
+            var fileHandler = new FileHandler(loggingFile.toString());
+            fileHandler.setFormatter(new SimpleFormatter());
+            newLogger.addHandler(fileHandler);
+        } catch (IOException | SecurityException exception) {
+            Utils.err.write("Can't add file handler to logging handler: " + exception.getMessage(), exception);
         }
-        return l;
+        return newLogger;
     }
 
     @Override
@@ -97,11 +93,11 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     PlatirClientImpl getPlatirClientImpl() {
-        return cli;
+        return platirClient;
     }
 
     Path getStrategyCwd() {
-        var root = Paths.get(Utils.cwd().toString(), prof.getStrategyId());
+        var root = Paths.get(Utils.cwd().toString(), strategyProfile.getStrategyId());
         Utils.dir(root);
         return root;
     }
@@ -113,8 +109,8 @@ class StrategyContextImpl implements StrategyContext {
             throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
         }
         isShutdown.set(true);
-        cb.timedOnDestroy();
-        cb.shutdown();
+        callbackQueue.timedOnDestroy();
+        callbackQueue.shutdown();
     }
 
     void addTransactionContext(TransactionContextImpl transaction) {
@@ -122,7 +118,7 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     AnnotatedStrategy getAnnotatedStrategy() {
-        return annStg;
+        return annotatedStrategy;
     }
 
     void processTick(Tick tick) {
@@ -130,7 +126,7 @@ class StrategyContextImpl implements StrategyContext {
         if (isShutdown.get()) {
             return;
         }
-        cb.push(tick);
+        callbackQueue.push(tick);
     }
 
     void processBar(Bar bar) {
@@ -138,16 +134,16 @@ class StrategyContextImpl implements StrategyContext {
         if (isShutdown.get()) {
             return;
         }
-        cb.push(bar);
+        callbackQueue.push(bar);
     }
 
     void processTrade(Trade trade) {
         checkTransactionCompleted();
-        cb.push(cb);
+        callbackQueue.push(callbackQueue);
     }
 
     void processNotice(Notice notice) {
-        cb.push(notice);
+        callbackQueue.push(notice);
     }
 
     Logger getStrategyLogger() {
@@ -155,23 +151,20 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     private void checkTransactionCompleted() {
-        for (var trans : transactions) {
-            var total = trans.getOrderContexts().stream().mapToInt(ctx -> {
+        for (var transaction : transactions) {
+            var tradedVolume = transaction.getOrderContexts().stream().mapToInt(ctx -> {
                 return ctx.getTrades().stream().mapToInt(trade -> trade.getVolume()).sum();
             }).sum();
-            var target = trans.getTransaction().getVolume();
-            if (total == target) {
+            var totalVolume = transaction.getTransaction().getVolume();
+            if (tradedVolume == totalVolume) {
                 /* transaction is completed, awake. */
-                trans.awake();
+                transaction.awake();
                 /* call strategy callback */
                 simpleNotice(0, "Completed");
-            } else if (total > target) {
+            } else if (tradedVolume > totalVolume) {
                 /* trade more than expected */
-                trans.awake();
-                int code = 4003;
-                var msg = "Transaction(" + trans.getTransaction().getTransactionId() + ") over traded(" + total + ">"
-                        + target + ").";
-                Utils.err.write(msg);
+                transaction.awake();
+                Utils.err.write("Transaction(" + transaction.getTransaction().getTransactionId() + ") over traded(" + tradedVolume + ">" + totalVolume + ").");
                 /* call strategy callback */
                 simpleNotice(4003, "Over traded");
             }
@@ -179,72 +172,71 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     private void simpleNotice(int code, String message) {
-        var n = ObjectFactory.newNotice();
-        n.setCode(code);
-        n.setMessage(message);
-        processNotice(n);
+        var notice = ObjectFactory.newNotice();
+        notice.setCode(code);
+        notice.setMessage(message);
+        processNotice(notice);
     }
 
     void checkIntegrity() throws IntegrityException {
-        for (var t : transactions) {
-            checkTransactionIntegrity(t);
+        for (var transaction : transactions) {
+            checkTransactionIntegrity(transaction);
         }
     }
 
     private void checkTransactionIntegrity(TransactionContextImpl t) throws IntegrityException {
-        var tid = t.getTransaction().getTransactionId();
-        var t0 = getTransactionById(tid);
-        if (t0 == null) {
-            throw new IntegrityException("Transaction(" + tid + ") not found in data source.");
+        var transactionId = t.getTransaction().getTransactionId();
+        var transaction = getTransactionById(transactionId);
+        if (transaction == null) {
+            throw new IntegrityException("Transaction(" + transactionId + ") not found in data source.");
         }
-        if (!equals(t.getTransaction(), t0)) {
-            throw new IntegrityException("Transaction(" + tid + ") don't match between data source and runtime.");
+        if (!equals(t.getTransaction(), transaction)) {
+            throw new IntegrityException("Transaction(" + transactionId + ") don't match between data source and runtime.");
         }
-        var orders = cli.getOrders(t.getTransaction().getTransactionId());
-        for (var oc : t.getOrderContexts()) {
+        var orders = platirClient.getOrders(t.getTransaction().getTransactionId());
+        for (var orderContext : t.getOrderContexts()) {
             var found = false;
-            var o1 = oc.getOrder();
-            for (var o2 : orders) {
-                if (o1.getOrderId().compareTo(o2.getOrderId()) == 0) {
+            var runtimeOrder = orderContext.getOrder();
+            for (var order : orders) {
+                if (runtimeOrder.getOrderId().compareTo(order.getOrderId()) == 0) {
                     found = true;
-                    checkOrderIntegrity(oc, o2);
+                    checkOrderIntegrity(orderContext, order);
                     break;
                 }
             }
             if (!found) {
-                throw new IntegrityException("Order(" + o1.getOrderId() + ") not found in data source.");
+                throw new IntegrityException("Order(" + runtimeOrder.getOrderId() + ") not found in data source.");
             }
         }
     }
 
-    private Transaction getTransactionById(String tid) {
-        for (var t : cli.getTransactions()) {
-            if (t.getTransactionId().equals(tid)) {
-                return t;
+    private Transaction getTransactionById(String transactionId) {
+        for (var transaction : platirClient.getTransactions()) {
+            if (transaction.getTransactionId().equals(transactionId)) {
+                return transaction;
             }
         }
         return null;
     }
 
-    private void checkOrderIntegrity(OrderContext oc, Order o2) throws IntegrityException {
-        var o1 = oc.getOrder();
-        if (!equals(o1, o2)) {
-            throw new IntegrityException("Order(" + o1.getOrderId() + ") not match between data source and runtime.");
+    private void checkOrderIntegrity(OrderContext orderContext, Order order) throws IntegrityException {
+        var runtimeOrder = orderContext.getOrder();
+        if (!equals(runtimeOrder, order)) {
+            throw new IntegrityException("Order(" + runtimeOrder.getOrderId() + ") not match between data source and runtime.");
         }
-        var trades = cli.getTrades(o1.getOrderId());
-        for (var tr0 : oc.getTrades()) {
+        var trades = platirClient.getTrades(runtimeOrder.getOrderId());
+        for (var runtimeTrade : orderContext.getTrades()) {
             var found = false;
-            for (var tr1 : trades) {
-                if (tr1.getTradeId().compareTo(tr0.getTradeId()) == 0) {
+            for (var trade : trades) {
+                if (trade.getTradeId().compareTo(runtimeTrade.getTradeId()) == 0) {
                     found = true;
-                    if (!equals(tr0, tr1)) {
-                        throw new IntegrityException(
-                                "Trade(" + tr1.getTradeId() + ") don't match between data source and runtime.");
+                    if (!equals(runtimeTrade, trade)) {
+                        throw new IntegrityException("Trade(" + trade.getTradeId() + ") don't match between data source and runtime.");
                     }
                 }
             }
             if (!found) {
-                throw new IntegrityException("Trade(" + tr0.getTradeId() + ") not found in data source.");
+                throw new IntegrityException("Trade(" + runtimeTrade.getTradeId() + ") not found in data source.");
             }
         }
     }
@@ -279,24 +271,24 @@ class StrategyContextImpl implements StrategyContext {
 
     @Override
     public void initialize() {
-        cb.timedOnStart(prof.getArgs(), cli);
+        callbackQueue.timedOnStart(strategyProfile.getArgs(), platirClient);
         isShutdown.set(false);
     }
 
     @Override
     public void shutdown(int reason) {
         isShutdown.set(true);
-        cb.timedOnStop(reason);
+        callbackQueue.timedOnStop(reason);
     }
 
     @Override
     public StrategyProfile getProfile() {
-        return prof;
+        return strategyProfile;
     }
 
     @Override
     public Object getStrategy() {
-        return annStg.getStrategy();
+        return annotatedStrategy.getStrategy();
     }
 
     @Override
@@ -311,6 +303,6 @@ class StrategyContextImpl implements StrategyContext {
 
     @Override
     public void interruptTransaction(boolean interrupted) throws InterruptionException {
-        cli.interrupt(interrupted);
+        platirClient.interrupt(interrupted);
     }
 }

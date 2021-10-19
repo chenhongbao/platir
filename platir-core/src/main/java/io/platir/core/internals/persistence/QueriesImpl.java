@@ -435,24 +435,24 @@ public class QueriesImpl implements Queries {
         synchronized (accountTable) {
             var accounts = new HashSet<Account>();
             accountTable.values().stream().map(item -> {
-                var a = ObjectFactory.newAccount();
-                a.setAccountId(item.getAccountId());
-                a.setAvailable(item.getAvailable());
-                a.setBalance(item.getBalance());
-                a.setCloseProfit(item.getCloseProfit());
-                a.setClosingCommission(item.getClosingCommission());
-                a.setCommission(item.getCommission());
-                a.setMargin(item.getMargin());
-                a.setOpeningCommission(item.getOpeningCommission());
-                a.setOpeningMargin(item.getOpeningMargin());
-                a.setPositionProfit(item.getPositionProfit());
-                a.setSettleTime(item.getSettleTime());
-                a.setTradingDay(item.getTradingDay());
-                a.setUserId(item.getUserId());
-                a.setYdBalance(item.getYdBalance());
-                return a;
-            }).forEachOrdered(a -> {
-                accounts.add(a);
+                var account = ObjectFactory.newAccount();
+                account.setAccountId(item.getAccountId());
+                account.setAvailable(item.getAvailable());
+                account.setBalance(item.getBalance());
+                account.setCloseProfit(item.getCloseProfit());
+                account.setClosingCommission(item.getClosingCommission());
+                account.setCommission(item.getCommission());
+                account.setMargin(item.getMargin());
+                account.setOpeningCommission(item.getOpeningCommission());
+                account.setOpeningMargin(item.getOpeningMargin());
+                account.setPositionProfit(item.getPositionProfit());
+                account.setSettleTime(item.getSettleTime());
+                account.setTradingDay(item.getTradingDay());
+                account.setUserId(item.getUserId());
+                account.setYdBalance(item.getYdBalance());
+                return account;
+            }).forEachOrdered(account -> {
+                accounts.add(account);
             });
             return accounts;
         }
@@ -463,19 +463,19 @@ public class QueriesImpl implements Queries {
         synchronized (contractTable) {
             var contracts = new HashSet<Contract>();
             contractTable.values().stream().map(item -> {
-                var c = ObjectFactory.newContract();
-                c.setClosePrice(item.getClosePrice());
-                c.setContractId(item.getContractId());
-                c.setDirection(item.getDirection());
-                c.setInstrumentId(item.getInstrumentId());
-                c.setOpenTime(item.getOpenTime());
-                c.setOpenTradingDay(item.getOpenTradingDay());
-                c.setPrice(item.getPrice());
-                c.setState(item.getState());
-                c.setUserId(item.getUserId());
-                return c;
-            }).forEachOrdered(c -> {
-                contracts.add(c);
+                var contract = ObjectFactory.newContract();
+                contract.setClosePrice(item.getClosePrice());
+                contract.setContractId(item.getContractId());
+                contract.setDirection(item.getDirection());
+                contract.setInstrumentId(item.getInstrumentId());
+                contract.setOpenTime(item.getOpenTime());
+                contract.setOpenTradingDay(item.getOpenTradingDay());
+                contract.setPrice(item.getPrice());
+                contract.setState(item.getState());
+                contract.setUserId(item.getUserId());
+                return contract;
+            }).forEachOrdered(contract -> {
+                contracts.add(contract);
             });
             return contracts;
         }
@@ -486,18 +486,18 @@ public class QueriesImpl implements Queries {
         synchronized (instrumentTable) {
             var instruments = new HashSet<Instrument>();
             instrumentTable.values().stream().map(item -> {
-                var i = ObjectFactory.newInstrument();
-                i.setAmountCommission(item.getAmountCommission());
-                i.setAmountMargin(item.getAmountMargin());
-                i.setExchangeId(item.getExchangeId());
-                i.setInstrumentId(item.getInstrumentId());
-                i.setMultiple(item.getMultiple());
-                i.setUpdateTime(item.getUpdateTime());
-                i.setVolumeCommission(item.getVolumeCommission());
-                i.setVolumeMargin(item.getVolumeMargin());
-                return i;
-            }).forEachOrdered(i -> {
-                instruments.add(i);
+                var instrument = ObjectFactory.newInstrument();
+                instrument.setAmountCommission(item.getAmountCommission());
+                instrument.setAmountMargin(item.getAmountMargin());
+                instrument.setExchangeId(item.getExchangeId());
+                instrument.setInstrumentId(item.getInstrumentId());
+                instrument.setMultiple(item.getMultiple());
+                instrument.setUpdateTime(item.getUpdateTime());
+                instrument.setVolumeCommission(item.getVolumeCommission());
+                instrument.setVolumeMargin(item.getVolumeMargin());
+                return instrument;
+            }).forEachOrdered(instrument -> {
+                instruments.add(instrument);
             });
             return instruments;
         }
@@ -508,18 +508,18 @@ public class QueriesImpl implements Queries {
         synchronized (orderTable) {
             var orders = new HashSet<Order>();
             orderTable.values().stream().map(item -> {
-                var o = ObjectFactory.newOrder();
-                o.setDirection(item.getDirection());
-                o.setInstrumentId(item.getInstrumentId());
-                o.setOffset(item.getOffset());
-                o.setOrderId(item.getOrderId());
-                o.setPrice(item.getPrice());
-                o.setTradingDay(item.getTradingDay());
-                o.setTransactionId(item.getTransactionId());
-                o.setVolume(item.getVolume());
-                return o;
-            }).forEachOrdered(o -> {
-                orders.add(o);
+                var order = ObjectFactory.newOrder();
+                order.setDirection(item.getDirection());
+                order.setInstrumentId(item.getInstrumentId());
+                order.setOffset(item.getOffset());
+                order.setOrderId(item.getOrderId());
+                order.setPrice(item.getPrice());
+                order.setTradingDay(item.getTradingDay());
+                order.setTransactionId(item.getTransactionId());
+                order.setVolume(item.getVolume());
+                return order;
+            }).forEachOrdered(order -> {
+                orders.add(order);
             });
             return orders;
         }
@@ -530,18 +530,18 @@ public class QueriesImpl implements Queries {
         synchronized (profileTable) {
             var profiles = new HashSet<StrategyProfile>();
             profileTable.values().stream().map(item -> {
-                var p = ObjectFactory.newStrategyProfile();
-                p.setArgs(item.getArgs());
-                p.setCreateDate(item.getCreateDate());
-                p.setInstrumentIds(item.getInstrumentIds());
-                p.setPassword(item.getPassword());
-                p.setRemoveDate(item.getRemoveDate());
-                p.setState(item.getState());
-                p.setStrategyId(item.getStrategyId());
-                p.setUserId(item.getUserId());
-                return p;
-            }).forEachOrdered(p -> {
-                profiles.add(p);
+                var profile = ObjectFactory.newStrategyProfile();
+                profile.setArgs(item.getArgs());
+                profile.setCreateDate(item.getCreateDate());
+                profile.setInstrumentIds(item.getInstrumentIds());
+                profile.setPassword(item.getPassword());
+                profile.setRemoveDate(item.getRemoveDate());
+                profile.setState(item.getState());
+                profile.setStrategyId(item.getStrategyId());
+                profile.setUserId(item.getUserId());
+                return profile;
+            }).forEachOrdered(profile -> {
+                profiles.add(profile);
             });
             return profiles;
         }
@@ -561,21 +561,21 @@ public class QueriesImpl implements Queries {
         synchronized (transactionTable) {
             var transactions = new HashSet<Transaction>();
             transactionTable.values().stream().map(item -> {
-                var t = ObjectFactory.newTransaction();
-                t.setDirection(item.getDirection());
-                t.setInstrumentId(item.getInstrumentId());
-                t.setOffset(item.getOffset());
-                t.setPrice(item.getPrice());
-                t.setState(item.getState());
-                t.setStateMessage(item.getStateMessage());
-                t.setStrategyId(item.getStrategyId());
-                t.setTradingDay(item.getTradingDay());
-                t.setTransactionId(item.getTransactionId());
-                t.setUpdateTime(item.getUpdateTime());
-                t.setVolume(item.getVolume());
-                return t;
-            }).forEachOrdered(t -> {
-                transactions.add(t);
+                var transaction = ObjectFactory.newTransaction();
+                transaction.setDirection(item.getDirection());
+                transaction.setInstrumentId(item.getInstrumentId());
+                transaction.setOffset(item.getOffset());
+                transaction.setPrice(item.getPrice());
+                transaction.setState(item.getState());
+                transaction.setStateMessage(item.getStateMessage());
+                transaction.setStrategyId(item.getStrategyId());
+                transaction.setTradingDay(item.getTradingDay());
+                transaction.setTransactionId(item.getTransactionId());
+                transaction.setUpdateTime(item.getUpdateTime());
+                transaction.setVolume(item.getVolume());
+                return transaction;
+            }).forEachOrdered(transaction -> {
+                transactions.add(transaction);
             });
             return transactions;
         }
@@ -586,14 +586,14 @@ public class QueriesImpl implements Queries {
         synchronized (userTable) {
             var users = new HashSet<User>();
             userTable.values().stream().map(item -> {
-                var u = ObjectFactory.newUser();
-                u.setCreateTime(item.getCreateTime());
-                u.setLastLoginTime(item.getLastLoginTime());
-                u.setPassword(item.getPassword());
-                u.setUserId(item.getUserId());
-                return u;
-            }).forEachOrdered(u -> {
-                users.add(u);
+                var user = ObjectFactory.newUser();
+                user.setCreateTime(item.getCreateTime());
+                user.setLastLoginTime(item.getLastLoginTime());
+                user.setPassword(item.getPassword());
+                user.setUserId(item.getUserId());
+                return user;
+            }).forEachOrdered(user -> {
+                users.add(user);
             });
             return users;
         }
@@ -610,13 +610,13 @@ public class QueriesImpl implements Queries {
 
     private <T> Table<T> readTable(Class<T> clazz) {
         var target = tablePath(clazz.getCanonicalName());
-        try (FileReader fr = new FileReader(target.toFile())) {
-            return g.fromJson(fr, new Table<T>().getClass());
-        } catch (IOException ex) {
-            Utils.err.write("Can't read table: " + ex.getMessage(), ex);
-            var t = new Table<T>();
-            t.name = clazz.getCanonicalName();
-            return t;
+        try (FileReader fileReader = new FileReader(target.toFile())) {
+            return g.fromJson(fileReader, new Table<T>().getClass());
+        } catch (IOException exception) {
+            Utils.err.write("Can't read table: " + exception.getMessage(), exception);
+            var table = new Table<T>();
+            table.name = clazz.getCanonicalName();
+            return table;
         }
     }
 
@@ -625,11 +625,11 @@ public class QueriesImpl implements Queries {
     }
 
     private void writeTradingDay() {
-        var tbl = new Table<TradingDay>();
-        tbl.name = TradingDay.class.getCanonicalName();
-        tbl.updateTime = Utils.datetime();
-        tbl.rows.add(tradingDay.get());
-        writeJsonTable(tbl);
+        var table = new Table<TradingDay>();
+        table.name = TradingDay.class.getCanonicalName();
+        table.updateTime = Utils.datetime();
+        table.rows.add(tradingDay.get());
+        writeJsonTable(table);
     }
 
     private void writeJsonTable(Table table) {
@@ -639,19 +639,19 @@ public class QueriesImpl implements Queries {
     }
 
     private <T> void writeTable(Class<T> clazz, Collection<T> rows) {
-        var tbl = new Table<T>();
-        tbl.name = clazz.getCanonicalName();
-        tbl.updateTime = Utils.datetime();
-        tbl.rows.addAll(rows);
-        writeJsonTable(tbl);
+        var table = new Table<T>();
+        table.name = clazz.getCanonicalName();
+        table.updateTime = Utils.datetime();
+        table.rows.addAll(rows);
+        writeJsonTable(table);
     }
 
     private void writeJson(File target, Object object) {
-        try (FileWriter fw = new FileWriter(target, false)) {
+        try (FileWriter fileWriter = new FileWriter(target, false)) {
             /* write json */
-            fw.write(g.toJson(object));
-        } catch (IOException ex) {
-            Utils.err.write("Can't write schema: " + ex.getMessage(), ex);
+            fileWriter.write(g.toJson(object));
+        } catch (IOException exception) {
+            Utils.err.write("Can't write schema: " + exception.getMessage(), exception);
         }
     }
 

@@ -15,15 +15,15 @@ import io.platir.service.api.MarketListener;
 
 class MarketRouter implements MarketListener {
 
-    private final Map<String, Set<StrategyContextImpl>> subs = new ConcurrentHashMap<>();
+    private final Map<String, Set<StrategyContextImpl>> subscribedStrategies = new ConcurrentHashMap<>();
     private final Map<String, Tick> ticks = new ConcurrentHashMap<>();
-    private final TransactionQueue trQueue;
-    private final MarketAdaptor adaptor;
+    private final TransactionQueue transactionQueue;
+    private final MarketAdaptor marketAdaptor;
 
-    MarketRouter(MarketAdaptor market, TransactionQueue queue) {
-        adaptor = market;
-        trQueue = queue;
-        adaptor.setListener(this);
+    MarketRouter(MarketAdaptor marketAdaptor, TransactionQueue transactionQueue) {
+        this.marketAdaptor = marketAdaptor;
+        this.transactionQueue = transactionQueue;
+        this.marketAdaptor.setListener(this);
     }
 
     Set<Tick> getLastTicks() {
@@ -34,65 +34,65 @@ class MarketRouter implements MarketListener {
         if (strategy.getProfile().getInstrumentIds().length == 0) {
             removeSubscription(strategy);
         } else {
-            var ns = new HashSet<>(Arrays.asList(strategy.getProfile().getInstrumentIds()));
-            subs.entrySet().stream().filter(entry -> (!ns.contains(entry.getKey()))).forEachOrdered(entry -> {
+            var instrumentsToUpdate = new HashSet<>(Arrays.asList(strategy.getProfile().getInstrumentIds()));
+            subscribedStrategies.entrySet().stream().filter(entry -> !instrumentsToUpdate.contains(entry.getKey())).forEachOrdered(entry -> {
                 /* instrument that is not subscribed, remove it */
                 entry.getValue().remove(strategy);
             });
-            ns.forEach(i -> {
-                subscribe(i, strategy);
+            instrumentsToUpdate.forEach(instrumentId -> {
+                subscribe(instrumentId, strategy);
             });
         }
     }
 
     void refreshAllSubscriptions() {
-        subs.keySet().forEach(key -> {
-            var tick = ticks.get(key);
+        subscribedStrategies.keySet().forEach(instrumentId -> {
+            var tick = ticks.get(instrumentId);
             if (tick != null) {
                 var datetime = Utils.datetime(tick.getUpdateTime());
                 /* if tick doesn't arrive for over 30 days, the instrument has expired. */
                 if (Duration.between(datetime, LocalDateTime.now()).toDays() < 30) {
-                    adaptor.add(key);
+                    marketAdaptor.add(instrumentId);
                 }
             }
         });
     }
 
-    void subscribe(StrategyContextImpl strategy) {
-        for (var i : strategy.getProfile().getInstrumentIds()) {
-            subscribe(i, strategy);
+    void subscribe(StrategyContextImpl strategyContext) {
+        for (var instrumentId : strategyContext.getProfile().getInstrumentIds()) {
+            subscribe(instrumentId, strategyContext);
         }
     }
 
-    void removeSubscription(StrategyContextImpl strategy) {
-        for (var i : strategy.getProfile().getInstrumentIds()) {
-            var p = subs.get(i);
-            if (p == null) {
+    void removeSubscription(StrategyContextImpl strategyContext) {
+        for (var instrumentId : strategyContext.getProfile().getInstrumentIds()) {
+            var strategies = subscribedStrategies.get(instrumentId);
+            if (strategies == null) {
                 continue;
             }
-            p.remove(strategy);
+            strategies.remove(strategyContext);
             /* if no strategy subscribes the instrument, remove it from market */
-            if (p.isEmpty()) {
-                subs.remove(i);
+            if (strategies.isEmpty()) {
+                subscribedStrategies.remove(instrumentId);
             }
         }
     }
 
-    private void subscribe(String instrumentId, StrategyContextImpl strategy) {
-        var p = subs.computeIfAbsent(instrumentId, key -> {
-            adaptor.add(key);
+    private void subscribe(String instrumentId, StrategyContextImpl strategyContext) {
+        var strategies = subscribedStrategies.computeIfAbsent(instrumentId, key -> {
+            marketAdaptor.add(key);
             return new ConcurrentSkipListSet<>();
         });
-        if (!p.contains(strategy)) {
-            p.add(strategy);
+        if (!strategies.contains(strategyContext)) {
+            strategies.add(strategyContext);
         }
     }
 
     @Override
     public void onTick(Tick tick) {
-        var x = subs.get(tick.getInstrumentId());
-        x.parallelStream().forEach(ctx -> {
-            ctx.processTick(tick);
+        var strategies = subscribedStrategies.get(tick.getInstrumentId());
+        strategies.parallelStream().forEach(context -> {
+            context.processTick(tick);
         });
         /* signal transaction queue to work on pending transactions. */
         tryAwake(tick);
@@ -101,16 +101,16 @@ class MarketRouter implements MarketListener {
     }
 
     private void tryAwake(Tick tick) {
-        var ut = tick.getUpdateTime();
-        if (ut.length() != 17) {
-            Utils.err.write("Malformed update time " + ut + ".");
+        var updateTime = tick.getUpdateTime();
+        if (updateTime.length() != 17) {
+            Utils.err.write("Malformed update time " + updateTime + ".");
             return;
         }
-        var sec = tick.getUpdateTime().substring(15, 16);
-        if (sec.equals("00") || sec.equals("59")) {
+        var updateSeconds = tick.getUpdateTime().substring(15, 16);
+        if (updateSeconds.equals("00") || updateSeconds.equals("59")) {
             /*don't awake transaction at the edge of a minute, it may be the end of a session */
             return;
         }
-        trQueue.awake(tick);
+        transactionQueue.awake(tick);
     }
 }

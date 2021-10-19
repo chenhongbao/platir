@@ -17,8 +17,8 @@ import io.platir.service.api.Queries;
 /**
  * Error code explanation:
  * <ul>
- * <li>5001: A removed strateggy can't be interrupted.
- * <li>5002: Cannot update strategy state.
+ * <li>5001: A removed strateggy can't be interrupted.</li>
+ * <li>5002: Cannot update strategy state.</li>
  * </ul>
  *
  * @author Chen Hongbao
@@ -26,31 +26,26 @@ import io.platir.service.api.Queries;
  */
 class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
 
-    private final TransactionQueue tr;
-    private final AtomicInteger increId = new AtomicInteger(0);
+    private final TransactionQueue transactionQueue;
+    private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
     private final AtomicBoolean isInterrupted = new AtomicBoolean(false);
-    private final DateTimeFormatter transIdFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private final DateTimeFormatter transactionIdFormat = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    PlatirClientImpl(StrategyContextImpl strategyContext, TransactionQueue trQueue, MarketRouter mkRouter,
-            Queries queries) {
+    PlatirClientImpl(StrategyContextImpl strategyContext, TransactionQueue trQueue, MarketRouter mkRouter, Queries queries) {
         super(strategyContext, mkRouter, queries);
-        tr = trQueue;
+        transactionQueue = trQueue;
     }
 
     @Override
-    public TransactionContext open(String instrumentId, String direction, Double price, Integer volume)
-            throws TransactionException {
+    public TransactionContext open(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         checkTransactionParams(instrumentId, direction, price, volume);
         return push(instrumentId, "open", direction, price, volume);
     }
 
-    private Transaction createTransaction(String strategyId, String instrumentId, String offset, String direction,
-            Double price, Integer volume) {
-        /*
-         * Don't set state and message here. Only change the values in router daemon.
-         */
+    private Transaction createTransaction(String strategyId, String instrumentId, String offset, String direction, Double price, Integer volume) {
+        /* Don't set state and message here. Only change the values in router daemon.*/
         var trans = ObjectFactory.newTransaction();
-        trans.setTransactionId(getTransId());
+        trans.setTransactionId(nextTransactionId());
         trans.setStrategyId(strategyId);
         trans.setInstrumentId(instrumentId);
         trans.setPrice(price);
@@ -62,23 +57,19 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
         return trans;
     }
 
-    private String getTransId() {
-        /*
-         * yyyyMMdd + <4-digits> 200808120012
-         */
-        return LocalDate.now().format(transIdFmt) + String.format("%4d", increId.incrementAndGet());
+    private String nextTransactionId() {
+        /* yyyyMMdd + <4-digits> like 200808120012 */
+        return LocalDate.now().format(transactionIdFormat) + String.format("%4d", transactionIdCounter.incrementAndGet());
     }
 
-    private void checkTransactionParams(String instrumentId, String direction, Double price, Integer volume)
-            throws TransactionException {
+    private void checkTransactionParams(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         if (isInterrupted.get()) {
             throw new TransactionException("Transaction has been interruped.");
         }
         if (instrumentId == null || instrumentId.isBlank()) {
             throw new TransactionException("Invalid instrument ID(\"" + instrumentId + "\").");
         }
-        if (direction == null
-                || (direction.compareToIgnoreCase("buy") != 0 && direction.compareToIgnoreCase("sell") != 0)) {
+        if (direction == null || (direction.compareToIgnoreCase("buy") != 0 && direction.compareToIgnoreCase("sell") != 0)) {
             throw new TransactionException("Invalid direction(\"" + direction + "\").");
         }
         if (volume <= 0) {
@@ -90,28 +81,25 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
     }
 
     @Override
-    public TransactionContext close(String instrumentId, String direction, Double price, Integer volume)
-            throws TransactionException {
+    public TransactionContext close(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         checkTransactionParams(instrumentId, direction, price, volume);
         return push(instrumentId, "close", direction, price, volume);
     }
 
-    private TransactionContext push(String instrumentId, String offset, String direction, Double price, Integer volume)
-            throws TransactionException {
-        var trans = createTransaction(getStrategyId(), instrumentId, offset, direction, price, volume);
-        var transCtx = new TransactionContextImpl(trans, getStrategyContext());
+    private TransactionContext push(String instrumentId, String offset, String direction, Double price, Integer volume) throws TransactionException {
+        var transaction = createTransaction(getStrategyId(), instrumentId, offset, direction, price, volume);
+        var transactionContext = new TransactionContextImpl(transaction, getStrategyContext());
         /* strategy context has the transaction context. */
-        getStrategyContext().addTransactionContext(transCtx);
+        getStrategyContext().addTransactionContext(transactionContext);
         try {
             /* save transaction to data source */
-            getStrategyContext().getPlatirClientImpl().queries().insert(trans);
+            getStrategyContext().getPlatirClientImpl().queries().insert(transaction);
             /* send the order and update trades into TransactionContext. */
-            tr.push(transCtx);
-        } catch (DataQueryException e) {
-            throw new TransactionException("Can't insert or update transaction(" + trans.getTransactionId()
-                    + ") in data source: " + e.getMessage(), e);
+            transactionQueue.push(transactionContext);
+        } catch (DataQueryException exception) {
+            throw new TransactionException("Can't insert or update transaction(" + transaction.getTransactionId() + ") in data source: " + exception.getMessage(), exception);
         }
-        return transCtx;
+        return transactionContext;
     }
 
     void interrupt(boolean interrupted) throws InterruptionException {
@@ -126,9 +114,8 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
         }
         try {
             queries().update(getStrategyProfile());
-        } catch (DataQueryException e) {
-            throw new InterruptionException(
-                    "Can't update strategy state(" + getStrategyProfile().getState() + "): " + e.getMessage(), e);
+        } catch (DataQueryException exception) {
+            throw new InterruptionException("Can't update strategy state(" + getStrategyProfile().getState() + "): " + exception.getMessage(), exception);
         }
         isInterrupted.set(interrupted);
     }

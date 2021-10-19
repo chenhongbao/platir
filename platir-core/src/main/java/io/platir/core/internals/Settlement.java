@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import io.platir.core.SettlementException;
-import io.platir.core.internals.SettlementFacilities.UserSnapshot;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -18,8 +17,7 @@ import io.platir.service.api.Queries;
 
 public class Settlement {
 
-    
-    private final Queries qry;
+    private final Queries queries;
     private final RuntimeSnapshot snapshot = new RuntimeSnapshot();
     private final Set<Tick> ticks = new HashSet<>();
     private final Set<Instrument> instruments = new HashSet<>();
@@ -27,17 +25,16 @@ public class Settlement {
     private File after;
 
     public Settlement(Queries queries) {
-        super();
-        qry = queries;
+        this.queries = queries;
     }
 
     public void settle() throws DataQueryException, SettlementException {
         prepareDirs();
-        qry.backup(before);
+        queries.backup(before);
         snapshot();
         computeSettlement();
         roll();
-        qry.backup(after);
+        queries.backup(after);
     }
 
     private void roll() throws DataQueryException {
@@ -46,46 +43,46 @@ public class Settlement {
     }
 
     private void pushTables() throws DataQueryException {
-        qry.insert(snapshot.accounts().toArray(new Account[1]));
-        qry.insert(snapshot.contracts().toArray(new Contract[1]));
-        /* insert the updated strategy profiles */
+        queries.insert(snapshot.accounts().toArray(new Account[1]));
+        queries.insert(snapshot.contracts().toArray(new Contract[1]));
+        /* Insert the updated strategy profiles. */
         removeSomeStrategies();
-        qry.insert(snapshot.strategyProfiles().toArray(new StrategyProfile[1]));
+        queries.insert(snapshot.strategyProfiles().toArray(new StrategyProfile[1]));
     }
 
     private void removeSomeStrategies() {
-        /* remove strategies that have been removed */
-        var stgItr = snapshot.strategyProfiles().iterator();
-        while (stgItr.hasNext()) {
-            var s = stgItr.next();
-            if (s.getState().compareToIgnoreCase("removed") == 0) {
-                stgItr.remove();
+        /* Remove strategies that was scheduled to remove. */
+        var profileIterator = snapshot.strategyProfiles().iterator();
+        while (profileIterator.hasNext()) {
+            var profile = profileIterator.next();
+            if (profile.getState().compareToIgnoreCase("removed") == 0) {
+                profileIterator.remove();
             }
         }
     }
 
     private void clearTables() throws DataQueryException {
-        /* ticks are set before settlement */
-        qry.clearTicks();
-        /* write settled information */
-        qry.clearAccounts();
-        qry.clearContracts();
-        /* clear obsolete data */
-        qry.clearTrades();
-        qry.clearOrders();
-        qry.clearTransactions();
-        /* clear strategies for update */
-        qry.clearStrategies();
+        /* Ticks are set before settlement. */
+        queries.clearTicks();
+        /* Write settled information. */
+        queries.clearAccounts();
+        queries.clearContracts();
+        /* Clear obsolete data. */
+        queries.clearTrades();
+        queries.clearOrders();
+        queries.clearTransactions();
+        /* Clear strategies for update. */
+        queries.clearStrategies();
     }
 
     private void computeSettlement() throws SettlementException, DataQueryException {
-        var users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
+        java.util.HashMap<java.lang.String, io.platir.core.internals.UserSnapshot> users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
         requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
         requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
-        var tradingDay = qry.selectTradingDay().getTradingDay();
-        for (var u : users.values()) {
-            SettlementFacilities.settle(u, tradingDay, ticks, instruments);
-            push0(u);
+        var tradingDay = queries.selectTradingDay().getTradingDay();
+        for (io.platir.core.internals.UserSnapshot user : users.values()) {
+            SettlementFacilities.settle(user, tradingDay, ticks, instruments);
+            push0(user);
         }
         /* clear snapshot so backup the settled data */
         snapshot.orders().clear();
@@ -93,10 +90,10 @@ public class Settlement {
         snapshot.transactions().clear();
     }
 
-    private void push0(UserSnapshot u) {
-        snapshot.accounts().add(u.account);
-        u.contracts.values().forEach(cs -> {
-            snapshot.contracts().addAll(cs);
+    private void push0(UserSnapshot userSnapshot) {
+        snapshot.accounts().add(userSnapshot.getAccount());
+        userSnapshot.contracts().values().forEach(contracts -> {
+            snapshot.contracts().addAll(contracts);
         });
 
     }
@@ -108,16 +105,16 @@ public class Settlement {
     }
 
     private void snapshot() throws DataQueryException {
-        snapshot.accounts().addAll(qry.selectAccounts());
-        snapshot.contracts().addAll(qry.selectContracts());
-        snapshot.instruments().addAll(qry.selectInstruments());
-        snapshot.orders().addAll(qry.selectOrders());
-        snapshot.strategyProfiles().addAll(qry.selectStrategyProfiles());
-        snapshot.trades().addAll(qry.selectTrades());
-        snapshot.transactions().addAll(qry.selectTransactions());
-        snapshot.users().addAll(qry.selectUsers());
-        ticks.addAll(qry.selectTicks());
-        instruments.addAll(qry.selectInstruments());
+        snapshot.accounts().addAll(queries.selectAccounts());
+        snapshot.contracts().addAll(queries.selectContracts());
+        snapshot.instruments().addAll(queries.selectInstruments());
+        snapshot.orders().addAll(queries.selectOrders());
+        snapshot.strategyProfiles().addAll(queries.selectStrategyProfiles());
+        snapshot.trades().addAll(queries.selectTrades());
+        snapshot.transactions().addAll(queries.selectTransactions());
+        snapshot.users().addAll(queries.selectUsers());
+        ticks.addAll(queries.selectTicks());
+        instruments.addAll(queries.selectInstruments());
     }
 
     private void requireEmpty(Collection<?> container, String message) throws SettlementException {

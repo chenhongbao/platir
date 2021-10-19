@@ -5,7 +5,7 @@ import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.TransactionContext;
 
-public interface RiskAssess {
+public interface RiskManager {
 
     RiskNotice before(Tick current, TransactionContext transaction);
 

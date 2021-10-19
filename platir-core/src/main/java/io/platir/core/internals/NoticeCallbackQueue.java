@@ -11,36 +11,25 @@ import java.util.concurrent.TimeUnit;
  */
 class NoticeCallbackQueue implements Runnable {
 
-    private final BlockingQueue<NoticeCallbackBundle> bundles = new LinkedBlockingQueue<>();
+    private final BlockingQueue<NoticeCallbackBundle> noticeBundles = new LinkedBlockingQueue<>();
 
     void push(Notice notice, OrderExecutionContext context) {
-        if (!bundles.offer(new NoticeCallbackBundle(notice, context))) {
+        if (!noticeBundles.offer(new NoticeCallbackBundle(notice, context))) {
             Utils.err.write("Trade callback queue is full.");
         }
     }
 
     @Override
     public void run() {
-        while (!Thread.currentThread().isInterrupted() || !bundles.isEmpty()) {
+        while (!Thread.currentThread().isInterrupted() || !noticeBundles.isEmpty()) {
             try {
-                io.platir.core.internals.NoticeCallbackQueue.NoticeCallbackBundle b = bundles.poll(24, TimeUnit.HOURS);
-                b.ctx.processNotice(b.nt.getCode(), b.nt.getMessage());
-            } catch (InterruptedException ex) {
-                Utils.err.write("Trade callback queue daemon is interrupted.", ex);
-            } catch (Throwable th) {
-                Utils.err.write("Uncaught error: " + th.getMessage(), th);
+                var bundle = noticeBundles.poll(24, TimeUnit.HOURS);
+                bundle.executionContext.processNotice(bundle.getNotice().getCode(), bundle.getNotice().getMessage());
+            } catch (InterruptedException exception) {
+                Utils.err.write("Trade callback queue daemon is interrupted.", exception);
+            } catch (Throwable throwable) {
+                Utils.err.write("Uncaught error: " + throwable.getMessage(), throwable);
             }
-        }
-    }
-
-    private class NoticeCallbackBundle {
-
-        private final OrderExecutionContext ctx;
-        private final Notice nt;
-
-        public NoticeCallbackBundle(Notice notice, OrderExecutionContext context) {
-            ctx = context;
-            nt = notice;
         }
     }
 

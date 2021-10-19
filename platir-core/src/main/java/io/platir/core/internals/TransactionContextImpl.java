@@ -16,22 +16,22 @@ import io.platir.service.TransactionContext;
 
 class TransactionContextImpl implements TransactionContext {
 
-    private final Transaction trans;
-    private final StrategyContextImpl stg;
-    private final AtomicBoolean awaken = new AtomicBoolean(false);
+    private final Transaction transaction;
+    private final StrategyContextImpl strategyContext;
+    private final AtomicBoolean isAwaken = new AtomicBoolean(false);
     private final AtomicReference<Tick> triggerTick = new AtomicReference<>();
-    private final Set<OrderContextImpl> pending = new ConcurrentSkipListSet<>();
+    private final Set<OrderContextImpl> pendingOrder = new ConcurrentSkipListSet<>();
     private final Set<OrderContextImpl> orders = new ConcurrentSkipListSet<>();
-    private final Lock l = new ReentrantLock();
-    private final Condition cond = l.newCondition();
+    private final Lock completionLock = new ReentrantLock();
+    private final Condition conpletionCondition = completionLock.newCondition();
 
-    TransactionContextImpl(Transaction transaction, StrategyContextImpl strategy) {
-        trans = transaction;
-        stg = strategy;
+    TransactionContextImpl(Transaction transaction, StrategyContextImpl strategyContext) {
+        this.transaction = transaction;
+        this.strategyContext = strategyContext;
     }
 
     PlatirInfoClientImpl getQueryClient() {
-        return stg.getPlatirClientImpl();
+        return strategyContext.getPlatirClientImpl();
     }
 
     Tick getLastTriggerTick() {
@@ -47,43 +47,43 @@ class TransactionContextImpl implements TransactionContext {
     }
 
     Set<OrderContextImpl> pendingOrder() {
-        return pending;
+        return pendingOrder;
     }
 
     @Override
     public StrategyContextImpl getStrategyContext() {
-        return stg;
+        return strategyContext;
     }
 
     @Override
     public Transaction getTransaction() {
-        return trans;
+        return transaction;
     }
 
     @Override
     public void join() {
-        while (!awaken.get()) {
-            l.lock();
+        while (!isAwaken.get()) {
+            completionLock.lock();
             try {
-                cond.await();
+                conpletionCondition.await();
             } catch (InterruptedException e) {
                 Utils.err.write("Joining transaction is interrupted.", e);
             } finally {
-                l.unlock();
+                completionLock.unlock();
             }
         }
     }
 
     public void awake() {
-        if (awaken.get()) {
+        if (isAwaken.get()) {
             return;
         }
-        awaken.set(true);
-        l.lock();
+        isAwaken.set(true);
+        completionLock.lock();
         try {
-            cond.signal();
+            conpletionCondition.signal();
         } finally {
-            l.unlock();
+            completionLock.unlock();
         }
     }
 

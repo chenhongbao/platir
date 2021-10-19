@@ -16,7 +16,7 @@ import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
-import io.platir.service.api.RiskAssess;
+import io.platir.service.api.RiskManager;
 
 /**
  * Error code explanation:
@@ -30,50 +30,44 @@ import io.platir.service.api.RiskAssess;
  */
 class StrategyContextPool {
 
-    private final MarketRouter market;
-    private final TransactionQueue trader;
-    private final Queries qry;
-    private final RiskAssess rsk;
+    private final MarketRouter marketRouter;
+    private final TransactionQueue transactionQueue;
+    private final Queries queries;
     private final Set<StrategyContextImpl> strategies = new ConcurrentSkipListSet<>();
 
-    StrategyContextPool(TransactionQueue trQueue, MarketRouter mkRouter, RiskAssess riskAssess, Queries queries) {
-        market = mkRouter;
-        trader = trQueue;
-        qry = queries;
-        rsk = riskAssess;
+    StrategyContextPool(TransactionQueue transactionQueue, MarketRouter marketQueue, Queries queries) {
+        this.marketRouter = marketQueue;
+        this.transactionQueue = transactionQueue;
+        this.queries = queries;
     }
 
-    StrategyContext add(StrategyProfile profile, Object strategy)
-            throws StrategyCreateException, InvalidLoginException {
-        var n = verifyLogin(profile);
-        if (!n.isGood()) {
-            throw new InvalidLoginException(
-                    "Can't add strategy on login verification failure(" + n.getCode() + "): " + n.getMessage() + ".");
+    StrategyContext add(StrategyProfile strategyProfile, Object strategyObject) throws StrategyCreateException, InvalidLoginException {
+        var notice = verifyLogin(strategyProfile);
+        if (!notice.isGood()) {
+            throw new InvalidLoginException("Can't add strategy on login verification failure(" + notice.getCode() + "): " + notice.getMessage() + ".");
         }
-        /* erase password */
-        profile.setPassword("");
-
+        /* Erase password */
+        strategyProfile.setPassword("");
         try {
-            var ctx = new StrategyContextImpl(profile, strategy, trader, market, rsk, qry);
-            setStrategyCreated(profile);
-            /* subscribe instruments */
-            market.subscribe(ctx);
-            strategies.add(ctx);
-            return ctx;
-        } catch (AnnotationParsingException e) {
-            throw new StrategyCreateException("Strategy parsing failure: " + e.getMessage() + ".", e);
+            var strategyContext = new StrategyContextImpl(strategyProfile, strategyObject, transactionQueue, marketRouter, queries);
+            setStrategyCreated(strategyProfile);
+            /* Subscribe instruments. */
+            marketRouter.subscribe(strategyContext);
+            strategies.add(strategyContext);
+            return strategyContext;
+        } catch (AnnotationParsingException exception) {
+            throw new StrategyCreateException("Strategy parsing failure: " + exception.getMessage() + ".", exception);
         }
     }
 
     private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
-        /* insert strategy profile into data source */
+        /* Insert strategy profile into data source. */
         profile.setState("running");
         profile.setCreateDate(Utils.date());
         try {
-            qry.insert(profile);
-        } catch (DataQueryException e) {
-            throw new StrategyCreateException(
-                    "Can't create strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
+            queries.insert(profile);
+        } catch (DataQueryException exception) {
+            throw new StrategyCreateException("Can't create strategy(" + profile.getStrategyId() + ") profile: " + exception.getMessage() + ".", exception);
         }
     }
 
@@ -82,142 +76,135 @@ class StrategyContextPool {
     }
 
     void initialize() {
-        strategies.forEach(stg -> {
-            stg.initialize();
+        strategies.forEach(strategy -> {
+            strategy.initialize();
         });
     }
 
     void shutdown(int reason) {
-        strategies.forEach(stg -> {
-            stg.shutdown(reason);
+        strategies.forEach(strategy -> {
+            strategy.shutdown(reason);
         });
     }
 
     private Notice verifyLogin(StrategyProfile profile) {
-        var n = ObjectFactory.newNotice();
-        n.setCode(0);
-        n.setMessage("good");
+        var notice = ObjectFactory.newNotice();
+        notice.setCode(0);
+        notice.setMessage("good");
         try {
             var found = false;
-            for (var u : qry.selectUsers()) {
-                if (u.getUserId().equals(profile.getStrategyId()) && u.getPassword().equals(profile.getPassword())) {
+            for (var user : queries.selectUsers()) {
+                if (user.getUserId().equals(profile.getStrategyId()) && user.getPassword().equals(profile.getPassword())) {
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                n.setCode(5001);
-                n.setMessage("login failure");
+                notice.setCode(5001);
+                notice.setMessage("login failure");
             }
-        } catch (DataQueryException e) {
-            n.setCode(5002);
-            n.setMessage("login SQL operation failure");
+        } catch (DataQueryException exception) {
+            notice.setCode(5002);
+            notice.setMessage("login SQL operation failure");
+            notice.setError(exception);
         }
-        return n;
+        return notice;
     }
 
     void checkIntegrity() throws IntegrityException {
-        for (var stg : strategies) {
-            stg.checkIntegrity();
+        for (var strategy : strategies) {
+            strategy.checkIntegrity();
         }
     }
 
     void remove(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
-        /* check precondition for removal */
-        var r = verifyLogin(profile);
-        if (!r.isGood()) {
-            throw new InvalidLoginException(
-                    "Identity check failure(" + r.getCode() + ") on removal: "
-                    + r.getMessage() + ".");
+        /* Check precondition for removal. */
+        var notice = verifyLogin(profile);
+        if (!notice.isGood()) {
+            throw new InvalidLoginException("Identity check failure(" + notice.getCode() + ") on removal: " + notice.getMessage() + ".");
         }
         var strategy = findStrategyContext(profile);
         if (strategy == null) {
-            throw new StrategyRemovalException("Can't find strategy("
-                    + profile.getStrategyId() + ") context.");
+            throw new StrategyRemovalException("Can't find strategy(" + profile.getStrategyId() + ") context.");
         }
         try {
-            /* client can't open/close position as it is being removed */
+            /* Client can't open/close position as it is being removed. */
             strategy.getPlatirClientImpl().interrupt(true);
         } catch (InterruptionException ex) {
-            throw new StrategyRemovalException("Can't interrupt client before strategy("
-                    + strategy.getProfile().getStrategyId() + ") removal.");
+            throw new StrategyRemovalException("Can't interrupt client before strategy(" + strategy.getProfile().getStrategyId() + ") removal.");
         }
-        var count = trader.countTransactionRunning(strategy);
+        var count = transactionQueue.countTransactionRunning(strategy);
         if (count > 0) {
             try {
-                /* restore interrupt state as it can't be removed */
+                /* Restore interrupt state as it can't be removed */
                 strategy.getPlatirClientImpl().interrupt(false);
             } catch (InterruptionException ex) {
-                throw new StrategyRemovalException("Can't restore client interrupt state for strategy("
-                        + strategy.getProfile().getStrategyId() + ") removal.");
+                throw new StrategyRemovalException("Can't restore client interrupt state for strategy(" + strategy.getProfile().getStrategyId() + ") removal.");
             }
-            throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has "
-                    + count + " transaction running.");
+            throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has " + count + " transaction running.");
         }
-        /* remove the strategy */
+        /* Remove the strategy. */
         strategy.remove();
         strategies.remove(strategy);
-        market.removeSubscription(strategy);
+        marketRouter.removeSubscription(strategy);
         setStrategyRemoved(profile);
     }
 
     private void setStrategyRemoved(StrategyProfile profile) throws StrategyRemovalException {
-        /* set strategy state in data source, to be removed at settlement */
+        /* Set strategy state in data source, to be removed at settlement. */
         profile.setState("removed");
         profile.setRemoveDate(Utils.date());
         try {
-            qry.update(profile);
-        } catch (DataQueryException e) {
-            throw new StrategyRemovalException(
-                    "Can't update strategy(" + profile.getStrategyId() + ") profile: " + e.getMessage() + ".", e);
+            queries.update(profile);
+        } catch (DataQueryException exception) {
+            throw new StrategyRemovalException("Can't update strategy(" + profile.getStrategyId() + ") profile: " + exception.getMessage() + ".", exception);
         }
     }
 
     private StrategyContextImpl findStrategyContext(StrategyProfile profile) {
-        for (var stg : strategies) {
-            if (stg.getProfile().getStrategyId().equals(profile.getStrategyId())) {
-                return stg;
+        for (var strategy : strategies) {
+            if (strategy.getProfile().getStrategyId().equals(profile.getStrategyId())) {
+                return strategy;
             }
         }
         return null;
     }
 
     void update(StrategyProfile profile) throws StrategyUpdateException, InvalidLoginException {
-        var r = verifyLogin(profile);
-        if (!r.isGood()) {
-            throw new InvalidLoginException(
-                    "Identity check failure(" + r.getCode() + ") on update profile: " + r.getMessage() + ".");
+        var notice = verifyLogin(profile);
+        if (!notice.isGood()) {
+            throw new InvalidLoginException("Identity check failure(" + notice.getCode() + ") on update profile: " + notice.getMessage() + ".");
         }
-        StrategyContextImpl ctx = null;
-        for (var stg : strategyContexts()) {
-            if (stg.getProfile().getStrategyId().equals(profile.getStrategyId())) {
-                ctx = stg;
+        StrategyContextImpl strategyContext = null;
+        for (var existingContext : strategyContexts()) {
+            if (existingContext.getProfile().getStrategyId().equals(profile.getStrategyId())) {
+                strategyContext = existingContext;
                 break;
             }
         }
-        if (ctx == null) {
+        if (strategyContext == null) {
             throw new StrategyUpdateException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
         }
-        update(ctx.getProfile(), profile);
-        market.updateSubscription(ctx);
+        update(strategyContext.getProfile(), profile);
+        marketRouter.updateSubscription(strategyContext);
     }
 
-    private void update(StrategyProfile old, StrategyProfile newProf) throws StrategyUpdateException {
+    private void update(StrategyProfile previousProfile, StrategyProfile newProfile) throws StrategyUpdateException {
         try {
-            /* strategy ID, user information don't change */
-            old.setArgs(newProf.getArgs());
-            old.setInstrumentIds(newProf.getInstrumentIds());
-            /* update data source */
-            qry.update(old);
+            /* Only argument and subscription are changed. */
+            previousProfile.setArgs(newProfile.getArgs());
+            previousProfile.setInstrumentIds(newProfile.getInstrumentIds());
+            /* Update data source. */
+            queries.update(previousProfile);
         } catch (DataQueryException e) {
-            throw new StrategyUpdateException("Can't update strategy(" + old.getStrategyId()
+            throw new StrategyUpdateException("Can't update strategy(" + previousProfile.getStrategyId()
                     + ") profile in data source: " + e.getMessage(), e);
         }
     }
 
     void settle() throws IntegrityException {
-        for (var stg : strategies) {
-            stg.settle();
+        for (var strategy : strategies) {
+            strategy.settle();
         }
     }
 }

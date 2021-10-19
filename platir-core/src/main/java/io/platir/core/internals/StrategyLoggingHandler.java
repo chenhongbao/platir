@@ -33,9 +33,9 @@ class StrategyLoggingHandler extends Handler {
 
     List<LogRecord> getLogRecords() {
         synchronized (records) {
-            var r = new LinkedList<LogRecord>();
-            r.addAll(records);
-            return r;
+            var returnRecords = new LinkedList<LogRecord>();
+            returnRecords.addAll(records);
+            return returnRecords;
         }
     }
 

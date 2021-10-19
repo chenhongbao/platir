@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.platir.core.SettlementException;
-import io.platir.core.internals.SettlementFacilities.UserSnapshot;
 import io.platir.core.internals.persistence.object.ObjectFactory;
 import io.platir.service.Account;
 import io.platir.service.Contract;
@@ -21,39 +20,34 @@ import io.platir.service.Transaction;
 import io.platir.service.api.DataQueryException;
 import io.platir.service.api.Queries;
 import io.platir.service.PlatirInfoClient;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.FileHandler;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 class PlatirInfoClientImpl implements PlatirInfoClient {
 
-    
-    private final Queries qry;
-    private final MarketRouter market;
-    private final StrategyContextImpl stg;
+    private final Queries queries;
+    private final MarketRouter marketRouter;
+    private final StrategyContextImpl strategyContext;
     private final Map<String, Instrument> instruments = new ConcurrentHashMap<>();
     private String whenQryTradingDay = null;
     private String tradingDay = null;
 
-    PlatirInfoClientImpl(StrategyContextImpl strategyContext, MarketRouter mkRouter, Queries queries) {
-        stg = strategyContext;
-        market = mkRouter;
-        qry = queries;
+    PlatirInfoClientImpl(StrategyContextImpl strategyContext, MarketRouter marketRouter, Queries queries) {
+        this.strategyContext = strategyContext;
+        this.marketRouter = marketRouter;
+        this.queries = queries;
     }
 
     @Override
     public Logger getLogger() {
-        return stg.getStrategyLogger();
+        return strategyContext.getStrategyLogger();
     }
 
     protected StrategyContextImpl getStrategyContext() {
-        return stg;
+        return strategyContext;
     }
 
     Queries queries() {
-        return qry;
+        return queries;
     }
 
     @Override
@@ -63,184 +57,182 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
 
     @Override
     public StrategyProfile getStrategyProfile() {
-        return stg.getProfile();
+        return strategyContext.getProfile();
     }
 
     @Override
     public Account getAccount() {
-        var uid = stg.getProfile().getUserId();
+        var userId = strategyContext.getProfile().getUserId();
         try {
-            var snapshot = selectUserSnapshot(uid);
-            new SettlementFacilities().settleInDay(snapshot, getTradingDay(), market.getLastTicks(),
-                    qry.selectInstruments());
-            return snapshot.account;
-        } catch (DataQueryException | SettlementException e) {
-            Utils.err.write("Fail querying account by user(" + uid + ").", e);
+            var snapshot = selectUserSnapshot(userId);
+            SettlementFacilities.settleInDay(snapshot, getTradingDay(), marketRouter.getLastTicks(), queries.selectInstruments());
+            return snapshot.getAccount();
+        } catch (DataQueryException | SettlementException exception) {
+            Utils.err.write("Fail querying account by user(" + userId + ").", exception);
         }
         return null;
     }
 
     private UserSnapshot selectUserSnapshot(String userId) throws DataQueryException, SettlementException {
-        var user = new UserSnapshot();
-        for (var a : qry.selectAccounts()) {
-            if (a.getUserId().equals(userId)) {
-                user.account = a;
+        var snapshot = new UserSnapshot();
+        for (var account : queries.selectAccounts()) {
+            if (account.getUserId().equals(userId)) {
+                snapshot.setAccount(account);
                 break;
             }
         }
-        for (var u : qry.selectUsers()) {
-            if (u.getUserId().equals(userId)) {
-                user.user = u;
+        for (var selectedUser : queries.selectUsers()) {
+            if (selectedUser.getUserId().equals(userId)) {
+                snapshot.setUser(selectedUser);
                 break;
             }
         }
-        for (var c : qry.selectContracts()) {
-            if (c.getUserId().equals(userId)) {
-                user.contracts.computeIfAbsent(c.getInstrumentId(), key -> new HashSet<Contract>()).add(c);
+        for (var contract : queries.selectContracts()) {
+            if (contract.getUserId().equals(userId)) {
+                snapshot.contracts().computeIfAbsent(contract.getInstrumentId(), key -> new HashSet<Contract>()).add(contract);
             }
         }
-        if (user.user == null) {
+        if (snapshot.getUser() == null) {
             throw new SettlementException("No user(" + userId + ") information.");
         }
-        if (user.account == null) {
+        if (snapshot.getAccount() == null) {
             throw new SettlementException("No account for user(" + userId + ").");
         }
-        return user;
+        return snapshot;
     }
 
     @Override
     public Instrument getInstrument(String instrumentId) {
-        var inst = instruments.get(instrumentId);
-        if (inst == null || !inst.getUpdateTime().startsWith(Utils.date())) {
+        var instrument = instruments.get(instrumentId);
+        if (instrument == null || !instrument.getUpdateTime().startsWith(Utils.date())) {
             return qryInstrument(instrumentId);
         } else {
-            return inst;
+            return instrument;
         }
 
     }
 
     private Instrument qryInstrument(String instrumentId) {
         try {
-            for (var i : qry.selectInstruments()) {
-                if (i.getInstrumentId().equals(instrumentId)) {
-                    i.setUpdateTime(Utils.datetime());
-                    instruments.put(instrumentId, i);
-                    return i;
+            for (var instrument : queries.selectInstruments()) {
+                if (instrument.getInstrumentId().equals(instrumentId)) {
+                    instrument.setUpdateTime(Utils.datetime());
+                    instruments.put(instrumentId, instrument);
+                    return instrument;
                 }
             }
             return null;
-        } catch (DataQueryException e) {
-            Utils.err.write("Fail querying instrument by ID(" + instrumentId + ").", e);
+        } catch (DataQueryException exception) {
+            Utils.err.write("Fail querying instrument by ID(" + instrumentId + "): " + exception.getMessage(), exception);
             return null;
         }
     }
 
     @Override
     public Set<Transaction> getTransactions() {
-        var r = new HashSet<Transaction>();
+        var transactions = new HashSet<Transaction>();
         var strategyId = getStrategyId();
         try {
-            for (var t : qry.selectTransactions()) {
-                if (t.getStrategyId().equals(strategyId)) {
-                    r.add(t);
+            for (var transaction : queries.selectTransactions()) {
+                if (transaction.getStrategyId().equals(strategyId)) {
+                    transactions.add(transaction);
                 }
             }
-            return r;
-        } catch (DataQueryException e) {
-            Utils.err.write("Fail querying transactions by strategy(" + getStrategyId() + ").", e);
+            return transactions;
+        } catch (DataQueryException exception) {
+            Utils.err.write("Fail querying transactions by strategy(" + getStrategyId() + "): " + exception.getMessage(), exception);
             return null;
         }
     }
 
     @Override
     public Set<Order> getOrders(String transactionId) {
-        var r = new HashSet<Order>();
+        var orders = new HashSet<Order>();
         try {
-            for (var order : qry.selectOrders()) {
+            for (var order : queries.selectOrders()) {
                 if (order.getTransactionId().equals(transactionId)) {
-                    r.add(order);
+                    orders.add(order);
                 }
             }
-            return r;
-        } catch (DataQueryException e) {
-            Utils.err.write("Fail querying orders by transaction(" + transactionId + ").", e);
+            return orders;
+        } catch (DataQueryException exception) {
+            Utils.err.write("Fail querying orders by transaction(" + transactionId + "): " + exception.getMessage(), exception);
             return null;
         }
     }
 
     @Override
     public Set<Trade> getTrades(String orderId) {
-        var r = new HashSet<Trade>();
+        var trades = new HashSet<Trade>();
         try {
-            for (var tr : qry.selectTrades()) {
-                if (tr.getOrderId().equals(orderId)) {
-                    r.add(tr);
+            for (var trade : queries.selectTrades()) {
+                if (trade.getOrderId().equals(orderId)) {
+                    trades.add(trade);
                 }
             }
-            return r;
-        } catch (DataQueryException e) {
-            Utils.err.write("Fail querying trades by order(" + orderId + ").", e);
+            return trades;
+        } catch (DataQueryException exception) {
+            Utils.err.write("Fail querying trades by order(" + orderId + "): " + exception.getMessage(), exception);
             return null;
         }
     }
 
     @Override
     public Set<Position> getPositions(String... instrumentIds) {
-        var r = new HashMap<String, InstrumentPosition>();
-        var trDay = getTradingDay();
+        var instrumentPositions = new HashMap<String, InstrumentPosition>();
+        var today = getTradingDay();
         var contracts = getContracts(instrumentIds);
-        for (var c : contracts) {
-            var ip = r.computeIfAbsent(c.getInstrumentId(),
-                    key -> new InstrumentPosition(key, getStrategyProfile().getUserId()));
-            Position p;
-            if (c.getDirection().compareToIgnoreCase("buy") == 0) {
-                p = ip.buy();
-            } else if (c.getDirection().compareToIgnoreCase("sell") == 0) {
-                p = ip.sell();
+        for (var contract : contracts) {
+            var instrumentPosition = instrumentPositions.computeIfAbsent(contract.getInstrumentId(), key -> new InstrumentPosition(key, getStrategyProfile().getUserId()));
+            Position position;
+            if (contract.getDirection().compareToIgnoreCase("buy") == 0) {
+                position = instrumentPosition.buy();
+            } else if (contract.getDirection().compareToIgnoreCase("sell") == 0) {
+                position = instrumentPosition.sell();
             } else {
-                Utils.err
-                        .write("Invalid direction(" + c.getDirection() + ") for contract(" + c.getContractId() + ").");
+                Utils.err.write("Invalid direction(" + contract.getDirection() + ") for contract(" + contract.getContractId() + ").");
                 return null;
             }
-            if (c.getState().compareToIgnoreCase("opening") == 0) {
-                p.setOpeningVolume(p.getOpeningVolume() + 1);
-            } else if (c.getState().compareToIgnoreCase("closing") == 0) {
-                p.setClosingVolume(p.getClosingVolume() + 1);
-            } else if (c.getState().compareToIgnoreCase("open") == 0) {
-                p.setOpenVolume(p.getOpenVolume() + 1);
-                if (c.getOpenTradingDay().equals(trDay)) {
-                    p.setTodayOpenVolume(p.getTodayOpenVolume() + 1);
+            if (contract.getState().compareToIgnoreCase("opening") == 0) {
+                position.setOpeningVolume(position.getOpeningVolume() + 1);
+            } else if (contract.getState().compareToIgnoreCase("closing") == 0) {
+                position.setClosingVolume(position.getClosingVolume() + 1);
+            } else if (contract.getState().compareToIgnoreCase("open") == 0) {
+                position.setOpenVolume(position.getOpenVolume() + 1);
+                if (contract.getOpenTradingDay().equals(today)) {
+                    position.setTodayOpenVolume(position.getTodayOpenVolume() + 1);
                 }
-            } else if (c.getState().compareToIgnoreCase("closed") == 0) {
-                p.setClosedVolume(p.getClosedVolume() + 1);
+            } else if (contract.getState().compareToIgnoreCase("closed") == 0) {
+                position.setClosedVolume(position.getClosedVolume() + 1);
             } else {
-                Utils.err
-                        .write("Invalid direction(" + c.getDirection() + ") for contract(" + c.getContractId() + ").");
+                Utils.err.write("Invalid direction(" + contract.getDirection() + ") for contract(" + contract.getContractId() + ").");
             }
         }
-        var rs = new HashSet<Position>();
-        r.values().forEach(ip -> {
-            rs.add(ip.buy());
-            rs.add(ip.sell());
+        var positions = new HashSet<Position>();
+        instrumentPositions.values().forEach(ip -> {
+            positions.add(ip.buy());
+            positions.add(ip.sell());
         });
-        return rs;
+        return positions;
     }
 
     @Override
     public Set<Contract> getContracts(String... instrumentIds) {
         /* find contracts that belong to the instrument and user */
-        var r = new HashSet<Contract>();
-        var i = new HashSet<String>(Arrays.asList(instrumentIds));
+        var contracts = new HashSet<Contract>();
+        var instrumentLookup = new HashSet<String>(Arrays.asList(instrumentIds));
         var userId = getStrategyProfile().getUserId();
+        String currentInstrumentId = null;
         try {
-            for (var c : qry.selectContracts()) {
-                if (i.contains(c.getInstrumentId()) && c.getUserId().equals(userId)) {
-                    r.add(c);
+            for (var contract : queries.selectContracts()) {
+                currentInstrumentId = contract.getInstrumentId();
+                if (instrumentLookup.contains(currentInstrumentId) && contract.getUserId().equals(userId)) {
+                    contracts.add(contract);
                 }
             }
-            return r;
-        } catch (DataQueryException e) {
-            Utils.err.write("Fail querying contracts by instrument(" + i + ").", e);
+            return contracts;
+        } catch (DataQueryException exception) {
+            Utils.err.write("Fail querying contracts by instrument(" + currentInstrumentId + ").", exception);
             return null;
         }
     }
@@ -257,7 +249,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
 
     private String qryTradingDay() {
         try {
-            tradingDay = qry.selectTradingDay().getTradingDay();
+            tradingDay = queries.selectTradingDay().getTradingDay();
             whenQryTradingDay = Utils.date();
         } catch (DataQueryException e) {
             Utils.err.write("Fail querying trading day.", e);
@@ -277,16 +269,16 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
         }
 
         private Position createEmptyPosition(String instrumentId, String direction, String userId) {
-            var p = ObjectFactory.newPosition();
-            p.setInstrumentId(instrumentId);
-            p.setUserId(userId);
-            p.setDirection(direction);
-            p.setOpenVolume(0);
-            p.setClosedVolume(0);
-            p.setClosingVolume(0);
-            p.setOpeningVolume(0);
-            p.setTodayOpenVolume(0);
-            return p;
+            var position = ObjectFactory.newPosition();
+            position.setInstrumentId(instrumentId);
+            position.setUserId(userId);
+            position.setDirection(direction);
+            position.setOpenVolume(0);
+            position.setClosedVolume(0);
+            position.setClosingVolume(0);
+            position.setOpeningVolume(0);
+            position.setTodayOpenVolume(0);
+            return position;
         }
 
         public Position buy() {

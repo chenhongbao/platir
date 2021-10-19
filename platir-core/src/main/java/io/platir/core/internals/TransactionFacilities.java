@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  */
 class TransactionFacilities {
 
-    private final static AtomicInteger increId = new AtomicInteger(0);
+    private final static AtomicInteger orderIdCounter = new AtomicInteger(0);
 
     static Set<Contract> opening(String orderId, PlatirInfoClientImpl client, Transaction transaction) {
         /*
@@ -29,29 +29,29 @@ class TransactionFacilities {
          * through the opening contracts, so just add opening contracts and account will
          * be changed.
          */
-        HashSet<Contract> r = new HashSet<>();
-        String uid = client.getStrategyProfile().getUserId();
+        HashSet<Contract> contracts = new HashSet<>();
+        String userId = client.getStrategyProfile().getUserId();
         for (int i = 0; i < transaction.getVolume(); ++i) {
-            Contract c = ObjectFactory.newContract();
+            Contract contract = ObjectFactory.newContract();
             /*
              * Contract ID = <order-id>.<some-digits>
              */
-            c.setContractId(orderId + "." + Integer.toString(i));
-            c.setUserId(uid);
-            c.setInstrumentId(transaction.getInstrumentId());
-            c.setDirection(transaction.getDirection());
-            c.setPrice(transaction.getPrice());
-            c.setState("opening");
-            c.setOpenTradingDay(client.getTradingDay());
-            c.setOpenTime(Utils.datetime());
-            r.add(c);
+            contract.setContractId(orderId + "." + Integer.toString(i));
+            contract.setUserId(userId);
+            contract.setInstrumentId(transaction.getInstrumentId());
+            contract.setDirection(transaction.getDirection());
+            contract.setPrice(transaction.getPrice());
+            contract.setState("opening");
+            contract.setOpenTradingDay(client.getTradingDay());
+            contract.setOpenTime(Utils.datetime());
+            contracts.add(contract);
             try {
-                client.queries().insert(c);
+                client.queries().insert(contract);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't insert user(" + c.getUserId() + ") contract(" + c.getContractId() + ") opening: " + e.getMessage(), e);
+                Utils.err.write("Can't insert user(" + contract.getUserId() + ") contract(" + contract.getContractId() + ") opening: " + e.getMessage(), e);
             }
         }
-        return r;
+        return contracts;
     }
 
     static CheckReturn checkOpen(String oid, PlatirInfoClientImpl query, Transaction t) {
@@ -108,71 +108,71 @@ class TransactionFacilities {
     }
 
     static void closing(Set<Contract> available, PlatirInfoClientImpl client) {
-        available.stream().map(c -> {
-            c.setState("closing");
-            return c;
-        }).forEachOrdered(c -> {
+        available.stream().map(contract -> {
+            contract.setState("closing");
+            return contract;
+        }).forEachOrdered(contract -> {
             try {
-                client.queries().update(c);
+                client.queries().update(contract);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't update user(" + c.getUserId() + ") + contract(" + c.getContractId() + ") state(" + c.getState() + "): " + e.getMessage(), e);
+                Utils.err.write("Can't update user(" + contract.getUserId() + ") + contract(" + contract.getContractId() + ") state(" + contract.getState() + "): " + e.getMessage(), e);
             }
         });
     }
 
-    static OrderContextImpl createOrderContext(String orderId, String transactionId, String instrumentId, Double price, Integer volume, String direction, Collection<Contract> contracts, String offset, TransactionContextImpl transCtx) {
-        PlatirClientImpl cli = transCtx.getStrategyContext().getPlatirClientImpl();
-        Order o = ObjectFactory.newOrder();
-        o.setOrderId(orderId);
-        o.setTransactionId(transactionId);
-        o.setInstrumentId(instrumentId);
-        o.setPrice(price);
-        o.setVolume(volume);
-        o.setDirection(direction);
-        o.setOffset(offset);
-        o.setTradingDay(cli.getTradingDay());
+    static OrderContextImpl createOrderContext(String orderId, String transactionId, String instrumentId, Double price, Integer volume, String direction, Collection<Contract> contracts, String offset, TransactionContextImpl transactionContect) {
+        PlatirClientImpl client = transactionContect.getStrategyContext().getPlatirClientImpl();
+        Order order = ObjectFactory.newOrder();
+        order.setOrderId(orderId);
+        order.setTransactionId(transactionId);
+        order.setInstrumentId(instrumentId);
+        order.setPrice(price);
+        order.setVolume(volume);
+        order.setDirection(direction);
+        order.setOffset(offset);
+        order.setTradingDay(client.getTradingDay());
         try {
             /* save order to data source */
-            cli.queries().insert(o);
-        } catch (DataQueryException e) {
+            client.queries().insert(order);
+        } catch (DataQueryException exception) {
             /* worker thread can't pass out the exception, just log it */
-            Utils.err.write("Can't insert order(" + o.getOrderId() + ") to data source: " + e.getMessage(), e);
+            Utils.err.write("Can't insert order(" + order.getOrderId() + ") to data source: " + exception.getMessage(), exception);
         }
         /* create order context. */
-        OrderContextImpl ctx = new OrderContextImpl(o, transCtx);
-        ctx.lockedContracts().addAll(contracts);
+        OrderContextImpl orderContext = new OrderContextImpl(order, transactionContect);
+        orderContext.lockedContracts().addAll(contracts);
         /* add order context to transaction context */
-        transCtx.addOrderContext(ctx);
-        return ctx;
+        transactionContect.addOrderContext(orderContext);
+        return orderContext;
     }
 
-    static String getOrderId(String tid) {
+    static String getOrderId(String transactionId) {
         /* <transaction-id>.<some-digits> */
-        return tid + "." + Integer.toString(increId.incrementAndGet());
+        return transactionId + "." + Integer.toString(orderIdCounter.incrementAndGet());
     }
 
-    static void saveRiskNotice(int code, String message, Integer level, TransactionContextImpl ctx) {
-        RiskNotice r = ObjectFactory.newRiskNotice();
-        StrategyProfile profile = ctx.getStrategyContext().getProfile();
-        r.setCode(code);
-        r.setMessage(message);
-        r.setLevel(level);
-        r.setUserId(profile.getUserId());
-        r.setStrategyId(profile.getStrategyId());
-        r.setUpdateTime(Utils.datetime());
+    static void saveRiskNotice(int code, String message, Integer level, TransactionContextImpl tranactionContext) {
+        RiskNotice riskNotice = ObjectFactory.newRiskNotice();
+        StrategyProfile profile = tranactionContext.getStrategyContext().getProfile();
+        riskNotice.setCode(code);
+        riskNotice.setMessage(message);
+        riskNotice.setLevel(level);
+        riskNotice.setUserId(profile.getUserId());
+        riskNotice.setStrategyId(profile.getStrategyId());
+        riskNotice.setUpdateTime(Utils.datetime());
         try {
-            ctx.getQueryClient().queries().insert(r);
-        } catch (DataQueryException e) {
-            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
+            tranactionContext.getQueryClient().queries().insert(riskNotice);
+        } catch (DataQueryException exception) {
+            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + exception.getMessage(), exception);
         }
     }
 
-    static void processNotice(int code, String message, TransactionContextImpl ctx) {
+    static void processNotice(int code, String message, TransactionContextImpl transactionContext) {
         Notice n = ObjectFactory.newNotice();
         n.setCode(code);
         n.setMessage(message);
-        n.setContext(ctx);
-        ctx.getStrategyContext().processNotice(n);
+        n.setContext(transactionContext);
+        transactionContext.getStrategyContext().processNotice(n);
     }
 
 }
