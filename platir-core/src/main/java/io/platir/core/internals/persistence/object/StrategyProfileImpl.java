@@ -1,6 +1,7 @@
 package io.platir.core.internals.persistence.object;
 
 import io.platir.service.StrategyProfile;
+import java.net.URI;
 import java.util.Arrays;
 
 /**
@@ -17,6 +18,7 @@ class StrategyProfileImpl implements StrategyProfile {
     private String removeDate;
     private String[] instrumentIds;
     private String[] args;
+    private URI uri;
 
     @Override
     public String getStrategyId() {
@@ -96,6 +98,16 @@ class StrategyProfileImpl implements StrategyProfile {
     @Override
     public void setArgs(String[] args) {
         this.args = args;
+    }
+
+    @Override
+    public URI getUri() {
+        return uri;
+    }
+
+    @Override
+    public void setUri(URI uri) {
+        this.uri = uri;
     }
 
 }

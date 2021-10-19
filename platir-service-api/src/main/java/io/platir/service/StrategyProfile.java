@@ -1,5 +1,7 @@
 package io.platir.service;
 
+import java.net.URI;
+
 public interface StrategyProfile {
 
     String getCreateDate();
@@ -34,4 +36,7 @@ public interface StrategyProfile {
 
     void setState(String state);
 
+    URI getUri();
+
+    void setUri(URI uri);
 }
