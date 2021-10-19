@@ -2,6 +2,7 @@ package io.platir.core.internal;
 
 import io.platir.core.internal.objects.ObjectFactory;
 import io.platir.service.Bar;
+import io.platir.service.Constants;
 import io.platir.service.Notice;
 import io.platir.service.Strategy;
 import io.platir.service.Tick;
@@ -67,11 +68,11 @@ class StrategyCallbackQueue implements Runnable {
             var notice = ObjectFactory.newNotice();
             try {
                 job.work();
-                notice.setCode(0);
+                notice.setCode(Constants.CODE_OK);
                 notice.setMessage("good");
             } catch (Throwable th) {
-                notice.setCode(4001);
-                notice.setMessage("Callback throws exception: " + th.getMessage());
+                notice.setCode(Constants.CODE_STRATEGY_EXCEPTION);
+                notice.setMessage("callback throws exception: " + th.getMessage());
                 notice.setError(th);
             }
             return notice;
@@ -90,8 +91,8 @@ class StrategyCallbackQueue implements Runnable {
             Utils.err.write("Timed operation is interrupted: " + exception.getMessage(), exception);
         } catch (TimeoutException exception) {
             var notice = ObjectFactory.newNotice();
-            notice.setCode(4002);
-            notice.setMessage("Callback operation is timeout.");
+            notice.setCode(Constants.CODE_STRATEGY_TIMEOUT);
+            notice.setMessage("callback operation is timeout");
             notice.setError(exception);
             /* Tell strategy its callback timeout. */
             timedOnNotice(notice);

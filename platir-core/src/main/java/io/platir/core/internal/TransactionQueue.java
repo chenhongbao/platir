@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.service.Constants;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
@@ -16,15 +17,6 @@ import io.platir.service.api.TradeAdaptor;
 import io.platir.service.api.RiskManager;
 
 /**
- * Error code explanation:
- * <ul>
- * <li>1001: Available money is zero or below zero.</li>
- * <li>1002: Missing instrument information.</li>
- * <li>1003: Not enough available money to open.</li>
- * <li>1004: Not enough position to close.</li>
- * <li>1005: Risk assess callback throws exception.</li>
- * <li>1006: Invalid order offset.</li>
- * </ul>
  *
  * @author Chen Hongbao
  * @since 1.0.0
@@ -62,7 +54,7 @@ class TransactionQueue implements Runnable {
     void push(TransactionContextImpl transactionContext) throws DataQueryException {
         var transaction = transactionContext.getTransaction();
         /* Update states. */
-        transaction.setState("pending");
+        transaction.setState(Constants.TRANSACTION_STATE_PENDING);
         transaction.setStateMessage("never enqueued");
         /* Initialize adding transaction to data source */
         transactionContext.getQueryClient().queries().update(transaction);
@@ -78,8 +70,8 @@ class TransactionQueue implements Runnable {
             if (pendingTransaction.getInstrumentId().compareTo(instrumentId) == 0) {
                 pendingIterator.remove();
                 /* Change state. */
-                pendingTransaction.setState("queueing");
-                pendingTransaction.setStateMessage("tick triggers queueing");
+                pendingTransaction.setState(Constants.TRANSACTION_STATE_EXECUTING);
+                pendingTransaction.setStateMessage("tick triggers executiion");
                 try {
                     pending.getQueryClient().queries().update(pendingTransaction);
                 } catch (DataQueryException exception) {
@@ -107,7 +99,7 @@ class TransactionQueue implements Runnable {
                 /* In-front risk assessment. */
                 var riskNotice = beforeRisk(executingContext.getLastTriggerTick(), executingContext);
                 if (!riskNotice.isGood()) {
-                    executingTransaction.setState("in-front-risk-accessment;" + riskNotice.getCode());
+                    executingTransaction.setState(Constants.TRANSACTION_STATE_RISK_BLOCKED + ";" + riskNotice.getCode());
                     executingTransaction.setStateMessage(riskNotice.getMessage());
                     executingContext.awake();
                     /* save risk notice */
@@ -124,7 +116,7 @@ class TransactionQueue implements Runnable {
                         } else if ("close".compareToIgnoreCase(executingTransaction.getOffset()) == 0) {
                             close(executingContext);
                         } else {
-                            executingTransaction.setState("invalid");
+                            executingTransaction.setState(Constants.TRANSACTION_STATE_INVALID);
                             executingTransaction.setStateMessage("invalid offset(" + executingTransaction.getOffset() + ")");
                             try {
                                 executingContext.getQueryClient().queries().update(executingTransaction);
@@ -135,7 +127,7 @@ class TransactionQueue implements Runnable {
                             /* Notify the transaction has failed. */
                             executingContext.awake();
                             /* notice callback */
-                            TransactionFacilities.processNotice(1006, "invalid order offset(" + executingTransaction.getOffset() + ")", executingContext);
+                            TransactionFacilities.processNotice(Constants.CODE_INVALID_OFFSET, "invalid order offset(" + executingTransaction.getOffset() + ")", executingContext);
                         }
                     }
                 }
@@ -155,7 +147,7 @@ class TransactionQueue implements Runnable {
         } catch (Throwable throwable) {
             Utils.err.write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
             var riskNotice = ObjectFactory.newRiskNotice();
-            riskNotice.setCode(1005);
+            riskNotice.setCode(Constants.CODE_RISK_EXCEPTION);
             riskNotice.setMessage("before(Tick, TransactionContext) throws exception");
             riskNotice.setLevel(RiskNotice.ERROR);
             return riskNotice;
@@ -168,7 +160,7 @@ class TransactionQueue implements Runnable {
         var queryClient = transactionContext.getQueryClient();
         var checkReturn = TransactionFacilities.checkClose(transactionContext.getQueryClient(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
         if (!checkReturn.getNotice().isGood()) {
-            transaction.setState("check-close;" + checkReturn.getNotice().getCode());
+            transaction.setState(Constants.TRANSACTION_STATE_CHECK_CLOSE + ";" + checkReturn.getNotice().getCode());
             transaction.setStateMessage(checkReturn.getNotice().getMessage());
             try {
                 queryClient.queries().update(transaction);
@@ -203,7 +195,7 @@ class TransactionQueue implements Runnable {
         /* Check resource. */
         var checkReturn = TransactionFacilities.checkOpen(newOrderId, queryClient, transaction);
         if (!checkReturn.getNotice().isGood()) {
-            transaction.setState("check-open;" + checkReturn.getNotice().getCode());
+            transaction.setState(Constants.TRANSACTION_STATE_CHECK_OPEN + ";" + checkReturn.getNotice().getCode());
             transaction.setStateMessage(checkReturn.getNotice().getMessage());
             try {
                 queryClient.queries().update(transaction);
@@ -252,9 +244,10 @@ class TransactionQueue implements Runnable {
         /* Wait for the first response telling if the order is accepted. */
         var responseNotice = tradeListener.waitResponse(order.getOrderId());
         if (!responseNotice.isGood()) {
-            if (responseNotice.getCode() == 10001) {
+            if (responseNotice.getCode() == Constants.CODE_ORDER_MARKET_CLOSE) {
                 /* market is not open, wait until it opens */
-                transaction.setState("send-pending;" + responseNotice.getCode());
+                transaction.setState(Constants.TRANSACTION_STATE_SEND_PENDING + ";" + responseNotice.getCode()
+                );
                 transaction.setStateMessage(responseNotice.getMessage());
                 try {
                     queryClient.queries().update(transaction);
@@ -275,7 +268,7 @@ class TransactionQueue implements Runnable {
                 }
             } else {
                 /* can't fill order because it is invalid or account is insufficient */
-                transaction.setState("send-aborted;" + responseNotice.getCode());
+                transaction.setState(Constants.TRANSACTION_STATE_SEND_ABORT + ";" + responseNotice.getCode());
                 transaction.setStateMessage(responseNotice.getMessage());
                 try {
                     queryClient.queries().update(transaction);
@@ -286,8 +279,8 @@ class TransactionQueue implements Runnable {
                 transactionContext.awake();
             }
         } else {
-            transaction.setState("send-running");
-            transaction.setStateMessage("order submitted");
+            transaction.setState(Constants.TRANSACTION_STATE_SEND_OK);
+            transaction.setStateMessage("order sent ok");
             try {
                 queryClient.queries().update(transaction);
             } catch (DataQueryException exception) {

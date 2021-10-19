@@ -1,6 +1,7 @@
 package io.platir.core.internal;
 
 import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.Notice;
@@ -58,24 +59,24 @@ class TransactionFacilities {
         var checkReturn = new CheckReturn();
         Double available = query.getAccount().getAvailable();
         if (available <= 0) {
-            checkReturn.getNotice().setCode(1001);
+            checkReturn.getNotice().setCode(Constants.CODE_INVALID_AVAILABLE);
             checkReturn.getNotice().setMessage("no available(" + available + ") for opening");
             return checkReturn;
         }
         Instrument instrument = query.getInstrument(t.getInstrumentId());
         if (instrument == null) {
-            checkReturn.getNotice().setCode(1002);
+            checkReturn.getNotice().setCode(Constants.CODE_NO_INSTRUMENT);
             checkReturn.getNotice().setMessage("no instrument information for " + t.getInstrumentId());
             return checkReturn;
         }
         double margin = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(), instrument.getAmountMargin(), instrument.getVolumeMargin()) * t.getVolume();
         double commission = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(), instrument.getAmountCommission(), instrument.getVolumeCommission()) * t.getVolume();
         if (available < margin + commission) {
-            checkReturn.getNotice().setCode(1003);
+            checkReturn.getNotice().setCode(Constants.CODE_NO_MONEY);
             checkReturn.getNotice().setMessage("no available(" + available + ") for opening(" + (commission + margin) + ")");
             return checkReturn;
         }
-        checkReturn.getNotice().setCode(0);
+        checkReturn.getNotice().setCode(Constants.CODE_OK);
         checkReturn.getNotice().setMessage("good");
         /* Lock contracts for opening and return those contracts. */
         checkReturn.getContracts().addAll(opening(oid, query, t));
@@ -87,7 +88,7 @@ class TransactionFacilities {
         var checkReturn = new CheckReturn();
         Set<Contract> available = query.getContracts(instrumentId).stream().filter(c -> c.getDirection().compareToIgnoreCase(direction) != 0).filter(c -> c.getState().compareToIgnoreCase("open") == 0).collect(Collectors.toSet());
         if (available.size() < volume) {
-            checkReturn.getNotice().setCode(1004);
+            checkReturn.getNotice().setCode(Constants.CODE_NO_POSITION);
             checkReturn.getNotice().setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
             return checkReturn;
         }
@@ -101,7 +102,7 @@ class TransactionFacilities {
         }
         closing(available, query);
         /* return good */
-        checkReturn.getNotice().setCode(0);
+        checkReturn.getNotice().setCode(Constants.CODE_OK);
         checkReturn.getNotice().setMessage("good");
         checkReturn.getContracts().addAll(available);
         return checkReturn;

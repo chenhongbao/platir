@@ -1,6 +1,7 @@
 package io.platir.core.internal;
 
 import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.service.Constants;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Trade;
@@ -87,7 +88,7 @@ class OrderExecutionContext {
             }
         } catch (InterruptedException e) {
             responseNotice = ObjectFactory.newNotice();
-            responseNotice.setCode(3001);
+            responseNotice.setCode(Constants.CODE_RESPONSE_TIMEOUT);
             responseNotice.setMessage("response timeout");
             responseNotice.setError(e);
             responseNotice.setContext(transactionContext);
@@ -166,7 +167,7 @@ class OrderExecutionContext {
             orderContext = null;
             transactionContext = null;
             /* Tell strategy trades are completed. */
-             pushNotice(0, "trade completed");
+             pushNotice(Constants.CODE_OK, "trade completed");
         }
         if (tradedVolume > totalVolume) {
             Utils.err.write("Order(" + orderContext.getOrder().getOrderId() + ") over traded.");

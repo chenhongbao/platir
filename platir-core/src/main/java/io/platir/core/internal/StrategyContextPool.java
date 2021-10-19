@@ -10,20 +10,15 @@ import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
 import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
 import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
-import io.platir.service.api.RiskManager;
 
 /**
- * Error code explanation:
- * <ul>
- * <li>5001: Login failure.</li>
- * <li>5002: Login SQL operation failure.</li>
- * </ul>
  *
  * @author chenh
  *
@@ -89,7 +84,7 @@ class StrategyContextPool {
 
     private Notice verifyLogin(StrategyProfile profile) {
         var notice = ObjectFactory.newNotice();
-        notice.setCode(0);
+        notice.setCode(Constants.CODE_OK);
         notice.setMessage("good");
         try {
             var found = false;
@@ -100,11 +95,11 @@ class StrategyContextPool {
                 }
             }
             if (!found) {
-                notice.setCode(5001);
+                notice.setCode(Constants.CODE_LOGIN_FAIL);
                 notice.setMessage("login failure");
             }
         } catch (DataQueryException exception) {
-            notice.setCode(5002);
+            notice.setCode(Constants.CODE_LOGIN_QUERY_FAIL);
             notice.setMessage("login SQL operation failure");
             notice.setError(exception);
         }

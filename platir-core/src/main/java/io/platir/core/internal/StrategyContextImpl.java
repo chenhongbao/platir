@@ -10,6 +10,7 @@ import io.platir.core.IntegrityException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.internal.objects.ObjectFactory;
 import io.platir.service.Bar;
+import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
 import io.platir.service.Notice;
 import io.platir.service.Order;
@@ -21,7 +22,6 @@ import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
-import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,12 +33,6 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 /**
- * Error code explanation:
- * <ul>
- * <li>4001: Callback throws exception.</li>
- * <li>4002: Callback is timeout.</li>
- * <li>4003: transaction over traded.</li>
- * </ul>
  *
  * @author Chen Hongbao
  * @since 1.0.0
@@ -160,13 +154,13 @@ class StrategyContextImpl implements StrategyContext {
                 /* transaction is completed, awake. */
                 transaction.awake();
                 /* call strategy callback */
-                simpleNotice(0, "Completed");
+                simpleNotice(Constants.CODE_OK, "Completed");
             } else if (tradedVolume > totalVolume) {
                 /* trade more than expected */
                 transaction.awake();
                 Utils.err.write("Transaction(" + transaction.getTransaction().getTransactionId() + ") over traded(" + tradedVolume + ">" + totalVolume + ").");
                 /* call strategy callback */
-                simpleNotice(4003, "Over traded");
+                simpleNotice(Constants.CODE_TRANSACTION_OVER_TRADE, "Over traded");
             }
         }
     }

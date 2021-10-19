@@ -15,11 +15,6 @@ import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
 
 /**
- * Error code explanation:
- * <ul>
- * <li>5001: A removed strateggy can't be interrupted.</li>
- * <li>5002: Cannot update strategy state.</li>
- * </ul>
  *
  * @author Chen Hongbao
  *
