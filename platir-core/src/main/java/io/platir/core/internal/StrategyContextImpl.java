@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -8,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.StrategyRemovalException;
-import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.queries.ObjectFactory;
 import io.platir.service.Bar;
 import io.platir.service.Constants;
 import io.platir.service.InterruptionException;

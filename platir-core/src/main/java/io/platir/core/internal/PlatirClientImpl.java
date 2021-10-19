@@ -1,11 +1,12 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.queries.ObjectFactory;
 import io.platir.service.TransactionException;
 import io.platir.service.InterruptionException;
 import io.platir.service.PlatirClient;

@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -9,7 +10,7 @@ import io.platir.core.InvalidLoginException;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
-import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
 import io.platir.service.Notice;

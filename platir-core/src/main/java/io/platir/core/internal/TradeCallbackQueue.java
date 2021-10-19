@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import io.platir.service.Trade;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;

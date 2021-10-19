@@ -1,5 +1,7 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
+import io.platir.queries.QueriesImpl;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -7,7 +8,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;

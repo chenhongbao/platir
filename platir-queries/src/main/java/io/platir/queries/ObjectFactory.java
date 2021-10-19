@@ -1,4 +1,4 @@
-package io.platir.core.internal.objects;
+package io.platir.queries;
 
 import io.platir.service.Account;
 import io.platir.service.Bar;

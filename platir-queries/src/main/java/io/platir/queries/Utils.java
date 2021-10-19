@@ -1,4 +1,4 @@
-package io.platir.core.internal;
+package io.platir.queries;
 
 import java.io.File;
 import java.io.FileNotFoundException;

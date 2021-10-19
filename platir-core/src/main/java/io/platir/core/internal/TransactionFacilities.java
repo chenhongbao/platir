@@ -1,6 +1,7 @@
 package io.platir.core.internal;
 
-import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.queries.Utils;
+import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;

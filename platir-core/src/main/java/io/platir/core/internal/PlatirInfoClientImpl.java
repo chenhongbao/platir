@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.platir.core.SettlementException;
-import io.platir.core.internal.objects.ObjectFactory;
+import io.platir.queries.ObjectFactory;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;

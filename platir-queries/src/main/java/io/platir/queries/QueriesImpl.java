@@ -1,7 +1,6 @@
-package io.platir.core.internal;
+package io.platir.queries;
 
 import com.google.gson.Gson;
-import io.platir.core.internal.objects.ObjectFactory;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -35,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Chen Hongbao
  */
-class QueriesImpl implements Queries {
+public class QueriesImpl implements Queries {
 
     private final AtomicReference<TradingDay> tradingDay = new AtomicReference<>();
     private final Map<String, Account> accountTable = new HashMap<>();
@@ -51,7 +50,7 @@ class QueriesImpl implements Queries {
 
     private final Gson g;
 
-    QueriesImpl() {
+    public QueriesImpl() {
         g = new Gson().newBuilder().serializeNulls().setPrettyPrinting().create();
     }
 

@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;

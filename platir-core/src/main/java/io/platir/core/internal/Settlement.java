@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.queries.Utils;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Collection;
