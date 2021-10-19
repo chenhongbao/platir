@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.StrategyRemovalException;
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Bar;
 import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
@@ -57,7 +56,7 @@ class StrategyContextImpl implements StrategyContext {
         this.strategyProfile = strategyProfile;
         this.annotatedStrategy = new AnnotatedStrategy(strategyObject);
         this.platirClient = new PlatirClientImpl(this, transactionQueue, marketQueue, queries);
-        this.callbackQueue = new StrategyCallbackQueue(annotatedStrategy);
+        this.callbackQueue = new StrategyCallbackQueue(annotatedStrategy, queries.getFactory());
         this.loggingHandler = new StrategyLoggingHandler();
         this.logger = createLogger();
     }
@@ -167,7 +166,7 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     private void simpleNotice(int code, String message) {
-        var notice = ObjectFactory.newNotice();
+        var notice = platirClient.queries().getFactory().newNotice();
         notice.setCode(code);
         notice.setMessage(message);
         processNotice(notice);

@@ -1,7 +1,7 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
-import io.platir.queries.ObjectFactory;
+import io.platir.service.Factory;
 import io.platir.service.Notice;
 import io.platir.service.Trade;
 import io.platir.service.api.TradeListener;
@@ -20,37 +20,39 @@ import io.platir.service.api.RiskManager;
  */
 class TradeListenerContexts implements TradeListener {
 
-    private final Map<String, OrderExecutionContext> ctxs = new ConcurrentHashMap<>();
-    private final RiskManager rsk;
+    private final Map<String, OrderExecutionContext> executionContexts = new ConcurrentHashMap<>();
+    private final RiskManager riskManager;
     private final TradeCallbackQueue tradeQueue;
     private final NoticeCallbackQueue noticeQueue;
+    private final Factory factory;
 
-    TradeListenerContexts(RiskManager risk) {
-        rsk = risk;
-        tradeQueue = new TradeCallbackQueue();
-        noticeQueue = new NoticeCallbackQueue();
+    TradeListenerContexts(RiskManager riskManager, Factory factory) {
+        this.riskManager = riskManager;
+        this.factory = factory;
+        this.tradeQueue = new TradeCallbackQueue();
+        this.noticeQueue = new NoticeCallbackQueue();
         Utils.threads.submit(tradeQueue);
         Utils.threads.submit(noticeQueue);
     }
 
     int countStrategyRunning(StrategyContextImpl strategy) {
-        return ctxs.values().stream().mapToInt(ctx -> ctx.transactionContext.getStrategyContext() == strategy ? 1 : 0).sum();
+        return executionContexts.values().stream().mapToInt(executionContext -> executionContext.getTransactionContext().getStrategyContext() == strategy ? 1 : 0).sum();
     }
 
     void clearContexts() {
-        ctxs.clear();
+        executionContexts.clear();
     }
 
     void register(OrderContextImpl orderCtx, TransactionContextImpl ctx) throws DuplicatedOrderException {
         var orderId = orderCtx.getOrder().getOrderId();
-        if (ctxs.containsKey(orderId)) {
+        if (executionContexts.containsKey(orderId)) {
             throw new DuplicatedOrderException("Order(" + orderId + ") duplicated.");
         }
-        ctxs.put(orderId, new OrderExecutionContext(orderCtx, ctx, rsk));
+        executionContexts.put(orderId, new OrderExecutionContext(orderCtx, ctx, riskManager));
     }
 
     Notice waitResponse(String orderId) {
-        var ctx = ctxs.get(orderId);
+        var ctx = executionContexts.get(orderId);
         if (ctx != null) {
             return ctx.waitResponse();
         } else {
@@ -60,7 +62,7 @@ class TradeListenerContexts implements TradeListener {
 
     @Override
     public void onTrade(Trade trade) {
-        var ctx = ctxs.get(trade.getOrderId());
+        var ctx = executionContexts.get(trade.getOrderId());
         if (ctx != null) {
             tradeQueue.push(trade, ctx);
         } else {
@@ -70,12 +72,13 @@ class TradeListenerContexts implements TradeListener {
 
     @Override
     public void onNotice(String orderId, int code, String message) {
-        var ctx = ctxs.get(orderId);
-        if (ctx != null) {
-            var n = ObjectFactory.newNotice();
-            n.setCode(code);
-            n.setMessage(message);
-            noticeQueue.push(n, ctx);
+        var context = executionContexts.get(orderId);
+        if (context != null) {
+            var notice = factory.newNotice();
+            notice.setCode(code);
+            notice.setMessage(message);
+            notice.setContext(context.getTransactionContext());
+            noticeQueue.push(notice, context);
         } else {
             Utils.err.write("Order execution context not found for order(" + orderId + ").");
         }

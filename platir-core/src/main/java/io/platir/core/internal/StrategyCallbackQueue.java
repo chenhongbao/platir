@@ -1,9 +1,9 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Bar;
 import io.platir.service.Constants;
+import io.platir.service.Factory;
 import io.platir.service.Notice;
 import io.platir.service.Strategy;
 import io.platir.service.Tick;
@@ -22,11 +22,13 @@ import java.util.concurrent.TimeoutException;
 class StrategyCallbackQueue implements Runnable {
 
     private final Strategy strategy;
+    private final Factory factory;
     private final BlockingQueue<Object> callbackObjects = new LinkedBlockingQueue<>();
     private final Future daemonFuture;
 
-    StrategyCallbackQueue(Strategy strategy) {
+    StrategyCallbackQueue(Strategy strategy, Factory factory) {
         this.strategy = strategy;
+        this.factory = factory;
         this.daemonFuture = Utils.threads.submit(this);
     }
 
@@ -66,7 +68,7 @@ class StrategyCallbackQueue implements Runnable {
 
     private void timedOperation(boolean needNotice, int timeoutSec, TimedJob job) {
         var future = Utils.threads.submit(() -> {
-            var notice = ObjectFactory.newNotice();
+            var notice = factory.newNotice();
             try {
                 job.work();
                 notice.setCode(Constants.CODE_OK);
@@ -91,7 +93,7 @@ class StrategyCallbackQueue implements Runnable {
         } catch (InterruptedException | ExecutionException exception) {
             Utils.err.write("Timed operation is interrupted: " + exception.getMessage(), exception);
         } catch (TimeoutException exception) {
-            var notice = ObjectFactory.newNotice();
+            var notice = factory.newNotice();
             notice.setCode(Constants.CODE_STRATEGY_TIMEOUT);
             notice.setMessage("callback operation is timeout");
             notice.setError(exception);

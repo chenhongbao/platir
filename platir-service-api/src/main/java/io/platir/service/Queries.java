@@ -5,6 +5,8 @@ import java.util.Set;
 import java.io.File;
 
 public interface Queries {
+    
+    Factory getFactory();
 
     void initialize() throws DataQueryException;
 

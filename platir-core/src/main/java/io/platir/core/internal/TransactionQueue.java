@@ -7,13 +7,12 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
+import io.platir.service.Factory;
 import io.platir.service.api.TradeAdaptor;
 import io.platir.service.api.RiskManager;
 
@@ -24,6 +23,7 @@ import io.platir.service.api.RiskManager;
  */
 class TransactionQueue implements Runnable {
 
+    private final Factory factory;
     private final RiskManager riskManager;
     private final TradeAdaptor tradeAdaptor;
     private final TradeListenerContexts tradeListener;
@@ -31,10 +31,11 @@ class TransactionQueue implements Runnable {
     private final BlockingQueue<TransactionContextImpl> executingTransactions = new LinkedBlockingQueue<>();
     private final Set<TransactionContextImpl> pendingTransactions = new ConcurrentSkipListSet<>();
 
-    TransactionQueue(TradeAdaptor tradeAdaptor, RiskManager riskManager) {
+    TransactionQueue(TradeAdaptor tradeAdaptor, RiskManager riskManager, Factory factory) {
+        this.factory = factory;
         this.tradeAdaptor = tradeAdaptor;
         this.riskManager = riskManager;
-        this.tradeListener = new TradeListenerContexts(riskManager);
+        this.tradeListener = new TradeListenerContexts(riskManager, factory);
         this.tradeAdaptor.setListener(tradeListener);
     }
 
@@ -147,7 +148,7 @@ class TransactionQueue implements Runnable {
             return riskManager.before(tick, transactionContext);
         } catch (Throwable throwable) {
             Utils.err.write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
-            var riskNotice = ObjectFactory.newRiskNotice();
+            var riskNotice = factory.newRiskNotice();
             riskNotice.setCode(Constants.CODE_RISK_EXCEPTION);
             riskNotice.setMessage("before(Tick, TransactionContext) throws exception");
             riskNotice.setLevel(RiskNotice.ERROR);

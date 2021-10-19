@@ -159,7 +159,7 @@ public class PlatirImpl extends Platir {
             throw new StartupException("Adaptor startup failure: " + e.getMessage(), e);
         }
         if (transactionQueue == null) {
-            transactionQueue = new TransactionQueue(tradeAdaptor, riskManager);
+            transactionQueue = new TransactionQueue(tradeAdaptor, riskManager, queries.getFactory());
             Utils.threads.submit(transactionQueue);
         }
         if (marketRouter == null) {

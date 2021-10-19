@@ -10,7 +10,6 @@ import io.platir.core.InvalidLoginException;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
 import io.platir.service.Notice;
@@ -84,7 +83,7 @@ class StrategyContextPool {
     }
 
     private Notice verifyLogin(StrategyProfile profile) {
-        var notice = ObjectFactory.newNotice();
+        var notice = queries.getFactory().newNotice();
         notice.setCode(Constants.CODE_OK);
         notice.setMessage("good");
         try {

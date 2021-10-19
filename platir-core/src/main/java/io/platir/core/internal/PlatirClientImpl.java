@@ -5,8 +5,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.platir.queries.ObjectFactory;
 import io.platir.service.TransactionException;
 import io.platir.service.InterruptionException;
 import io.platir.service.PlatirClient;
@@ -40,17 +38,17 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
 
     private Transaction createTransaction(String strategyId, String instrumentId, String offset, String direction, Double price, Integer volume) {
         /* Don't set state and message here. Only change the values in router daemon.*/
-        var trans = ObjectFactory.newTransaction();
-        trans.setTransactionId(nextTransactionId());
-        trans.setStrategyId(strategyId);
-        trans.setInstrumentId(instrumentId);
-        trans.setPrice(price);
-        trans.setVolume(volume);
-        trans.setOffset(offset);
-        trans.setDirection(direction);
-        trans.setTradingDay(getTradingDay());
-        trans.setUpdateTime(Utils.datetime());
-        return trans;
+        var transaction = queries().getFactory().newTransaction();
+        transaction.setTransactionId(nextTransactionId());
+        transaction.setStrategyId(strategyId);
+        transaction.setInstrumentId(instrumentId);
+        transaction.setPrice(price);
+        transaction.setVolume(volume);
+        transaction.setOffset(offset);
+        transaction.setDirection(direction);
+        transaction.setTradingDay(getTradingDay());
+        transaction.setUpdateTime(Utils.datetime());
+        return transaction;
     }
 
     private String nextTransactionId() {

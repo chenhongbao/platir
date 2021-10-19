@@ -13,6 +13,7 @@ import io.platir.service.TradingDay;
 import io.platir.service.Transaction;
 import io.platir.service.User;
 import io.platir.service.DataQueryException;
+import io.platir.service.Factory;
 import io.platir.service.Queries;
 import java.io.File;
 import java.io.FileReader;
@@ -36,6 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class QueriesImpl implements Queries {
 
+    private final Factory factory = new FactoryImpl();
     private final AtomicReference<TradingDay> tradingDay = new AtomicReference<>();
     private final Map<String, Account> accountTable = new HashMap<>();
     private final Map<String, Tick> tickTable = new HashMap<>();
@@ -422,7 +424,7 @@ public class QueriesImpl implements Queries {
 
     @Override
     public TradingDay selectTradingDay() throws DataQueryException {
-        var day = ObjectFactory.newTradingDay();
+        var day = factory.newTradingDay();
         day.setTradingDay(tradingDay.get().getTradingDay());
         day.setUpdateTime(tradingDay.get().getUpdateTime());
         return day;
@@ -433,7 +435,7 @@ public class QueriesImpl implements Queries {
         synchronized (accountTable) {
             var accounts = new HashSet<Account>();
             accountTable.values().stream().map(item -> {
-                var account = ObjectFactory.newAccount();
+                var account = factory.newAccount();
                 account.setAccountId(item.getAccountId());
                 account.setAvailable(item.getAvailable());
                 account.setBalance(item.getBalance());
@@ -461,7 +463,7 @@ public class QueriesImpl implements Queries {
         synchronized (contractTable) {
             var contracts = new HashSet<Contract>();
             contractTable.values().stream().map(item -> {
-                var contract = ObjectFactory.newContract();
+                var contract = factory.newContract();
                 contract.setClosePrice(item.getClosePrice());
                 contract.setContractId(item.getContractId());
                 contract.setDirection(item.getDirection());
@@ -484,7 +486,7 @@ public class QueriesImpl implements Queries {
         synchronized (instrumentTable) {
             var instruments = new HashSet<Instrument>();
             instrumentTable.values().stream().map(item -> {
-                var instrument = ObjectFactory.newInstrument();
+                var instrument = factory.newInstrument();
                 instrument.setAmountCommission(item.getAmountCommission());
                 instrument.setAmountMargin(item.getAmountMargin());
                 instrument.setExchangeId(item.getExchangeId());
@@ -506,7 +508,7 @@ public class QueriesImpl implements Queries {
         synchronized (orderTable) {
             var orders = new HashSet<Order>();
             orderTable.values().stream().map(item -> {
-                var order = ObjectFactory.newOrder();
+                var order = factory.newOrder();
                 order.setDirection(item.getDirection());
                 order.setInstrumentId(item.getInstrumentId());
                 order.setOffset(item.getOffset());
@@ -528,7 +530,7 @@ public class QueriesImpl implements Queries {
         synchronized (profileTable) {
             var profiles = new HashSet<StrategyProfile>();
             profileTable.values().stream().map(item -> {
-                var profile = ObjectFactory.newStrategyProfile();
+                var profile = factory.newStrategyProfile();
                 profile.setArgs(item.getArgs());
                 profile.setCreateDate(item.getCreateDate());
                 profile.setInstrumentIds(item.getInstrumentIds());
@@ -559,7 +561,7 @@ public class QueriesImpl implements Queries {
         synchronized (transactionTable) {
             var transactions = new HashSet<Transaction>();
             transactionTable.values().stream().map(item -> {
-                var transaction = ObjectFactory.newTransaction();
+                var transaction = factory.newTransaction();
                 transaction.setDirection(item.getDirection());
                 transaction.setInstrumentId(item.getInstrumentId());
                 transaction.setOffset(item.getOffset());
@@ -584,7 +586,7 @@ public class QueriesImpl implements Queries {
         synchronized (userTable) {
             var users = new HashSet<User>();
             userTable.values().stream().map(item -> {
-                var user = ObjectFactory.newUser();
+                var user = factory.newUser();
                 user.setCreateTime(item.getCreateTime());
                 user.setLastLoginTime(item.getLastLoginTime());
                 user.setPassword(item.getPassword());
@@ -604,6 +606,11 @@ public class QueriesImpl implements Queries {
             ticks.addAll(tickTable.values());
             return ticks;
         }
+    }
+
+    @Override
+    public Factory getFactory() {
+        return factory;
     }
 
     private <T> Table<T> readTable(Class<T> clazz) {

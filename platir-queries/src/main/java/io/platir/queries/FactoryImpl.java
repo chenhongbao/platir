@@ -3,6 +3,7 @@ package io.platir.queries;
 import io.platir.service.Account;
 import io.platir.service.Bar;
 import io.platir.service.Contract;
+import io.platir.service.Factory;
 import io.platir.service.Instrument;
 import io.platir.service.Notice;
 import io.platir.service.Order;
@@ -17,53 +18,65 @@ import io.platir.service.User;
  *
  * @author Chen Hongbao
  */
-public class ObjectFactory {
+public class FactoryImpl implements Factory {
 
-    public static Account newAccount() {
+    @Override
+    public Account newAccount() {
         return new AccountImpl();
     }
 
-    public static Bar newBar() {
+    @Override
+    public Bar newBar() {
         return new BarImpl();
     }
 
-    public static Contract newContract() {
+    @Override
+    public Contract newContract() {
         return new ContractImpl();
     }
 
-    public static Instrument newInstrument() {
+    @Override
+    public Instrument newInstrument() {
         return new InstrumentImpl();
     }
 
-    public static Notice newNotice() {
+    @Override
+    public Notice newNotice() {
         return new NoticeImpl();
     }
 
-    public static Order newOrder() {
+    @Override
+    public Order newOrder() {
         return new OrderImpl();
     }
 
-    public static Position newPosition() {
+    @Override
+    public Position newPosition() {
         return new PositionImpl();
     }
 
-    public static RiskNotice newRiskNotice() {
+    @Override
+    public RiskNotice newRiskNotice() {
         return new RiskNoticeImpl();
     }
 
-    public static StrategyProfile newStrategyProfile() {
+    @Override
+    public StrategyProfile newStrategyProfile() {
         return new StrategyProfileImpl();
     }
 
-    public static TradingDay newTradingDay() {
+    @Override
+    public TradingDay newTradingDay() {
         return new TradingDayImpl();
     }
 
-    public static Transaction newTransaction() {
+    @Override
+    public Transaction newTransaction() {
         return new TransactionImpl();
     }
 
-    public static User newUser() {
+    @Override
+    public User newUser() {
         return new UserImpl();
     }
 }

@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.platir.core.SettlementException;
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -270,7 +269,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
         }
 
         private Position createEmptyPosition(String instrumentId, String direction, String userId) {
-            var position = ObjectFactory.newPosition();
+            var position = queries.getFactory().newPosition();
             position.setInstrumentId(instrumentId);
             position.setUserId(userId);
             position.setDirection(direction);

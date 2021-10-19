@@ -1,7 +1,6 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -34,7 +33,7 @@ class TransactionFacilities {
         HashSet<Contract> contracts = new HashSet<>();
         String userId = client.getStrategyProfile().getUserId();
         for (int i = 0; i < transaction.getVolume(); ++i) {
-            Contract contract = ObjectFactory.newContract();
+            Contract contract = client.queries().getFactory().newContract();
             /*
              * Contract ID = <order-id>.<some-digits>
              */
@@ -124,7 +123,7 @@ class TransactionFacilities {
 
     static OrderContextImpl createOrderContext(String orderId, String transactionId, String instrumentId, Double price, Integer volume, String direction, Collection<Contract> contracts, String offset, TransactionContextImpl transactionContect) {
         PlatirClientImpl client = transactionContect.getStrategyContext().getPlatirClientImpl();
-        Order order = ObjectFactory.newOrder();
+        Order order = client.queries().getFactory().newOrder();
         order.setOrderId(orderId);
         order.setTransactionId(transactionId);
         order.setInstrumentId(instrumentId);
@@ -153,9 +152,9 @@ class TransactionFacilities {
         return transactionId + "." + Integer.toString(orderIdCounter.incrementAndGet());
     }
 
-    static void saveRiskNotice(int code, String message, Integer level, TransactionContextImpl tranactionContext) {
-        RiskNotice riskNotice = ObjectFactory.newRiskNotice();
-        StrategyProfile profile = tranactionContext.getStrategyContext().getProfile();
+    static void saveRiskNotice(int code, String message, Integer level, TransactionContextImpl transactionContext) {
+        RiskNotice riskNotice = transactionContext.getQueryClient().queries().getFactory().newRiskNotice();
+        StrategyProfile profile = transactionContext.getStrategyContext().getProfile();
         riskNotice.setCode(code);
         riskNotice.setMessage(message);
         riskNotice.setLevel(level);
@@ -163,18 +162,18 @@ class TransactionFacilities {
         riskNotice.setStrategyId(profile.getStrategyId());
         riskNotice.setUpdateTime(Utils.datetime());
         try {
-            tranactionContext.getQueryClient().queries().insert(riskNotice);
+            transactionContext.getQueryClient().queries().insert(riskNotice);
         } catch (DataQueryException exception) {
             Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + exception.getMessage(), exception);
         }
     }
 
     static void processNotice(int code, String message, TransactionContextImpl transactionContext) {
-        Notice n = ObjectFactory.newNotice();
-        n.setCode(code);
-        n.setMessage(message);
-        n.setContext(transactionContext);
-        transactionContext.getStrategyContext().processNotice(n);
+        Notice notice = transactionContext.getQueryClient().queries().getFactory().newNotice();
+        notice.setCode(code);
+        notice.setMessage(message);
+        notice.setContext(transactionContext);
+        transactionContext.getStrategyContext().processNotice(notice);
     }
 
 }

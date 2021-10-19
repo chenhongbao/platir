@@ -1,7 +1,6 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
-import io.platir.queries.ObjectFactory;
 import io.platir.service.Constants;
 import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
@@ -22,7 +21,8 @@ class OrderExecutionContext {
 
     private Notice responseNotice;
     private OrderContextImpl orderContext;
-    TransactionContextImpl transactionContext;
+    private TransactionContextImpl transactionContext;
+
     private final AtomicInteger volumeCounter = new AtomicInteger(0);
     private final RiskManager riskManager;
 
@@ -35,6 +35,10 @@ class OrderExecutionContext {
         this.orderContext = orderContext;
         this.transactionContext = transactionContext;
         this.riskManager = riskManager;
+    }
+    
+    TransactionContextImpl getTransactionContext() {
+        return transactionContext;
     }
 
     void processTrade(Trade trade) {
@@ -68,7 +72,7 @@ class OrderExecutionContext {
         responseLock.lock();
         try {
             if (responseNotice == null) {
-                responseNotice = ObjectFactory.newNotice();
+                responseNotice = transactionContext.getQueryClient().queries().getFactory().newNotice();
                 responseNotice.setCode(code);
                 responseNotice.setMessage(message);
                 responseCondition.signalAll();
@@ -88,7 +92,7 @@ class OrderExecutionContext {
                 responseCondition.await(responseTimeoutSeconds, TimeUnit.SECONDS);
             }
         } catch (InterruptedException e) {
-            responseNotice = ObjectFactory.newNotice();
+            responseNotice = transactionContext.getQueryClient().queries().getFactory().newNotice();
             responseNotice.setCode(Constants.CODE_RESPONSE_TIMEOUT);
             responseNotice.setMessage("response timeout");
             responseNotice.setError(e);
@@ -152,7 +156,7 @@ class OrderExecutionContext {
     }
 
     private void pushNotice(int code, String message, Throwable error) {
-        var notice = ObjectFactory.newNotice();
+        var notice = transactionContext.getQueryClient().queries().getFactory().newNotice();
         notice.setCode(code);
         notice.setMessage(message);
         notice.setError(error);
@@ -168,7 +172,7 @@ class OrderExecutionContext {
             orderContext = null;
             transactionContext = null;
             /* Tell strategy trades are completed. */
-             pushNotice(Constants.CODE_OK, "trade completed");
+            pushNotice(Constants.CODE_OK, "trade completed");
         }
         if (tradedVolume > totalVolume) {
             Utils.err.write("Order(" + orderContext.getOrder().getOrderId() + ") over traded.");
