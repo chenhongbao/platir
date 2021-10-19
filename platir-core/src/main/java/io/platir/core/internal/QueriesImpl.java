@@ -1,7 +1,6 @@
 package io.platir.core.internal;
 
 import com.google.gson.Gson;
-import io.platir.core.internal.Utils;
 import io.platir.core.internal.objects.ObjectFactory;
 import io.platir.service.Account;
 import io.platir.service.Contract;
