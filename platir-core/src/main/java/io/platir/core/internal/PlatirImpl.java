@@ -37,7 +37,7 @@ public class PlatirImpl extends Platir {
     private final Lock shutdownLock = new ReentrantLock();
     private final Condition shutdownCondition = shutdownLock.newCondition();
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
-    private final Queries queries = new QueriesImpl();
+    private Queries queries;
     private RiskManager riskManager;
     private MarketRouter marketRouter;
     private TransactionQueue transactionQueue;
@@ -87,8 +87,8 @@ public class PlatirImpl extends Platir {
     }
 
     @Override
-    public Queries getQueries() {
-        return queries;
+    public void setQueries(Queries queries) {
+        this.queries = queries;
     }
 
     private void signalJoiner() {
