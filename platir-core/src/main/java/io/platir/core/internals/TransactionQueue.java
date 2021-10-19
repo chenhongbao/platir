@@ -166,65 +166,63 @@ class TransactionQueue implements Runnable {
     }
 
     private void close(TransactionContextImpl ctx) throws DuplicatedOrderException {
-        var t = ctx.getTransaction();
-        var oid = TransactionFacilities.getOrderId(t.getTransactionId());
-        var client = ctx.getQueryClient();
-        var r = TransactionFacilities.checkClose(ctx.getQueryClient(), t.getInstrumentId(), t.getDirection(), t.getVolume());
-        if (!r.isGood()) {
-            t.setState("check-close;" + r.getCode());
-            t.setStateMessage(r.getMessage());
+        var transaction = ctx.getTransaction();
+        var newOrderId = TransactionFacilities.getOrderId(transaction.getTransactionId());
+        var queryClient = ctx.getQueryClient();
+        var checkReturn = TransactionFacilities.checkClose(ctx.getQueryClient(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
+        if (!checkReturn.getNotice().isGood()) {
+            transaction.setState("check-close;" + checkReturn.getNotice().getCode());
+            transaction.setStateMessage(checkReturn.getNotice().getMessage());
             try {
-                client.queries().update(t);
+                queryClient.queries().update(transaction);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
                         + "): " + e.getMessage(), e);
             }
             ctx.awake();
             /* notice callback */
-            TransactionFacilities.processNotice(r.getCode(), r.getMessage(), ctx);
+            TransactionFacilities.processNotice(checkReturn.getNotice().getCode(), checkReturn.getNotice().getMessage(), ctx);
         } else {
             @SuppressWarnings("unchecked")
-            var contracts = (Collection<Contract>) r.getObject();
-            var tradingDay = client.getTradingDay();
+            var tradingDay = queryClient.getTradingDay();
             /* process today's contracts */
-            var today = contracts.stream().filter(c -> c.getOpenTradingDay().equals(tradingDay))
+            var today = checkReturn.getContracts().stream().filter(c -> c.getOpenTradingDay().equals(tradingDay))
                     .collect(Collectors.toSet());
-            var orderCtxToday = TransactionFacilities.createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
-                    t.getVolume(), t.getDirection(), today, "close-today", ctx);
+            var orderCtxToday = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
+                    transaction.getVolume(), transaction.getDirection(), today, "close-today", ctx);
             send(orderCtxToday, ctx);
             /* process history contracts */
-            var history = contracts.stream().filter(c -> !today.contains(c)).collect(Collectors.toSet());
-            var orderCtxHistory = TransactionFacilities.createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
-                    t.getVolume(), t.getDirection(), history, "close-history", ctx);
+            var history = checkReturn.getContracts().stream().filter(c -> !today.contains(c)).collect(Collectors.toSet());
+            var orderCtxHistory = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
+                    transaction.getVolume(), transaction.getDirection(), history, "close-history", ctx);
             send(orderCtxHistory, ctx);
         }
     }
 
     private void open(TransactionContextImpl ctx) throws DuplicatedOrderException {
-        var t = ctx.getTransaction();
-        var oid = TransactionFacilities.getOrderId(t.getTransactionId());
-        var client = ctx.getQueryClient();
+        var transaction = ctx.getTransaction();
+        var newOrderId = TransactionFacilities.getOrderId(transaction.getTransactionId());
+        var queryClient = ctx.getQueryClient();
         /* Check resource. */
-        var r = TransactionFacilities.checkOpen(oid, client, t);
-        if (!r.isGood()) {
-            t.setState("check-open;" + r.getCode());
-            t.setStateMessage(r.getMessage());
+        var checkReturn = TransactionFacilities.checkOpen(newOrderId, queryClient, transaction);
+        if (!checkReturn.getNotice().isGood()) {
+            transaction.setState("check-open;" + checkReturn.getNotice().getCode());
+            transaction.setStateMessage(checkReturn.getNotice().getMessage());
             try {
-                client.queries().update(t);
+                queryClient.queries().update(transaction);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't update transaction(" + t.getTransactionId() + ") state(" + t.getState()
+                Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
                         + "): " + e.getMessage(), e);
             }
             /* notify joiner the transaction fails. */
             ctx.awake();
             /* notice callback */
-            TransactionFacilities.processNotice(r.getCode(), r.getMessage(), ctx);
+            TransactionFacilities.processNotice(checkReturn.getNotice().getCode(), checkReturn.getNotice().getMessage(), ctx);
         } else {
             /* Lock resource for opening. */
             @SuppressWarnings("unchecked")
-            var contracts = (Collection<Contract>) r.getObject();
-            var orderCtx = TransactionFacilities.createOrderContext(oid, t.getTransactionId(), t.getInstrumentId(), t.getPrice(),
-                    t.getVolume(), t.getDirection(), contracts, "open", ctx);
+            var orderCtx = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
+                    transaction.getVolume(), transaction.getDirection(), checkReturn.getContracts(), "open", ctx);
             send(orderCtx, ctx);
         }
     }

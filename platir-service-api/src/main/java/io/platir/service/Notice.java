@@ -10,9 +10,13 @@ public interface Notice {
 
     void setCode(Integer code);
 
-    Object getObject();
+    Throwable getError();
 
-    void setObject(Object object);
+    void setError(Throwable throwable);
+
+    TransactionContext getContext();
+
+    void setContext(TransactionContext context);
 
     boolean isGood();
 

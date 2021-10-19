@@ -1,6 +1,7 @@
 package io.platir.core.internals.persistence.object;
 
 import io.platir.service.Notice;
+import io.platir.service.TransactionContext;
 
 /**
  *
@@ -10,7 +11,8 @@ class NoticeImpl implements Notice {
 
     private String message;
     private Integer code;
-    private Object object;
+    private Throwable throwable;
+    private TransactionContext context;
 
     @Override
     public String getMessage() {
@@ -33,17 +35,27 @@ class NoticeImpl implements Notice {
     }
 
     @Override
-    public Object getObject() {
-        return object;
-    }
-
-    @Override
-    public void setObject(Object object) {
-        this.object = object;
-    }
-
-    @Override
     public boolean isGood() {
         return code == 0;
+    }
+
+    @Override
+    public Throwable getError() {
+        return throwable;
+    }
+
+    @Override
+    public void setError(Throwable throwable) {
+        this.throwable = throwable;
+    }
+
+    @Override
+    public TransactionContext getContext() {
+        return context;
+    }
+
+    @Override
+    public void setContext(TransactionContext context) {
+        this.context = context;
     }
 }

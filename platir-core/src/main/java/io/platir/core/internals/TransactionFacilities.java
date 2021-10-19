@@ -54,42 +54,42 @@ class TransactionFacilities {
         return r;
     }
 
-    static Notice checkOpen(String oid, PlatirInfoClientImpl query, Transaction t) {
-        Notice r = ObjectFactory.newNotice();
+    static CheckReturn checkOpen(String oid, PlatirInfoClientImpl query, Transaction t) {
+        var checkReturn = new CheckReturn();
         Double available = query.getAccount().getAvailable();
         if (available <= 0) {
-            r.setCode(1001);
-            r.setMessage("no available(" + available + ") for opening");
-            return r;
+            checkReturn.getNotice().setCode(1001);
+            checkReturn.getNotice().setMessage("no available(" + available + ") for opening");
+            return checkReturn;
         }
         Instrument instrument = query.getInstrument(t.getInstrumentId());
         if (instrument == null) {
-            r.setCode(1002);
-            r.setMessage("no instrument information for " + t.getInstrumentId());
-            return r;
+            checkReturn.getNotice().setCode(1002);
+            checkReturn.getNotice().setMessage("no instrument information for " + t.getInstrumentId());
+            return checkReturn;
         }
         double margin = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(), instrument.getAmountMargin(), instrument.getVolumeMargin()) * t.getVolume();
         double commission = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(), instrument.getAmountCommission(), instrument.getVolumeCommission()) * t.getVolume();
         if (available < margin + commission) {
-            r.setCode(1003);
-            r.setMessage("no available(" + available + ") for opening(" + (commission + margin) + ")");
-            return r;
+            checkReturn.getNotice().setCode(1003);
+            checkReturn.getNotice().setMessage("no available(" + available + ") for opening(" + (commission + margin) + ")");
+            return checkReturn;
         }
-        r.setCode(0);
-        r.setMessage("good");
+        checkReturn.getNotice().setCode(0);
+        checkReturn.getNotice().setMessage("good");
         /* Lock contracts for opening and return those contracts. */
-        r.setObject(opening(oid, query, t));
-        return r;
+        checkReturn.getContracts().addAll(opening(oid, query, t));
+        return checkReturn;
     }
 
-    static Notice checkClose(PlatirInfoClientImpl query, String instrumentId, String direction, Integer volume) {
+    static CheckReturn checkClose(PlatirInfoClientImpl query, String instrumentId, String direction, Integer volume) {
         /* buy-open for sell-closed, sell-open for buy-closed */
-        Notice r = ObjectFactory.newNotice();
+        var checkReturn = new CheckReturn();
         Set<Contract> available = query.getContracts(instrumentId).stream().filter(c -> c.getDirection().compareToIgnoreCase(direction) != 0).filter(c -> c.getState().compareToIgnoreCase("open") == 0).collect(Collectors.toSet());
         if (available.size() < volume) {
-            r.setCode(1004);
-            r.setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
-            return r;
+            checkReturn.getNotice().setCode(1004);
+            checkReturn.getNotice().setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
+            return checkReturn;
         }
         /*
          * Remove extra contracts from container until it only has the contracts for
@@ -101,10 +101,10 @@ class TransactionFacilities {
         }
         closing(available, query);
         /* return good */
-        r.setCode(0);
-        r.setMessage("good");
-        r.setObject(available);
-        return r;
+        checkReturn.getNotice().setCode(0);
+        checkReturn.getNotice().setMessage("good");
+        checkReturn.getContracts().addAll(available);
+        return checkReturn;
     }
 
     static void closing(Set<Contract> available, PlatirInfoClientImpl client) {
@@ -171,6 +171,7 @@ class TransactionFacilities {
         Notice n = ObjectFactory.newNotice();
         n.setCode(code);
         n.setMessage(message);
+        n.setContext(ctx);
         ctx.getStrategyContext().processNotice(n);
     }
 

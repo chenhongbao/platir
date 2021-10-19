@@ -78,13 +78,12 @@ class StrategyCallbackQueue implements Runnable {
             var r = ObjectFactory.newNotice();
             try {
                 job.work();
-
                 r.setCode(0);
                 r.setMessage("good");
             } catch (Throwable th) {
                 r.setCode(4001);
                 r.setMessage("Callback throws exception: " + th.getMessage());
-                r.setObject(th);
+                r.setError(th);
             }
             return r;
         });
@@ -104,7 +103,7 @@ class StrategyCallbackQueue implements Runnable {
             var r = ObjectFactory.newNotice();
             r.setCode(4002);
             r.setMessage("Callback operation is timeout.");
-            r.setObject(e);
+            r.setError(e);
             /* tell strategy its callback timeout */
             timedOnNotice(r);
         } finally {
@@ -112,21 +111,6 @@ class StrategyCallbackQueue implements Runnable {
             if (!timedFut.isDone()) {
                 timedFut.cancel(true);
             }
-        }
-    }
-
-    private void saveCodeMessage(int code, String message) {
-        var r = ObjectFactory.newRiskNotice();
-        r.setCode(code);
-        r.setMessage(message);
-        r.setLevel(5);
-        r.setUserId(prof.getUserId());
-        r.setStrategyId(prof.getStrategyId());
-        r.setUpdateTime(Utils.datetime());
-        try {
-            cli.queries().insert(r);
-        } catch (DataQueryException e) {
-            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
         }
     }
 

@@ -185,21 +185,6 @@ class StrategyContextImpl implements StrategyContext {
         processNotice(n);
     }
 
-    private void saveCodeMessage(int code, String message) {
-        var r = ObjectFactory.newRiskNotice();
-        r.setCode(code);
-        r.setMessage(message);
-        r.setLevel(5);
-        r.setUserId(prof.getUserId());
-        r.setStrategyId(prof.getStrategyId());
-        r.setUpdateTime(Utils.datetime());
-        try {
-            getPlatirClientImpl().queries().insert(r);
-        } catch (DataQueryException e) {
-            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + e.getMessage(), e);
-        }
-    }
-
     void checkIntegrity() throws IntegrityException {
         for (var t : transactions) {
             checkTransactionIntegrity(t);

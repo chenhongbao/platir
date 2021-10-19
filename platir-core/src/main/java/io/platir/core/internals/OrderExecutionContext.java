@@ -89,7 +89,8 @@ class OrderExecutionContext {
             notice = ObjectFactory.newNotice();
             notice.setCode(3001);
             notice.setMessage("response timeout");
-            notice.setObject(e);
+            notice.setError(e);
+            notice.setContext(trCtx);
         } finally {
             l.unlock();
         }
@@ -153,7 +154,8 @@ class OrderExecutionContext {
         io.platir.service.Notice n = ObjectFactory.newNotice();
         n.setCode(code);
         n.setMessage(message);
-        n.setObject(error);
+        n.setError(error);
+        n.setContext(trCtx);
         trCtx.getStrategyContext().processNotice(n);
     }
 
