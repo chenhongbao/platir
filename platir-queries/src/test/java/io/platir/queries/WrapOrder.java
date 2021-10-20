@@ -14,7 +14,7 @@ import java.util.UUID;
 public class WrapOrder extends OrderImpl {
 
     static boolean collectionEquals(Set<Order> c1, Set<Order> c2) {
-        return TestUtils.collectionEquals(Order.class, c1, c2);
+        return Utils.collectionEquals(Order.class, c1, c2);
     }
 
     static boolean testOrder(Queries queries) throws DataQueryException {
@@ -28,12 +28,12 @@ public class WrapOrder extends OrderImpl {
         var orders = new HashSet<Order>();
         orders.add(order1);
         orders.add(order2);
-        if (!TestUtils.collectionEquals(Order.class, orders, queries.selectOrders())) {
+        if (!Utils.collectionEquals(Order.class, orders, queries.selectOrders())) {
             return false;
         }
         /* Load schema files into a new Queries and check equality. */
         var anotherQueries = new QueriesImpl();
         anotherQueries.initialize();
-        return TestUtils.collectionEquals(Order.class, anotherQueries.selectOrders(), queries.selectOrders());
+        return Utils.collectionEquals(Order.class, anotherQueries.selectOrders(), queries.selectOrders());
     }
 }

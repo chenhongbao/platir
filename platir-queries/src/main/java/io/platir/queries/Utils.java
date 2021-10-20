@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
@@ -15,6 +16,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -200,5 +203,46 @@ public final class Utils {
         var path = Paths.get(Utils.cwd().toString(), "Backup");
         dir(path);
         return path;
+    }
+
+    private static final Random random = new Random();
+
+    public static int randomInteger() {
+        return random.nextInt() + 1;
+    }
+
+    public static <T> boolean beanEquals(Class<T> clazz, Object o1, Object o2) {
+        if (o1.getClass() != clazz || o2.getClass() != clazz) {
+            return false;
+        }
+        for (var method : clazz.getMethods()) {
+            if (!method.getName().startsWith("get")) {
+                continue;
+            }
+            try {
+                if (!method.invoke(o1).equals(method.invoke(o2))) {
+                    return false;
+                }
+            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static <T> boolean collectionEquals(Class<T> clazz, Collection<T> c1, Collection<T> c2) {
+        for (var o1 : c1) {
+            boolean hit = false;
+            for (var o2 : c2) {
+                if (beanEquals(clazz, o1, o2)) {
+                    hit = true;
+                    break;
+                }
+            }
+            if (!hit) {
+                return false;
+            }
+        }
+        return true;
     }
 }

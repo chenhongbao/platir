@@ -99,16 +99,16 @@ public class QueriesImplTest {
         /* Step 3: Restore schema. */
         queries.restore(file.toFile());
         /* Verify restored tables. */
-        assertTrue(TestUtils.collectionEquals(Account.class, oldSchema.getAccounts(), queries.selectAccounts()), "Account restore failed.");
-        assertTrue(TestUtils.collectionEquals(Contract.class, oldSchema.getContracts(), queries.selectContracts()), "Contract restore failed.");
-        assertTrue(TestUtils.collectionEquals(Instrument.class, oldSchema.getInstruments(), queries.selectInstruments()), "Instrument restore failed.");
+        assertTrue(Utils.collectionEquals(Account.class, oldSchema.getAccounts(), queries.selectAccounts()), "Account restore failed.");
+        assertTrue(Utils.collectionEquals(Contract.class, oldSchema.getContracts(), queries.selectContracts()), "Contract restore failed.");
+        assertTrue(Utils.collectionEquals(Instrument.class, oldSchema.getInstruments(), queries.selectInstruments()), "Instrument restore failed.");
         assertTrue(WrapOrder.collectionEquals(oldSchema.getOrders(), queries.selectOrders()), "Order restore failed.");
-        assertTrue(TestUtils.collectionEquals(StrategyProfile.class, oldSchema.getStrategyProfiles(), queries.selectStrategyProfiles()), "StrategyProfile restore failed.");
-        assertTrue(TestUtils.collectionEquals(Tick.class, oldSchema.getTicks(), queries.selectTicks()), "Tick restore failed.");
-        assertTrue(TestUtils.collectionEquals(Trade.class, oldSchema.getTrades(), queries.selectTrades()), "Trade restore failed.");
-        assertTrue(TestUtils.collectionEquals(Transaction.class, oldSchema.getTransactions(), queries.selectTransactions()), "Transaction restore failed.");
-        assertTrue(TestUtils.collectionEquals(User.class, oldSchema.getUsers(), queries.selectUsers()), "User restore failed.");
-        assertTrue(TestUtils.beanEquals(TradingDay.class, oldSchema.getTradingDay(), queries.selectTradingDay()), "TradingDay restore failed.");
+        assertTrue(Utils.collectionEquals(StrategyProfile.class, oldSchema.getStrategyProfiles(), queries.selectStrategyProfiles()), "StrategyProfile restore failed.");
+        assertTrue(Utils.collectionEquals(Tick.class, oldSchema.getTicks(), queries.selectTicks()), "Tick restore failed.");
+        assertTrue(Utils.collectionEquals(Trade.class, oldSchema.getTrades(), queries.selectTrades()), "Trade restore failed.");
+        assertTrue(Utils.collectionEquals(Transaction.class, oldSchema.getTransactions(), queries.selectTransactions()), "Transaction restore failed.");
+        assertTrue(Utils.collectionEquals(User.class, oldSchema.getUsers(), queries.selectUsers()), "User restore failed.");
+        assertTrue(Utils.beanEquals(TradingDay.class, oldSchema.getTradingDay(), queries.selectTradingDay()), "TradingDay restore failed.");
     }
 
     @Test
@@ -128,12 +128,12 @@ public class QueriesImplTest {
         day.setUpdateTime(Utils.datetime());
         queries.insert(day);
         /* Step 2: Check insertion succeeds. */
-        assertTrue(TestUtils.beanEquals(TradingDay.class, day, queries.selectTradingDay()));
+        assertTrue(Utils.beanEquals(TradingDay.class, day, queries.selectTradingDay()));
         /* Step 3; Load schema files. */
         var anotherQueries = new QueriesImpl();
         anotherQueries.initialize();
         /* Step 4: Check loaded schema against runtime. */
-        assertTrue(TestUtils.beanEquals(TradingDay.class, anotherQueries.selectTradingDay(), queries.selectTradingDay()), "TradingDay restore failed.");
+        assertTrue(Utils.beanEquals(TradingDay.class, anotherQueries.selectTradingDay(), queries.selectTradingDay()), "TradingDay restore failed.");
     }
 
     @Test
@@ -261,7 +261,7 @@ public class QueriesImplTest {
         }
         /* Step 2: Create some instances to be inserted. */
         Set<T> items = new HashSet<>();
-        var totalInsertionCount = TestUtils.randomInteger();
+        var totalInsertionCount = Utils.randomInteger();
         while (totalInsertionCount-- > 0) {
             var item = factory.invoke(queries.getFactory());
             if (item != null) {
@@ -290,11 +290,11 @@ public class QueriesImplTest {
             return;
         }
         /* Step 5: Check inserted items. */
-        assertTrue(TestUtils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime insertion failed.");
+        assertTrue(Utils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime insertion failed.");
         /* Step 6: Check schema file udpate success. */
         var anotherQueries = new QueriesImpl();
         anotherQueries.initialize();
-        assertTrue(TestUtils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
+        assertTrue(Utils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
     }
 
     private <T> void testUpdate(Class<T> clazz) throws Exception {
@@ -342,10 +342,10 @@ public class QueriesImplTest {
             return;
         }
         /* Step 4: Check updated items. */
-        assertTrue(TestUtils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime update failed.");
+        assertTrue(Utils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime update failed.");
         /* Step 5: Check schema file udpate success. */
         var anotherQueries = new QueriesImpl();
         anotherQueries.initialize();
-        assertTrue(TestUtils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
+        assertTrue(Utils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
     }
 }

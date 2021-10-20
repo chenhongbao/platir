@@ -184,7 +184,7 @@ class StrategyContextImpl implements StrategyContext {
         if (transaction == null) {
             throw new IntegrityException("Transaction(" + transactionId + ") not found in data source.");
         }
-        if (!equals(t.getTransaction(), transaction)) {
+        if (!Utils.beanEquals(Transaction.class, t.getTransaction(), transaction)) {
             throw new IntegrityException("Transaction(" + transactionId + ") don't match between data source and runtime.");
         }
         var orders = platirClient.getOrders(t.getTransaction().getTransactionId());
@@ -215,7 +215,7 @@ class StrategyContextImpl implements StrategyContext {
 
     private void checkOrderIntegrity(OrderContext orderContext, Order order) throws IntegrityException {
         var runtimeOrder = orderContext.getOrder();
-        if (!equals(runtimeOrder, order)) {
+        if (!Utils.beanEquals(Order.class, runtimeOrder, order)) {
             throw new IntegrityException("Order(" + runtimeOrder.getOrderId() + ") not match between data source and runtime.");
         }
         var trades = platirClient.getTrades(runtimeOrder.getOrderId());
@@ -224,7 +224,7 @@ class StrategyContextImpl implements StrategyContext {
             for (var trade : trades) {
                 if (trade.getTradeId().compareTo(runtimeTrade.getTradeId()) == 0) {
                     found = true;
-                    if (!equals(runtimeTrade, trade)) {
+                    if (!Utils.beanEquals(Trade.class, runtimeTrade, trade)) {
                         throw new IntegrityException("Trade(" + trade.getTradeId() + ") don't match between data source and runtime.");
                     }
                 }
@@ -233,29 +233,6 @@ class StrategyContextImpl implements StrategyContext {
                 throw new IntegrityException("Trade(" + runtimeTrade.getTradeId() + ") not found in data source.");
             }
         }
-    }
-
-    private boolean equals(Transaction t0, Transaction t1) {
-        return t0.getTransactionId().equals(t1.getTransactionId()) && t0.getStrategyId().equals(t1.getStrategyId())
-                && t0.getInstrumentId().equals(t1.getInstrumentId()) && t0.getPrice().equals(t1.getPrice())
-                && t0.getVolume().equals(t1.getVolume()) && t0.getOffset().equals(t1.getOffset())
-                && t0.getDirection().equals(t1.getDirection()) && t0.getState().equals(t1.getState())
-                && t0.getStateMessage().equals(t1.getStateMessage()) && t0.getTradingDay().equals(t1.getTradingDay())
-                && t0.getUpdateTime().equals(t1.getUpdateTime());
-    }
-
-    private boolean equals(Order o1, Order o2) {
-        return o1.getOrderId().equals(o2.getOrderId()) && o1.getTransactionId().equals(o2.getTransactionId())
-                && o1.getInstrumentId().equals(o2.getInstrumentId()) && o1.getPrice().equals(o2.getPrice())
-                && o1.getVolume().equals(o2.getVolume()) && o1.getDirection().equals(o2.getDirection())
-                && o1.getOffset().equals(o2.getOffset()) && o1.getTradingDay().equals(o2.getTradingDay());
-    }
-
-    private boolean equals(Trade tr0, Trade tr1) {
-        return tr0.getTradeId().equals(tr1.getTradeId()) && tr0.getOrderId().equals(tr1.getOrderId())
-                && tr0.getInstrumentId().equals(tr1.getInstrumentId()) && tr0.getPrice().equals(tr1.getPrice())
-                && tr0.getVolume().equals(tr1.getVolume()) && tr0.getDirection().equals(tr1.getDirection())
-                && tr0.getTradingDay().equals(tr1.getTradingDay()) && tr0.getUpdateTime().equals(tr1.getUpdateTime());
     }
 
     void settle() throws IntegrityException {
