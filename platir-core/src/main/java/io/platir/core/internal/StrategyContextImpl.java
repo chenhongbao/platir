@@ -76,7 +76,7 @@ class StrategyContextImpl implements StrategyContext {
             fileHandler.setFormatter(new SimpleFormatter());
             newLogger.addHandler(fileHandler);
         } catch (IOException | SecurityException exception) {
-            Utils.err.write("Can't add file handler to logging handler: " + exception.getMessage(), exception);
+            Utils.err().write("Can't add file handler to logging handler: " + exception.getMessage(), exception);
         }
         return newLogger;
     }
@@ -158,7 +158,7 @@ class StrategyContextImpl implements StrategyContext {
             } else if (tradedVolume > totalVolume) {
                 /* trade more than expected */
                 transaction.awake();
-                Utils.err.write("Transaction(" + transaction.getTransaction().getTransactionId() + ") over traded(" + tradedVolume + ">" + totalVolume + ").");
+                Utils.err().write("Transaction(" + transaction.getTransaction().getTransactionId() + ") over traded(" + tradedVolume + ">" + totalVolume + ").");
                 /* call strategy callback */
                 simpleNotice(Constants.CODE_TRANSACTION_OVER_TRADE, "Over traded");
             }

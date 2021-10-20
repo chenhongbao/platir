@@ -48,7 +48,7 @@ class OrderExecutionContext {
             strategyContext.getPlatirClientImpl().queries().insert(trade);
         } catch (DataQueryException exception) {
             /* worker thread sees this exception, just log it */
-            Utils.err.write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + transactionContext.getTransaction() + ") and strategy(" + strategyContext.getProfile().getStrategyId() + ") into data source: " + exception.getMessage(), exception);
+            Utils.err().write("Can't insert trade(" + trade.getTradeId() + ") for transaction(" + transactionContext.getTransaction() + ") and strategy(" + strategyContext.getProfile().getStrategyId() + ") into data source: " + exception.getMessage(), exception);
         }
         /* add trade to order context. */
         orderContext.addTrade(trade);
@@ -110,7 +110,7 @@ class OrderExecutionContext {
                 TransactionFacilities.saveRiskNotice(riskNotice.getCode(), riskNotice.getMessage(), RiskNotice.WARNING, transactionContext);
             }
         } catch (Throwable throwable) {
-            Utils.err.write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
+            Utils.err().write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
             TransactionFacilities.saveRiskNotice(1005, "after(Trade) throws exception", RiskNotice.ERROR, transactionContext);
         }
     }
@@ -133,13 +133,13 @@ class OrderExecutionContext {
                 lockedContract.setState("closed");
                 lockedContract.setClosePrice(trade.getPrice());
             } else {
-                Utils.err.write("Incorrect contract state(" + lockedContract.getState() + "/" + lockedContract.getContractId() + ") before completing trade.");
+                Utils.err().write("Incorrect contract state(" + lockedContract.getState() + "/" + lockedContract.getContractId() + ") before completing trade.");
                 continue;
             }
             try {
                 strategyContext.getPlatirClientImpl().queries().update(lockedContract);
             } catch (DataQueryException exception) {
-                Utils.err.write("Fail updating user(" + lockedContract.getUserId() + ") contract(" + lockedContract.getContractId() + ") state(" + lockedContract.getState() + ").", exception);
+                Utils.err().write("Fail updating user(" + lockedContract.getUserId() + ") contract(" + lockedContract.getContractId() + ") state(" + lockedContract.getState() + ").", exception);
                 /* Roll back state. */
                 lockedContract.setState(prevState);
                 continue;
@@ -147,7 +147,7 @@ class OrderExecutionContext {
             lockedContractIterator.remove();
         }
         if (updateCount <= trade.getVolume()) {
-            Utils.err.write("Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.");
+            Utils.err().write("Insufficent(" + updateCount + "<" + trade.getVolume() + ") locked contracts.");
         }
     }
 
@@ -175,7 +175,7 @@ class OrderExecutionContext {
             pushNotice(Constants.CODE_OK, "trade completed");
         }
         if (tradedVolume > totalVolume) {
-            Utils.err.write("Order(" + orderContext.getOrder().getOrderId() + ") over traded.");
+            Utils.err().write("Order(" + orderContext.getOrder().getOrderId() + ") over traded.");
         }
     }
 

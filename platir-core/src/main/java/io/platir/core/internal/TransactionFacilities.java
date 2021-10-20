@@ -49,7 +49,7 @@ class TransactionFacilities {
             try {
                 client.queries().insert(contract);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't insert user(" + contract.getUserId() + ") contract(" + contract.getContractId() + ") opening: " + e.getMessage(), e);
+                Utils.err().write("Can't insert user(" + contract.getUserId() + ") contract(" + contract.getContractId() + ") opening: " + e.getMessage(), e);
             }
         }
         return contracts;
@@ -116,7 +116,7 @@ class TransactionFacilities {
             try {
                 client.queries().update(contract);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't update user(" + contract.getUserId() + ") + contract(" + contract.getContractId() + ") state(" + contract.getState() + "): " + e.getMessage(), e);
+                Utils.err().write("Can't update user(" + contract.getUserId() + ") + contract(" + contract.getContractId() + ") state(" + contract.getState() + "): " + e.getMessage(), e);
             }
         });
     }
@@ -137,7 +137,7 @@ class TransactionFacilities {
             client.queries().insert(order);
         } catch (DataQueryException exception) {
             /* worker thread can't pass out the exception, just log it */
-            Utils.err.write("Can't insert order(" + order.getOrderId() + ") to data source: " + exception.getMessage(), exception);
+            Utils.err().write("Can't insert order(" + order.getOrderId() + ") to data source: " + exception.getMessage(), exception);
         }
         /* create order context. */
         OrderContextImpl orderContext = new OrderContextImpl(order, transactionContect);
@@ -164,7 +164,7 @@ class TransactionFacilities {
         try {
             transactionContext.getQueryClient().queries().insert(riskNotice);
         } catch (DataQueryException exception) {
-            Utils.err.write("Can't inert RiskNotice(" + code + ", " + message + "): " + exception.getMessage(), exception);
+            Utils.err().write("Can't inert RiskNotice(" + code + ", " + message + "): " + exception.getMessage(), exception);
         }
     }
 

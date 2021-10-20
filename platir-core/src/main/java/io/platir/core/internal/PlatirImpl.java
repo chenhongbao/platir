@@ -131,7 +131,7 @@ public class PlatirImpl extends Platir {
             instanceLock.close();
         } catch (IOException ex) {
             /* slient shutdown */
-            Utils.err.write("Can;t release instance lock: " + ex.getMessage(), ex);
+            Utils.err().write("Can;t release instance lock: " + ex.getMessage(), ex);
         }
     }
 
@@ -160,7 +160,7 @@ public class PlatirImpl extends Platir {
         }
         if (transactionQueue == null) {
             transactionQueue = new TransactionQueue(tradeAdaptor, riskManager, queries.getFactory());
-            Utils.threads.submit(transactionQueue);
+            Utils.threads().submit(transactionQueue);
         }
         if (marketRouter == null) {
             marketRouter = new MarketRouter(marketAdaptor, transactionQueue);
@@ -196,7 +196,7 @@ public class PlatirImpl extends Platir {
         try {
             queries.insert(marketRouter.getLastTicks().toArray(new Tick[1]));
         } catch (DataQueryException exception) {
-            Utils.err.write("Fail inserting tick.", exception);
+            Utils.err().write("Fail inserting tick.", exception);
         }
         try {
             new Settlement(queries).settle();

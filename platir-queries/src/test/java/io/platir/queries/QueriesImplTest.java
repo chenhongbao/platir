@@ -18,11 +18,11 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -39,13 +39,13 @@ public class QueriesImplTest {
     public QueriesImplTest() {
     }
 
-    @BeforeAll
+    @BeforeEach
     public void setup() throws IOException {
         queries = new QueriesImpl();
         Utils.delete(Paths.get(Utils.cwd().toString(), "Schema"), false);
     }
 
-    @AfterAll
+    @AfterEach
     public void destroy() throws IOException {
         Utils.delete(Paths.get(Utils.cwd().toString(), "Schema"), false);
         queries = null;

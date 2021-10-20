@@ -29,12 +29,12 @@ class StrategyCallbackQueue implements Runnable {
     StrategyCallbackQueue(Strategy strategy, Factory factory) {
         this.strategy = strategy;
         this.factory = factory;
-        this.daemonFuture = Utils.threads.submit(this);
+        this.daemonFuture = Utils.threads().submit(this);
     }
 
     void push(Object object) {
         if (!callbackObjects.offer(object)) {
-            Utils.err.write("Strategy callback queueing queue is full.");
+            Utils.err().write("Strategy callback queueing queue is full.");
         }
     }
 
@@ -56,18 +56,18 @@ class StrategyCallbackQueue implements Runnable {
                 } else if (object instanceof Bar) {
                     timedOnBar((Bar) object);
                 } else {
-                    Utils.err.write("Unknown instance: " + object);
+                    Utils.err().write("Unknown instance: " + object);
                 }
             } catch (InterruptedException ex) {
-                Utils.err.write("Strategy callback daemon is interrupted.");
+                Utils.err().write("Strategy callback daemon is interrupted.");
             } catch (Throwable th) {
-                Utils.err.write("Uncaught error: " + th.getMessage(), th);
+                Utils.err().write("Uncaught error: " + th.getMessage(), th);
             }
         }
     }
 
     private void timedOperation(boolean needNotice, int timeoutSec, TimedJob job) {
-        var future = Utils.threads.submit(() -> {
+        var future = Utils.threads().submit(() -> {
             var notice = factory.newNotice();
             try {
                 job.work();
@@ -84,14 +84,14 @@ class StrategyCallbackQueue implements Runnable {
         try {
             var taskNotice = future.get(timeoutSec, TimeUnit.SECONDS);
             if (!taskNotice.isGood()) {
-                Utils.err.write(taskNotice.getMessage());
+                Utils.err().write(taskNotice.getMessage());
                 if (needNotice) {
                     /* Tell strategy its callback fails. */
                     timedOnNotice(taskNotice);
                 }
             }
         } catch (InterruptedException | ExecutionException exception) {
-            Utils.err.write("Timed operation is interrupted: " + exception.getMessage(), exception);
+            Utils.err().write("Timed operation is interrupted: " + exception.getMessage(), exception);
         } catch (TimeoutException exception) {
             var notice = factory.newNotice();
             notice.setCode(Constants.CODE_STRATEGY_TIMEOUT);

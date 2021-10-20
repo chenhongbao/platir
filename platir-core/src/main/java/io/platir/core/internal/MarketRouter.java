@@ -104,7 +104,7 @@ class MarketRouter implements MarketListener {
     private void tryAwake(Tick tick) {
         var updateTime = tick.getUpdateTime();
         if (updateTime.length() != 17) {
-            Utils.err.write("Malformed update time " + updateTime + ".");
+            Utils.err().write("Malformed update time " + updateTime + ".");
             return;
         }
         var updateSeconds = tick.getUpdateTime().substring(15, 16);

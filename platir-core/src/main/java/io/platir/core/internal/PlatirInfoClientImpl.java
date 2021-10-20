@@ -68,7 +68,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             SettlementFacilities.settleInDay(snapshot, getTradingDay(), marketRouter.getLastTicks(), queries.selectInstruments());
             return snapshot.getAccount();
         } catch (DataQueryException | SettlementException exception) {
-            Utils.err.write("Fail querying account by user(" + userId + ").", exception);
+            Utils.err().write("Fail querying account by user(" + userId + ").", exception);
         }
         return null;
     }
@@ -123,7 +123,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             }
             return null;
         } catch (DataQueryException exception) {
-            Utils.err.write("Fail querying instrument by ID(" + instrumentId + "): " + exception.getMessage(), exception);
+            Utils.err().write("Fail querying instrument by ID(" + instrumentId + "): " + exception.getMessage(), exception);
             return null;
         }
     }
@@ -140,7 +140,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             }
             return transactions;
         } catch (DataQueryException exception) {
-            Utils.err.write("Fail querying transactions by strategy(" + getStrategyId() + "): " + exception.getMessage(), exception);
+            Utils.err().write("Fail querying transactions by strategy(" + getStrategyId() + "): " + exception.getMessage(), exception);
             return null;
         }
     }
@@ -156,7 +156,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             }
             return orders;
         } catch (DataQueryException exception) {
-            Utils.err.write("Fail querying orders by transaction(" + transactionId + "): " + exception.getMessage(), exception);
+            Utils.err().write("Fail querying orders by transaction(" + transactionId + "): " + exception.getMessage(), exception);
             return null;
         }
     }
@@ -172,7 +172,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             }
             return trades;
         } catch (DataQueryException exception) {
-            Utils.err.write("Fail querying trades by order(" + orderId + "): " + exception.getMessage(), exception);
+            Utils.err().write("Fail querying trades by order(" + orderId + "): " + exception.getMessage(), exception);
             return null;
         }
     }
@@ -190,7 +190,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             } else if (contract.getDirection().compareToIgnoreCase("sell") == 0) {
                 position = instrumentPosition.sell();
             } else {
-                Utils.err.write("Invalid direction(" + contract.getDirection() + ") for contract(" + contract.getContractId() + ").");
+                Utils.err().write("Invalid direction(" + contract.getDirection() + ") for contract(" + contract.getContractId() + ").");
                 return null;
             }
             if (contract.getState().compareToIgnoreCase("opening") == 0) {
@@ -205,7 +205,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             } else if (contract.getState().compareToIgnoreCase("closed") == 0) {
                 position.setClosedVolume(position.getClosedVolume() + 1);
             } else {
-                Utils.err.write("Invalid direction(" + contract.getDirection() + ") for contract(" + contract.getContractId() + ").");
+                Utils.err().write("Invalid direction(" + contract.getDirection() + ") for contract(" + contract.getContractId() + ").");
             }
         }
         var positions = new HashSet<Position>();
@@ -232,7 +232,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             }
             return contracts;
         } catch (DataQueryException exception) {
-            Utils.err.write("Fail querying contracts by instrument(" + currentInstrumentId + ").", exception);
+            Utils.err().write("Fail querying contracts by instrument(" + currentInstrumentId + ").", exception);
             return null;
         }
     }
@@ -252,7 +252,7 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
             tradingDay = queries.selectTradingDay().getTradingDay();
             whenQryTradingDay = Utils.date();
         } catch (DataQueryException e) {
-            Utils.err.write("Fail querying trading day.", e);
+            Utils.err().write("Fail querying trading day.", e);
             return null;
         }
         return tradingDay;

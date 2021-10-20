@@ -23,64 +23,43 @@ import java.util.concurrent.Executors;
 
 public final class Utils {
 
-    private static DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static DateTimeFormatter datetimeFmt = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss");
+    private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final DateTimeFormatter datetimeFormat = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss");
 
-    public static Console out;
-    public static Console err;
+    private static Console out;
+    private static Console err;
+
+    private static final ExecutorService threads = Executors.newCachedThreadPool();
+    private static final Random random = new Random();
 
     static {
-        try {
-            out = new Console(new PrintStream(
-                    new FileOutputStream(file(Paths.get(cwd().toString(), "console.out.txt")), true), true));
-            err = new Console(new PrintStream(
-                    new FileOutputStream(file(Paths.get(cwd().toString(), "console.err.txt")), true), true));
-        } catch (FileNotFoundException e) {
-            System.err.println("Can't create console to external file: " + e.getMessage() + ".");
-            /* console output is essential, just fallback to stdout/err */
-            out = new Console(System.out);
-            err = new Console(System.err);
-        }
+
     }
 
-    public static final ExecutorService threads = Executors.newCachedThreadPool();
+    public static ExecutorService threads() {
+        return threads;
+    }
 
-    public static class Console {
-
-        private final PrintStream out;
-
-        Console(PrintStream ps) {
-            out = ps;
+    public synchronized static Console err() {
+        if (err == null) {
+            setupConsoles();
         }
+        return err;
+    }
 
-        public void write(Object message) {
-            write(out, message);
+    public synchronized static Console out() {
+        if (out == null) {
+            setupConsoles();
         }
-
-        public void write(Object message, Throwable error) {
-            write(out, message);
-            error.printStackTrace(out);
-        }
-
-        public void write(Object message, Object... follow) {
-            write(message);
-            for (var m : follow) {
-                write(m);
-            }
-        }
-
-        private void write(PrintStream out, Object message) {
-            out.println(datetime());
-            out.println(message.toString());
-        }
+        return out;
     }
 
     public static LocalDate date(String dateOrDatetime) {
         switch (dateOrDatetime.length()) {
             case 8:
-                return LocalDate.parse(dateOrDatetime, dateFmt);
+                return LocalDate.parse(dateOrDatetime, dateFormat);
             case 17:
-                return LocalDateTime.parse(dateOrDatetime, datetimeFmt).toLocalDate();
+                return LocalDateTime.parse(dateOrDatetime, datetimeFormat).toLocalDate();
             default:
                 err.write("Invalid date(" + dateOrDatetime + ").");
                 throw new RuntimeException("Invalid date(" + dateOrDatetime + ").");
@@ -91,9 +70,9 @@ public final class Utils {
     public static LocalDateTime datetime(String dateOrDatetime) {
         switch (dateOrDatetime.length()) {
             case 8:
-                return LocalDateTime.of(LocalDate.parse(dateOrDatetime, dateFmt), LocalTime.of(0, 0));
+                return LocalDateTime.of(LocalDate.parse(dateOrDatetime, dateFormat), LocalTime.of(0, 0));
             case 17:
-                return LocalDateTime.parse(dateOrDatetime, datetimeFmt);
+                return LocalDateTime.parse(dateOrDatetime, datetimeFormat);
             default:
                 err.write("Invalid datetime(" + dateOrDatetime + ").");
                 throw new RuntimeException("Invalid datetime(" + dateOrDatetime + ").");
@@ -102,11 +81,11 @@ public final class Utils {
     }
 
     public static String date() {
-        return LocalDate.now().format(dateFmt);
+        return LocalDate.now().format(dateFormat);
     }
 
     public static String datetime() {
-        return LocalDateTime.now().format(datetimeFmt);
+        return LocalDateTime.now().format(datetimeFormat);
     }
 
     public static Path cwd() {
@@ -148,15 +127,6 @@ public final class Utils {
             }
         }
         return file;
-    }
-
-    protected static void access(Path path) {
-        if (!Files.isWritable(path)) {
-            path.toFile().setWritable(true);
-        }
-        if (!Files.isReadable(path)) {
-            path.toFile().setReadable(true);
-        }
     }
 
     public static void delete(Path root, boolean deleteRoot) throws IOException {
@@ -205,8 +175,6 @@ public final class Utils {
         return path;
     }
 
-    private static final Random random = new Random();
-
     public static int randomInteger() {
         return random.nextInt() + 1;
     }
@@ -244,5 +212,58 @@ public final class Utils {
             }
         }
         return true;
+    }
+
+    protected static void access(Path path) {
+        if (!Files.isWritable(path)) {
+            path.toFile().setWritable(true);
+        }
+        if (!Files.isReadable(path)) {
+            path.toFile().setReadable(true);
+        }
+    }
+
+    private static void setupConsoles() {
+        try {
+            out = new Console(new PrintStream(
+                    new FileOutputStream(file(Paths.get(cwd().toString(), "console.out.txt")), true), true));
+            err = new Console(new PrintStream(
+                    new FileOutputStream(file(Paths.get(cwd().toString(), "console.err.txt")), true), true));
+        } catch (FileNotFoundException e) {
+            System.err.println("Can't create console to external file: " + e.getMessage() + ".");
+            /* Console output is essential, just fallback to stdout/err. */
+            out = new Console(System.out);
+            err = new Console(System.err);
+        }
+    }
+
+    public static class Console {
+
+        private final PrintStream out;
+
+        Console(PrintStream ps) {
+            out = ps;
+        }
+
+        public void write(Object message) {
+            write(out, message);
+        }
+
+        public void write(Object message, Throwable error) {
+            write(out, message);
+            error.printStackTrace(out);
+        }
+
+        public void write(Object message, Object... follow) {
+            write(message);
+            for (var m : follow) {
+                write(m);
+            }
+        }
+
+        private void write(PrintStream out, Object message) {
+            out.println(datetime());
+            out.println(message.toString());
+        }
     }
 }

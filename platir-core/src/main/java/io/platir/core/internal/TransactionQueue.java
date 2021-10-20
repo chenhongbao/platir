@@ -77,15 +77,13 @@ class TransactionQueue implements Runnable {
                 try {
                     pending.getQueryClient().queries().update(pendingTransaction);
                 } catch (DataQueryException exception) {
-                    Utils.err.write("Can't update transaction(" + pendingTransaction.getTransactionId() + ") state(" + pendingTransaction.getState() + "): " + exception.getMessage(), exception);
+                    Utils.err().write("Can't update transaction(" + pendingTransaction.getTransactionId() + ") state(" + pendingTransaction.getState() + "): " + exception.getMessage(), exception);
                 }
                 /* Set trigger tick. */
                 pending.setTriggerTick(tick);
                 if (!executingTransactions.offer(pending)) {
-                    /*
-                     * if it can't offer transaction to be executed, don't check more transaction.
-                     */
-                    Utils.err.write("Transaction queueing queue is full.");
+                    /* If it can't offer transaction to be executed, don't check more transaction.*/
+                    Utils.err().write("Transaction queueing queue is full.");
                     break;
                 }
             }
@@ -123,8 +121,7 @@ class TransactionQueue implements Runnable {
                             try {
                                 executingContext.getQueryClient().queries().update(executingTransaction);
                             } catch (DataQueryException e) {
-                                Utils.err.write("Can't update transaction(" + executingTransaction.getTransactionId() + ") state("
-                                        + executingTransaction.getState() + "): " + e.getMessage(), e);
+                                Utils.err().write("Can't update transaction(" + executingTransaction.getTransactionId() + ") state(" + executingTransaction.getState() + "): " + e.getMessage(), e);
                             }
                             /* Notify the transaction has failed. */
                             executingContext.awake();
@@ -134,11 +131,11 @@ class TransactionQueue implements Runnable {
                     }
                 }
             } catch (InterruptedException exception) {
-                Utils.err.write("Transaction queue worker thread is interrupted.", exception);
+                Utils.err().write("Transaction queue worker thread is interrupted.", exception);
             } catch (DuplicatedOrderException exception) {
-                Utils.err.write("Duplicated order(ID): " + exception.getMessage(), exception);
+                Utils.err().write("Duplicated order(ID): " + exception.getMessage(), exception);
             } catch (Throwable throwable) {
-                Utils.err.write("Uncaught error: " + throwable.getMessage(), throwable);
+                Utils.err().write("Uncaught error: " + throwable.getMessage(), throwable);
             }
         }
     }
@@ -147,7 +144,7 @@ class TransactionQueue implements Runnable {
         try {
             return riskManager.before(tick, transactionContext);
         } catch (Throwable throwable) {
-            Utils.err.write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
+            Utils.err().write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
             var riskNotice = factory.newRiskNotice();
             riskNotice.setCode(Constants.CODE_RISK_EXCEPTION);
             riskNotice.setMessage("before(Tick, TransactionContext) throws exception");
@@ -167,7 +164,7 @@ class TransactionQueue implements Runnable {
             try {
                 queryClient.queries().update(transaction);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
                         + "): " + e.getMessage(), e);
             }
             transactionContext.awake();
@@ -202,7 +199,7 @@ class TransactionQueue implements Runnable {
             try {
                 queryClient.queries().update(transaction);
             } catch (DataQueryException e) {
-                Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
                         + "): " + e.getMessage(), e);
             }
             /* notify joiner the transaction fails. */
@@ -254,7 +251,7 @@ class TransactionQueue implements Runnable {
                 try {
                     queryClient.queries().update(transaction);
                 } catch (DataQueryException exception) {
-                    Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
+                    Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
                 }
                 /*
                  * Put order context to pending list of the transaction, and put transaction to
@@ -275,7 +272,7 @@ class TransactionQueue implements Runnable {
                 try {
                     queryClient.queries().update(transaction);
                 } catch (DataQueryException exception) {
-                    Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
+                    Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
                 }
                 /* notify joiner the transaction fails. */
                 transactionContext.awake();
@@ -286,7 +283,7 @@ class TransactionQueue implements Runnable {
             try {
                 queryClient.queries().update(transaction);
             } catch (DataQueryException exception) {
-                Utils.err.write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
             }
         }
         /* notice callback */

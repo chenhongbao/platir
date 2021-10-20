@@ -31,8 +31,8 @@ class TradeListenerContexts implements TradeListener {
         this.factory = factory;
         this.tradeQueue = new TradeCallbackQueue();
         this.noticeQueue = new NoticeCallbackQueue();
-        Utils.threads.submit(tradeQueue);
-        Utils.threads.submit(noticeQueue);
+        Utils.threads().submit(tradeQueue);
+        Utils.threads().submit(noticeQueue);
     }
 
     int countStrategyRunning(StrategyContextImpl strategy) {
@@ -66,7 +66,7 @@ class TradeListenerContexts implements TradeListener {
         if (ctx != null) {
             tradeQueue.push(trade, ctx);
         } else {
-            Utils.err.write("Order execution context not found for order(" + trade.getOrderId() + ").");
+            Utils.err().write("Order execution context not found for order(" + trade.getOrderId() + ").");
         }
     }
 
@@ -80,7 +80,7 @@ class TradeListenerContexts implements TradeListener {
             notice.setContext(context.getTransactionContext());
             noticeQueue.push(notice, context);
         } else {
-            Utils.err.write("Order execution context not found for order(" + orderId + ").");
+            Utils.err().write("Order execution context not found for order(" + orderId + ").");
         }
     }
 

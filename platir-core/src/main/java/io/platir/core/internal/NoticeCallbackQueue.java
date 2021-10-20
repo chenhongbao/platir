@@ -16,7 +16,7 @@ class NoticeCallbackQueue implements Runnable {
 
     void push(Notice notice, OrderExecutionContext context) {
         if (!noticeBundles.offer(new NoticeCallbackBundle(notice, context))) {
-            Utils.err.write("Trade callback queue is full.");
+            Utils.err().write("Trade callback queue is full.");
         }
     }
 
@@ -27,9 +27,9 @@ class NoticeCallbackQueue implements Runnable {
                 var bundle = noticeBundles.poll(24, TimeUnit.HOURS);
                 bundle.executionContext.processNotice(bundle.getNotice().getCode(), bundle.getNotice().getMessage());
             } catch (InterruptedException exception) {
-                Utils.err.write("Trade callback queue daemon is interrupted.", exception);
+                Utils.err().write("Trade callback queue daemon is interrupted.", exception);
             } catch (Throwable throwable) {
-                Utils.err.write("Uncaught error: " + throwable.getMessage(), throwable);
+                Utils.err().write("Uncaught error: " + throwable.getMessage(), throwable);
             }
         }
     }

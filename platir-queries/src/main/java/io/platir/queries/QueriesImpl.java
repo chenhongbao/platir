@@ -123,7 +123,7 @@ public class QueriesImpl implements Queries {
             writeJson(target, schema);
             return schema;
         } catch (DataQueryException exception) {
-            Utils.err.write("Can't backup schema: " + exception.getMessage(), exception);
+            Utils.err().write("Can't backup schema: " + exception.getMessage(), exception);
             return null;
         }
     }
@@ -639,7 +639,7 @@ public class QueriesImpl implements Queries {
 
     @Override
     public List<RiskNotice> selectRiskNotices() throws DataQueryException {
-        synchronized(riskNoticeTable) {
+        synchronized (riskNoticeTable) {
             var notices = new LinkedList<RiskNotice>();
             notices.addAll(riskNoticeTable);
             return notices;
@@ -651,7 +651,7 @@ public class QueriesImpl implements Queries {
         try (FileReader fileReader = new FileReader(target.toFile())) {
             return readJson(fileReader, new Table<T>().getClass());
         } catch (IOException exception) {
-            Utils.err.write("Can't read table: " + exception.getMessage(), exception);
+            Utils.err().write("Can't read table: " + exception.getMessage(), exception);
             var table = new Table<T>();
             table.name = clazz.getCanonicalName();
             return table;
@@ -662,7 +662,7 @@ public class QueriesImpl implements Queries {
         try (FileReader fileReader = new FileReader(backup)) {
             return readJson(fileReader, QuerySchema.class);
         } catch (IOException exception) {
-            Utils.err.write("Can't read backup schema: " + exception.getMessage(), exception);
+            Utils.err().write("Can't read backup schema: " + exception.getMessage(), exception);
             return new QuerySchema();
         }
     }
@@ -702,7 +702,7 @@ public class QueriesImpl implements Queries {
             /* write json */
             fileWriter.write(g.toJson(object));
         } catch (IOException exception) {
-            Utils.err.write("Can't write schema: " + exception.getMessage(), exception);
+            Utils.err().write("Can't write schema: " + exception.getMessage(), exception);
         }
     }
 

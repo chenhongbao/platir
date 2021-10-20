@@ -68,7 +68,7 @@ class TransactionContextImpl implements TransactionContext {
             try {
                 conpletionCondition.await();
             } catch (InterruptedException e) {
-                Utils.err.write("Joining transaction is interrupted.", e);
+                Utils.err().write("Joining transaction is interrupted.", e);
             } finally {
                 completionLock.unlock();
             }
