@@ -4,6 +4,10 @@ import java.net.URI;
 
 public interface StrategyProfile {
 
+    String getStrategyProfileId();
+
+    void setStrategyProfileId(String strategyProfileId);
+
     String getCreateDate();
 
     String getRemoveDate();

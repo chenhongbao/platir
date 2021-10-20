@@ -2,28 +2,56 @@ package io.platir.service;
 
 public interface Tick {
 
-	String getInstrumentId();
+    String getTickId();
 
-	Double getLastPrice();
+    void setTickId(String tickId);
 
-	Double getAskPrice();
+    String getInstrumentId();
 
-	Double getBidPrice();
+    void setInstrumentId(String instrumentId);
 
-	Integer getAskVolume();
+    Double getLastPrice();
 
-	Integer getBidVolume();
+    void setLastPrice(Double lastPrice);
 
-	Integer getTodayVolume();
+    Double getAskPrice();
 
-	Integer getOpenInterest();
+    void setAskPrice(Double askPrice);
 
-	Double getOpenPrice();
+    Double getBidPrice();
 
-	Double getClosePrice();
+    void setBidPrice(Double bidPrice);
 
-	Double getSettlementPrice();
+    Integer getAskVolume();
 
-	String getUpdateTime();
+    void setAskVolume(Integer askVolume);
+
+    Integer getBidVolume();
+
+    void setBidVolume(Integer bidVolume);
+
+    Integer getTodayVolume();
+
+    void setTodayVolume(Integer todayVolume);
+
+    Integer getOpenInterest();
+
+    void setOpenInterest(Integer openInterest);
+
+    Double getOpenPrice();
+
+    void setOpenPrice(Double openPrice);
+
+    Double getClosePrice();
+
+    void setClosePrice(Double closePrice);
+
+    Double getSettlementPrice();
+
+    void setSettlementPrice(Double settlementPrice);
+
+    String getUpdateTime();
+
+    void setUpdateTime(String updateTime);
 
 }

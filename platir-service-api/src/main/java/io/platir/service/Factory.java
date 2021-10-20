@@ -29,4 +29,8 @@ public interface Factory {
     Transaction newTransaction();
 
     User newUser();
+    
+    Tick newTick();
+    
+    Trade newTrade();
 }

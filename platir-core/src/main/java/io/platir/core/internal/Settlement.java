@@ -15,6 +15,7 @@ import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
+import java.nio.file.Path;
 
 public class Settlement {
 
@@ -22,8 +23,8 @@ public class Settlement {
     private final RuntimeSnapshot snapshot = new RuntimeSnapshot();
     private final Set<Tick> ticks = new HashSet<>();
     private final Set<Instrument> instruments = new HashSet<>();
-    private File before;
-    private File after;
+    private Path before;
+    private Path after;
 
     public Settlement(Queries queries) {
         this.queries = queries;
@@ -101,8 +102,8 @@ public class Settlement {
 
     private void prepareDirs() {
         var dir = Utils.dir(Paths.get(Utils.backupDirectory().toString(), Utils.date()));
-        before = Utils.file(Paths.get(dir.toString(), "today.json"));
-        after = Utils.file(Paths.get(dir.toString(), "tomorrow.json"));
+        before = Utils.dir(Paths.get(dir.toString(), Utils.date(), "ThisDay"));
+        after = Utils.dir(Paths.get(dir.toString(), Utils.date(), "NextDay"));
     }
 
     private void snapshot() throws DataQueryException {

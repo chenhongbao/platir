@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Random;
+import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -116,17 +117,16 @@ public final class Utils {
     }
 
     public static File file(Path path) {
-        File file = null;
         if (!Files.isRegularFile(path)) {
             try {
                 Files.createFile(path);
                 access(path);
-                file = path.toFile();
             } catch (IOException exception) {
                 err.write("Can't create file \'" + path.toAbsolutePath().toString() + "\', " + exception.getMessage(), exception);
             }
+
         }
-        return file;
+        return path.toFile();
     }
 
     public static void delete(Path root, boolean deleteRoot) throws IOException {
@@ -134,7 +134,9 @@ public final class Utils {
             Files.walkFileTree(root, new FileVisitor<Path>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes bfa) throws IOException {
-                    delete(directory, true);
+                    if (!directory.equals(root)) {
+                        delete(directory, true);
+                    }
                     return FileVisitResult.CONTINUE;
                 }
 
@@ -175,12 +177,60 @@ public final class Utils {
         return path;
     }
 
-    public static int randomInteger() {
-        return random.nextInt() + 1;
+    public static int positiveRandomInteger() {
+        var v = random.nextInt();
+        return (v < 0 ? -v : v) + 1;
+    }
+
+    public static void copyEntries(Path fromDirectory, Path toDirectory) throws IOException {
+        Files.walkFileTree(fromDirectory, new FileVisitor<Path>() {
+            private final Stack<Path> paths = new Stack<>();
+
+            @Override
+            public FileVisitResult preVisitDirectory(Path current, BasicFileAttributes bfa) throws IOException {
+                if (!current.equals(fromDirectory)) {
+                    var targetCurrent = paths.pop();
+                    var next = Paths.get(targetCurrent.toString(), current.getFileName().toString());
+                    Utils.dir(next);
+                    paths.push(targetCurrent);
+                    paths.push(next);
+                } else {
+                    paths.push(toDirectory);
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path current, BasicFileAttributes bfa) throws IOException {
+                var targetCurrentDirectory = paths.pop();
+                var target = Paths.get(targetCurrentDirectory.toString(), current.getFileName().toString());
+                Files.copy(current, target);
+                paths.push(targetCurrentDirectory);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path current, IOException ioe) throws IOException {
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path current, IOException ioe) throws IOException {
+                paths.pop();
+                return FileVisitResult.CONTINUE;
+            }
+        });
+    }
+
+    private static boolean isTypeOf(Object object, Class<?> clazz) {
+        return clazz.isInstance(object);
     }
 
     public static <T> boolean beanEquals(Class<T> clazz, Object o1, Object o2) {
-        if (o1.getClass() != clazz || o2.getClass() != clazz) {
+        if (o1 == null && o2 == null) {
+            return true;
+        }
+        if (!isTypeOf(o1, clazz) || !isTypeOf(o2, clazz)) {
             return false;
         }
         for (var method : clazz.getMethods()) {
@@ -188,7 +238,9 @@ public final class Utils {
                 continue;
             }
             try {
-                if (!method.invoke(o1).equals(method.invoke(o2))) {
+                var r1 = method.invoke(o1);
+                var r2 = method.invoke(o2);
+                if (r1 != null && !r1.equals(r2)) {
                     return false;
                 }
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
@@ -229,8 +281,8 @@ public final class Utils {
                     new FileOutputStream(file(Paths.get(cwd().toString(), "console.out.txt")), true), true));
             err = new Console(new PrintStream(
                     new FileOutputStream(file(Paths.get(cwd().toString(), "console.err.txt")), true), true));
-        } catch (FileNotFoundException e) {
-            System.err.println("Can't create console to external file: " + e.getMessage() + ".");
+        } catch (FileNotFoundException exception) {
+            System.err.println("Can't create console to external file: " + exception.getMessage() + ".");
             /* Console output is essential, just fallback to stdout/err. */
             out = new Console(System.out);
             err = new Console(System.err);

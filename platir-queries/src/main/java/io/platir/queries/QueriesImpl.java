@@ -1,6 +1,7 @@
 package io.platir.queries;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.platir.service.Account;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -20,18 +21,16 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Reader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  *
@@ -40,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class QueriesImpl implements Queries {
 
     private final Factory factory = new FactoryImpl();
-    private final AtomicReference<TradingDay> tradingDay = new AtomicReference<>();
+    private final TradingDay tradingDay = new TradingDayImpl();
     private final Map<String, Account> accountTable = new HashMap<>();
     private final Map<String, Tick> tickTable = new HashMap<>();
     private final Map<String, Transaction> transactionTable = new HashMap<>();
@@ -50,48 +49,57 @@ public class QueriesImpl implements Queries {
     private final Map<String, User> userTable = new HashMap<>();
     private final Map<String, StrategyProfile> profileTable = new HashMap<>();
     private final Map<String, Instrument> instrumentTable = new HashMap<>();
-    private final List<RiskNotice> riskNoticeTable = new LinkedList<>();
+    private final Set<RiskNotice> riskNoticeTable = new HashSet<>();
 
     private final Gson g;
 
     public QueriesImpl() {
-        g = new Gson().newBuilder().serializeNulls().setPrettyPrinting().create();
+        g = createGson();
     }
 
     @Override
     public void initialize() throws DataQueryException {
-        readTable(Account.class).rows.forEach(item -> {
+        readTable(AccountImpl.class, Account.class.getSimpleName()).rows().forEach(item -> {
             accountTable.put(item.getAccountId(), item);
         });
-        readTable(Tick.class).rows.forEach(item -> {
+        readTable(TickImpl.class, Tick.class.getSimpleName()).rows().forEach(item -> {
             tickTable.put(item.getInstrumentId(), item);
         });
-        readTable(Transaction.class).rows.forEach(item -> {
+        readTable(TransactionImpl.class, Transaction.class.getSimpleName()).rows().forEach(item -> {
             transactionTable.put(item.getTransactionId(), item);
         });
-        readTable(Order.class).rows.forEach(item -> {
+        readTable(OrderImpl.class, Order.class.getSimpleName()).rows().forEach(item -> {
             orderTable.put(item.getOrderId(), item);
         });
-        readTable(Trade.class).rows.forEach(item -> {
+        readTable(TradeImpl.class, Trade.class.getSimpleName()).rows().forEach(item -> {
             tradeTable.put(item.getTradeId(), item);
         });
-        readTable(Contract.class).rows.forEach(item -> {
+        readTable(ContractImpl.class, Contract.class.getSimpleName()).rows().forEach(item -> {
             contractTable.put(item.getContractId(), item);
         });
-        readTable(User.class).rows.forEach(item -> {
+        readTable(UserImpl.class, User.class.getSimpleName()).rows().forEach(item -> {
             userTable.put(item.getUserId(), item);
         });
-        readTable(StrategyProfile.class).rows.forEach(item -> {
+        readTable(StrategyProfileImpl.class, StrategyProfile.class.getSimpleName()).rows().forEach(item -> {
             profileTable.put(item.getStrategyId(), item);
         });
-        readTable(Instrument.class).rows.forEach(item -> {
+        readTable(InstrumentImpl.class, Instrument.class.getSimpleName()).rows().forEach(item -> {
             instrumentTable.put(item.getInstrumentId(), item);
         });
+        var days = readTable(TradingDayImpl.class, TradingDay.class.getSimpleName()).rows();
+        if (days.size() > 1) {
+            throw new DataQueryException("Duplicated TradingDay.");
+        } else if (days.size() == 1) {
+            var day = days.iterator().next();
+            tradingDay.setTradingDay(day.getTradingDay());
+            tradingDay.setUpdateTime(day.getUpdateTime());
+        }
     }
 
     @Override
     public void destroy() throws DataQueryException {
-        tradingDay.set(null);
+        tradingDay.setTradingDay(null);
+        tradingDay.setUpdateTime(null);
         instrumentTable.clear();
         userTable.clear();
         clearAccounts();
@@ -104,24 +112,20 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public Schema backup(File target) {
+    public Schema backup(Path directory) {
         try {
-            /* Ensure file exists. */
-            Utils.file(target.toPath());
-            var schema = new QuerySchema();
-            schema.setLastModifiedTime(Utils.datetime());
-            schema.setTradingDay(tradingDay.get());
-            schema.setAccounts(selectAccounts());
-            schema.setTicks(selectTicks());
-            schema.setTransactions(selectTransactions());
-            schema.setOrders(selectOrders());
-            schema.setTrades(selectTrades());
-            schema.setContracts(selectContracts());
-            schema.setUsers(selectUsers());
-            schema.setStrategyProfiles(selectStrategyProfiles());
-            schema.setInstruments(selectInstruments());
-            writeJson(target, schema);
-            return schema;
+            Utils.dir(directory);
+            writeTradingDay(filePath(directory, TradingDay.class.getSimpleName()));
+            writeTable(filePath(directory, Account.class.getSimpleName()), Account.class, accountTable.values());
+            writeTable(filePath(directory, Tick.class.getSimpleName()), Tick.class, tickTable.values());
+            writeTable(filePath(directory, Transaction.class.getSimpleName()), Transaction.class, transactionTable.values());
+            writeTable(filePath(directory, Order.class.getSimpleName()), Order.class, orderTable.values());
+            writeTable(filePath(directory, Trade.class.getSimpleName()), Trade.class, tradeTable.values());
+            writeTable(filePath(directory, Contract.class.getSimpleName()), Contract.class, contractTable.values());
+            writeTable(filePath(directory, User.class.getSimpleName()), User.class, userTable.values());
+            writeTable(filePath(directory, StrategyProfile.class.getSimpleName()), StrategyProfile.class, profileTable.values());
+            writeTable(filePath(directory, Instrument.class.getSimpleName()), Instrument.class, instrumentTable.values());
+            return buildSchema();
         } catch (DataQueryException exception) {
             Utils.err().write("Can't backup schema: " + exception.getMessage(), exception);
             return null;
@@ -129,31 +133,25 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public Schema restore(File backup) throws DataQueryException {
-        destroy();
-        var schema = readSchema(backup);
-        insert(schema.getTradingDay());
-        insert(schema.getAccounts().toArray(new Account[1]));
-        insert(schema.getContracts().toArray(new Contract[1]));
-        insert(schema.getInstruments().toArray(new Instrument[1]));
-        insert(schema.getOrders().toArray(new Order[1]));
-        insert(schema.getStrategyProfiles().toArray(new StrategyProfile[1]));
-        insert(schema.getTicks().toArray(new Tick[1]));
-        insert(schema.getTrades().toArray(new Trade[1]));
-        insert(schema.getTransactions().toArray(new Transaction[1]));
-        insert(schema.getUsers().toArray(new User[1]));
-        initialize();
-        return schema;
+    public Schema restore(Path backupDirectory) throws DataQueryException {
+        try {
+            destroy();
+            copySchema(backupDirectory);
+            initialize();
+            return buildSchema();
+        } catch (IOException ex) {
+            throw new DataQueryException("Can't copy backup files to schema.");
+        }
     }
 
     @Override
     public void insert(TradingDay day) throws DataQueryException {
-        if (day == null) {
-            throw new DataQueryException("Insert null object.");
+        if (day != null) {
+            tradingDay.setTradingDay(day.getTradingDay());
+            tradingDay.setUpdateTime(day.getUpdateTime());
+            /* persist */
+            writeTradingDay(schemaTablePath(TradingDay.class.getSimpleName()));
         }
-        tradingDay.set(day);
-        /* persist */
-        writeTradingDay();
     }
 
     @Override
@@ -167,7 +165,7 @@ public class QueriesImpl implements Queries {
                 accountTable.put(account.getAccountId(), account);
             }
             /* persist account table */
-            writeTable(Account.class, accountTable.values());
+            writeTable(schemaTablePath(Account.class.getSimpleName()), Account.class, accountTable.values());
         }
     }
 
@@ -181,7 +179,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(tickTable, tick.getInstrumentId());
                 tickTable.put(tick.getInstrumentId(), tick);
             }
-            writeTable(Tick.class, tickTable.values());
+            writeTable(schemaTablePath(Tick.class.getSimpleName()), Tick.class, tickTable.values());
         }
     }
 
@@ -195,7 +193,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(transactionTable, transaction.getTransactionId());
                 transactionTable.put(transaction.getTransactionId(), transaction);
             }
-            writeTable(Transaction.class, transactionTable.values());
+            writeTable(schemaTablePath(Transaction.class.getSimpleName()), Transaction.class, transactionTable.values());
         }
     }
 
@@ -209,7 +207,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(orderTable, order.getOrderId());
                 orderTable.put(order.getOrderId(), order);
             }
-            writeTable(Order.class, orderTable.values());
+            writeTable(schemaTablePath(Order.class.getSimpleName()), Order.class, orderTable.values());
         }
     }
 
@@ -223,7 +221,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(tradeTable, trade.getTradeId());
                 tradeTable.put(trade.getTradeId(), trade);
             }
-            writeTable(Trade.class, tradeTable.values());
+            writeTable(schemaTablePath(Trade.class.getSimpleName()), Trade.class, tradeTable.values());
         }
     }
 
@@ -237,7 +235,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(contractTable, contract.getInstrumentId());
                 contractTable.put(contract.getContractId(), contract);
             }
-            writeTable(Contract.class, contractTable.values());
+            writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
     }
 
@@ -251,7 +249,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(userTable, user.getUserId());
                 userTable.put(user.getUserId(), user);
             }
-            writeTable(User.class, userTable.values());
+            writeTable(schemaTablePath(User.class.getSimpleName()), User.class, userTable.values());
         }
     }
 
@@ -265,7 +263,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(profileTable, profile.getStrategyId());
                 profileTable.put(profile.getStrategyId(), profile);
             }
-            writeTable(StrategyProfile.class, profileTable.values());
+            writeTable(schemaTablePath(StrategyProfile.class.getSimpleName()), StrategyProfile.class, profileTable.values());
         }
     }
 
@@ -279,7 +277,7 @@ public class QueriesImpl implements Queries {
                 ensureNotExists(instrumentTable, instrument.getInstrumentId());
                 instrumentTable.put(instrument.getInstrumentId(), instrument);
             }
-            writeTable(Instrument.class, instrumentTable.values());
+            writeTable(schemaTablePath(Instrument.class.getSimpleName()), Instrument.class, instrumentTable.values());
         }
     }
 
@@ -300,7 +298,7 @@ public class QueriesImpl implements Queries {
                 ensureExists(accountTable, account.getAccountId());
                 accountTable.put(account.getAccountId(), account);
             }
-            writeTable(Account.class, accountTable.values());
+            writeTable(schemaTablePath(Account.class.getSimpleName()), Account.class, accountTable.values());
         }
     }
 
@@ -314,7 +312,7 @@ public class QueriesImpl implements Queries {
                 ensureExists(contractTable, contract);
                 contractTable.put(contract.getContractId(), contract);
             }
-            writeTable(Contract.class, contractTable.values());
+            writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
     }
 
@@ -328,7 +326,7 @@ public class QueriesImpl implements Queries {
                 ensureExists(transactionTable, transaction.getTransactionId());
                 transactionTable.put(transaction.getTransactionId(), transaction);
             }
-            writeTable(Transaction.class, transactionTable.values());
+            writeTable(schemaTablePath(Transaction.class.getSimpleName()), Transaction.class, transactionTable.values());
         }
     }
 
@@ -342,7 +340,7 @@ public class QueriesImpl implements Queries {
                 ensureExists(instrumentTable, instrument.getInstrumentId());
                 instrumentTable.put(instrument.getInstrumentId(), instrument);
             }
-            writeTable(Instrument.class, instrumentTable.values());
+            writeTable(schemaTablePath(Instrument.class.getSimpleName()), Instrument.class, instrumentTable.values());
         }
     }
 
@@ -356,7 +354,7 @@ public class QueriesImpl implements Queries {
                 ensureExists(userTable, user.getUserId());
                 userTable.put(user.getUserId(), user);
             }
-            writeTable(User.class, userTable.values());
+            writeTable(schemaTablePath(User.class.getSimpleName()), User.class, userTable.values());
         }
     }
 
@@ -370,24 +368,28 @@ public class QueriesImpl implements Queries {
                 ensureExists(profileTable, profile.getStrategyId());
                 profileTable.put(profile.getStrategyId(), profile);
             }
-            writeTable(StrategyProfile.class, profileTable.values());
+            writeTable(schemaTablePath(StrategyProfile.class.getSimpleName()), StrategyProfile.class, profileTable.values());
         }
     }
 
     @Override
-    public void updateTradingDay(TradingDay day) throws DataQueryException {
-        if (day == null) {
-            throw new DataQueryException("Insert a null object.");
+    public void update(TradingDay... days) throws DataQueryException {
+        if (days == null || days.length == 0) {
+            return;
         }
-        tradingDay.set(day);
-        writeTradingDay();
+        var list = Arrays.asList(days);
+        list.sort((TradingDay day1, TradingDay day2) -> day2.getUpdateTime().compareTo(day1.getUpdateTime()));
+        var day = list.get(0);
+        tradingDay.setTradingDay(day.getTradingDay());
+        tradingDay.setUpdateTime(day.getUpdateTime());
+        writeTradingDay(schemaTablePath(TradingDay.class.getSimpleName()));
     }
 
     @Override
     public void clearAccounts() throws DataQueryException {
         synchronized (accountTable) {
             accountTable.clear();
-            writeTable(Account.class, accountTable.values());
+            writeTable(schemaTablePath(Account.class.getSimpleName()), Account.class, accountTable.values());
         }
     }
 
@@ -395,7 +397,7 @@ public class QueriesImpl implements Queries {
     public void clearContracts() throws DataQueryException {
         synchronized (contractTable) {
             contractTable.clear();
-            writeTable(Contract.class, contractTable.values());
+            writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
     }
 
@@ -403,7 +405,7 @@ public class QueriesImpl implements Queries {
     public void clearOrders() throws DataQueryException {
         synchronized (orderTable) {
             orderTable.clear();
-            writeTable(Order.class, orderTable.values());
+            writeTable(schemaTablePath(Order.class.getSimpleName()), Order.class, orderTable.values());
         }
     }
 
@@ -411,7 +413,7 @@ public class QueriesImpl implements Queries {
     public void clearTrades() throws DataQueryException {
         synchronized (tradeTable) {
             tradeTable.clear();
-            writeTable(Trade.class, tradeTable.values());
+            writeTable(schemaTablePath(Trade.class.getSimpleName()), Trade.class, tradeTable.values());
         }
     }
 
@@ -419,7 +421,7 @@ public class QueriesImpl implements Queries {
     public void clearTransactions() throws DataQueryException {
         synchronized (transactionTable) {
             transactionTable.clear();
-            writeTable(Transaction.class, transactionTable.values());
+            writeTable(schemaTablePath(Transaction.class.getSimpleName()), Transaction.class, transactionTable.values());
         }
     }
 
@@ -427,7 +429,7 @@ public class QueriesImpl implements Queries {
     public void clearTicks() throws DataQueryException {
         synchronized (tickTable) {
             tickTable.clear();
-            writeTable(Tick.class, tickTable.values());
+            writeTable(schemaTablePath(Tick.class.getSimpleName()), Tick.class, tickTable.values());
         }
     }
 
@@ -435,7 +437,7 @@ public class QueriesImpl implements Queries {
     public void clearStrategies() throws DataQueryException {
         synchronized (profileTable) {
             profileTable.clear();
-            writeTable(StrategyProfile.class, profileTable.values());
+            writeTable(schemaTablePath(StrategyProfile.class.getSimpleName()), StrategyProfile.class, profileTable.values());
         }
     }
 
@@ -449,8 +451,8 @@ public class QueriesImpl implements Queries {
     @Override
     public TradingDay selectTradingDay() throws DataQueryException {
         var day = factory.newTradingDay();
-        day.setTradingDay(tradingDay.get().getTradingDay());
-        day.setUpdateTime(tradingDay.get().getUpdateTime());
+        day.setTradingDay(tradingDay.getTradingDay());
+        day.setUpdateTime(tradingDay.getUpdateTime());
         return day;
     }
 
@@ -563,6 +565,7 @@ public class QueriesImpl implements Queries {
                 profile.setState(item.getState());
                 profile.setStrategyId(item.getStrategyId());
                 profile.setUserId(item.getUserId());
+                profile.setStrategyProfileId(item.getStrategyProfileId());
                 return profile;
             }).forEachOrdered(profile -> {
                 profiles.add(profile);
@@ -575,7 +578,21 @@ public class QueriesImpl implements Queries {
     public Set<Trade> selectTrades() throws DataQueryException {
         synchronized (tradeTable) {
             var trades = new HashSet<Trade>();
-            trades.addAll(tradeTable.values());
+            tradeTable.values().stream().map(item -> {
+                var trade = factory.newTrade();
+                trade.setDirection(item.getDirection());
+                trade.setInstrumentId(item.getInstrumentId());
+                trade.setOffset(item.getOffset());
+                trade.setOrderId(item.getOrderId());
+                trade.setPrice(item.getPrice());
+                trade.setTradeId(item.getTradeId());
+                trade.setTradingDay(item.getTradingDay());
+                trade.setUpdateTime(item.getUpdateTime());
+                trade.setVolume(item.getVolume());
+                return trade;
+            }).forEachOrdered(trade -> {
+                trades.add(trade);
+            });
             return trades;
         }
     }
@@ -627,7 +644,25 @@ public class QueriesImpl implements Queries {
     public Set<Tick> selectTicks() throws DataQueryException {
         synchronized (tickTable) {
             var ticks = new HashSet<Tick>();
-            ticks.addAll(tickTable.values());
+            tickTable.values().stream().map(item -> {
+                var tick = factory.newTick();
+                tick.setAskPrice(item.getAskPrice());
+                tick.setAskVolume(item.getAskVolume());
+                tick.setBidPrice(item.getBidPrice());
+                tick.setBidVolume(item.getBidVolume());
+                tick.setClosePrice(item.getClosePrice());
+                tick.setInstrumentId(item.getInstrumentId());
+                tick.setLastPrice(item.getLastPrice());
+                tick.setOpenInterest(item.getOpenInterest());
+                tick.setOpenPrice(item.getOpenPrice());
+                tick.setSettlementPrice(item.getSettlementPrice());
+                tick.setTickId(item.getTickId());
+                tick.setTodayVolume(item.getTodayVolume());
+                tick.setUpdateTime(item.getUpdateTime());
+                return tick;
+            }).forEach(tick -> {
+                ticks.add(tick);
+            });
             return ticks;
         }
     }
@@ -638,63 +673,110 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public List<RiskNotice> selectRiskNotices() throws DataQueryException {
+    public Set<RiskNotice> selectRiskNotices() throws DataQueryException {
         synchronized (riskNoticeTable) {
-            var notices = new LinkedList<RiskNotice>();
-            notices.addAll(riskNoticeTable);
+            var notices = new HashSet<RiskNotice>();
+            riskNoticeTable.stream().map(item -> {
+                var notice = factory.newRiskNotice();
+                notice.setCode(item.getCode());
+                notice.setLevel(notice.getLevel());
+                notice.setMessage(notice.getMessage());
+                notice.setStrategyId(notice.getStrategyId());
+                notice.setUpdateTime(notice.getUpdateTime());
+                notice.setUserId(notice.getUserId());
+                notice.setRiskNoticeId(item.getRiskNoticeId());
+                return notice;
+            }).forEachOrdered(notice -> {
+                notices.add(notice);
+            });
             return notices;
         }
     }
 
-    private <T> Table<T> readTable(Class<T> clazz) {
-        var target = tablePath(clazz.getCanonicalName());
+    private QuerySchema buildSchema() throws DataQueryException {
+        var schema = new QuerySchema();
+        schema.setLastModifiedTime(Utils.datetime());
+        schema.setTradingDay(tradingDay);
+        schema.setAccounts(selectAccounts());
+        schema.setTicks(selectTicks());
+        schema.setTransactions(selectTransactions());
+        schema.setOrders(selectOrders());
+        schema.setTrades(selectTrades());
+        schema.setContracts(selectContracts());
+        schema.setUsers(selectUsers());
+        schema.setStrategyProfiles(selectStrategyProfiles());
+        schema.setInstruments(selectInstruments());
+        return schema;
+    }
+
+    private <T> Table<T> readTable(Class<T> clazz, String name) throws DataQueryException {
+        var table = new Table<T>();
+        table.setName(name);
+        var target = schemaTablePath(name);
+        if (!Files.exists(target) || target.toFile().length() == 0) {
+            return table;
+        }
         try (FileReader fileReader = new FileReader(target.toFile())) {
-            return readJson(fileReader, new Table<T>().getClass());
-        } catch (IOException exception) {
-            Utils.err().write("Can't read table: " + exception.getMessage(), exception);
-            var table = new Table<T>();
-            table.name = clazz.getCanonicalName();
+            return g.fromJson(fileReader, getProperTypeToken(clazz).getType());
+        } catch (Throwable throwable) {
+            Utils.err().write("Can't read table: " + throwable.getMessage(), throwable);
             return table;
         }
     }
 
-    private QuerySchema readSchema(File backup) {
-        try (FileReader fileReader = new FileReader(backup)) {
-            return readJson(fileReader, QuerySchema.class);
-        } catch (IOException exception) {
-            Utils.err().write("Can't read backup schema: " + exception.getMessage(), exception);
-            return new QuerySchema();
+    private TypeToken<?> getProperTypeToken(Class<?> clazz) throws DataQueryException {
+        if (clazz == AccountImpl.class) {
+            return TypeToken.getParameterized(Table.class, AccountImpl.class);
+        } else if (clazz == TickImpl.class) {
+            return TypeToken.getParameterized(Table.class, TickImpl.class);
+        } else if (clazz == TransactionImpl.class) {
+            return TypeToken.getParameterized(Table.class, TransactionImpl.class);
+        } else if (clazz == OrderImpl.class) {
+            return TypeToken.getParameterized(Table.class, OrderImpl.class);
+        } else if (clazz == TradeImpl.class) {
+            return TypeToken.getParameterized(Table.class, TradeImpl.class);
+        } else if (clazz == ContractImpl.class) {
+            return TypeToken.getParameterized(Table.class, ContractImpl.class);
+        } else if (clazz == UserImpl.class) {
+            return TypeToken.getParameterized(Table.class, UserImpl.class);
+        } else if (clazz == StrategyProfileImpl.class) {
+            return TypeToken.getParameterized(Table.class, StrategyProfileImpl.class);
+        } else if (clazz == InstrumentImpl.class) {
+            return TypeToken.getParameterized(Table.class, InstrumentImpl.class);
+        } else if (clazz == TradingDayImpl.class) {
+            return TypeToken.getParameterized(Table.class, TradingDayImpl.class);
+        } else {
+            throw new DataQueryException("Unsupported table type: " + clazz.getCanonicalName() + ".");
         }
     }
 
-    private <T> T readJson(Reader reader, Class<T> clazz) {
-        return g.fromJson(reader, clazz);
+    private Path schemaTablePath(String name) {
+        return filePath(Utils.schemaDirectory(), name);
     }
 
-    private Path tablePath(String name) {
-        return Paths.get(Utils.schemaDirectory().toString(), name);
+    private Path filePath(Path directory, String fileName) {
+        return Paths.get(directory.toString(), fileName);
     }
 
-    private void writeTradingDay() {
+    private void writeTradingDay(Path target) {
         var table = new Table<TradingDay>();
-        table.name = TradingDay.class.getCanonicalName();
-        table.updateTime = Utils.datetime();
-        table.rows.add(tradingDay.get());
-        writeJsonTable(table);
+        table.setName(TradingDay.class.getCanonicalName());
+        table.setUpdateTime(Utils.datetime());
+        table.rows().add(tradingDay);
+        writeJsonTable(target, table);
     }
 
-    private void writeJsonTable(Table table) {
-        var target = tablePath(table.name);
+    private void writeJsonTable(Path target, Table table) {
         Utils.file(target);
         writeJson(target.toFile(), table);
     }
 
-    private <T> void writeTable(Class<T> clazz, Collection<T> rows) {
+    private <T> void writeTable(Path target, Class<T> clazz, Collection<T> rows) {
         var table = new Table<T>();
-        table.name = clazz.getCanonicalName();
-        table.updateTime = Utils.datetime();
-        table.rows.addAll(rows);
-        writeJsonTable(table);
+        table.setName(clazz.getCanonicalName());
+        table.setUpdateTime(Utils.datetime());
+        table.rows().addAll(rows);
+        writeJsonTable(target, table);
     }
 
     private void writeJson(File target, Object object) {
@@ -718,11 +800,14 @@ public class QueriesImpl implements Queries {
         }
     }
 
-    private class Table<T> {
+    private Gson createGson() {
+        var builder = new Gson().newBuilder().serializeNulls().setPrettyPrinting();
+        return builder.create();
+    }
 
-        String name;
-        String updateTime;
-        Set<T> rows = new HashSet<>();
+    private void copySchema(Path backupDirectory) throws IOException {
+        Utils.delete(Utils.schemaDirectory(), false);
+        Utils.copyEntries(backupDirectory, Utils.schemaDirectory());
     }
 
 }

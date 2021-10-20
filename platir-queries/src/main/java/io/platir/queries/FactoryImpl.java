@@ -10,6 +10,8 @@ import io.platir.service.Order;
 import io.platir.service.Position;
 import io.platir.service.RiskNotice;
 import io.platir.service.StrategyProfile;
+import io.platir.service.Tick;
+import io.platir.service.Trade;
 import io.platir.service.TradingDay;
 import io.platir.service.Transaction;
 import io.platir.service.User;
@@ -78,5 +80,15 @@ public class FactoryImpl implements Factory {
     @Override
     public User newUser() {
         return new UserImpl();
+    }
+
+    @Override
+    public Tick newTick() {
+        return new TickImpl();
+    }
+
+    @Override
+    public Trade newTrade() {
+        return new TradeImpl();
     }
 }

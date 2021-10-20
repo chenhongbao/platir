@@ -1,9 +1,7 @@
 package io.platir.service;
 
 import java.util.Set;
-
-import java.io.File;
-import java.util.List;
+import java.nio.file.Path;
 
 public interface Queries {
 
@@ -13,9 +11,9 @@ public interface Queries {
 
     void destroy() throws DataQueryException;
 
-    Schema backup(File target);
+    Schema backup(Path directory);
 
-    Schema restore(File backup) throws DataQueryException;
+    Schema restore(Path backupDirectory) throws DataQueryException;
 
     void insert(TradingDay day) throws DataQueryException;
 
@@ -51,7 +49,7 @@ public interface Queries {
 
     void update(StrategyProfile... profiles) throws DataQueryException;
 
-    void updateTradingDay(TradingDay day) throws DataQueryException;
+    void update(TradingDay... days) throws DataQueryException;
 
     void clearAccounts() throws DataQueryException;
 
@@ -88,7 +86,7 @@ public interface Queries {
     Set<User> selectUsers() throws DataQueryException;
 
     Set<Tick> selectTicks() throws DataQueryException;
-    
-    List<RiskNotice> selectRiskNotices() throws DataQueryException;
+
+    Set<RiskNotice> selectRiskNotices() throws DataQueryException;
 
 }

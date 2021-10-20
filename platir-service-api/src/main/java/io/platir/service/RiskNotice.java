@@ -6,6 +6,10 @@ public abstract class RiskNotice {
     public static Integer WARNING = 1;
     public static Integer ERROR = 2;
     public static Integer FATAL_ERROR = 3;
+    
+    public abstract String getRiskNoticeId();
+    
+    public abstract void setRiskNoticeId(String riskNoticeId);
 
     public abstract String getStrategyId();
 

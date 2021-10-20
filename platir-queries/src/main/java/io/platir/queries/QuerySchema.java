@@ -21,7 +21,7 @@ import java.util.Set;
 public class QuerySchema implements Schema {
 
     private String lastModifiedTime;
-    private TradingDay tradingDay;
+    private TradingDay tradingDay = new TradingDayImpl();
     private final Set<Account> accounts = new HashSet<>();
     private final Set<Tick> ticks = new HashSet<>();
     private final Set<Transaction> transactions = new HashSet<>();
@@ -49,7 +49,8 @@ public class QuerySchema implements Schema {
 
     @Override
     public void setTradingDay(TradingDay tradingDay) {
-        this.tradingDay = tradingDay;
+        this.tradingDay.setTradingDay(tradingDay.getTradingDay());
+        this.tradingDay.setUpdateTime(tradingDay.getUpdateTime());
     }
 
     @Override

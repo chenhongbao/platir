@@ -8,6 +8,7 @@ import io.platir.service.RiskNotice;
  */
 class RiskNoticeImpl extends RiskNotice {
 
+    private String riskNoticeId;
     private String strategyId;
     private String userId;
     private Integer level;
@@ -78,6 +79,16 @@ class RiskNoticeImpl extends RiskNotice {
     @Override
     public boolean isGood() {
         return code == 0;
+    }
+
+    @Override
+    public String getRiskNoticeId() {
+        return riskNoticeId;
+    }
+
+    @Override
+    public void setRiskNoticeId(String riskNoticeId) {
+        this.riskNoticeId = riskNoticeId;
     }
 
 }

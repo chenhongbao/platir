@@ -13,6 +13,7 @@ import io.platir.service.Transaction;
 import io.platir.service.User;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -65,7 +66,7 @@ public class QueriesImplTest {
         assertTrue(queries.selectTrades().isEmpty());
         assertTrue(queries.selectTransactions().isEmpty());
         assertTrue(queries.selectUsers().isEmpty());
-        assertTrue(queries.selectTradingDay() == null);
+        assertTrue(Utils.beanEquals(TradingDay.class, queries.selectTradingDay(), new TradingDayImpl()));
     }
 
     @Test
@@ -80,15 +81,16 @@ public class QueriesImplTest {
     @Order(998)
     @DisplayName("Test backing up and restoring backup tables.")
     public void testBackupRestore() throws Exception {
-        var file = Paths.get(Utils.backupDirectory().toString(), "unit-test-backup.json");
+        var path = Paths.get(Utils.backupDirectory().toString(), Utils.date());
+        Utils.dir(path);
         /* Step 1: Back up schema. */
-        var oldSchema = queries.backup(file.toFile());
-        /* Step 2: Make change to schema. */
         testAccount();
-        testInsert_ContractArr();
+        testContract();
         testInstrument();
         testStrategyProfile();
         testTick();
+        var oldSchema = queries.backup(path);
+        /* Step 2: Make change to schema. */
         testTradingDay();
         testUser();
         testTrade();
@@ -97,7 +99,7 @@ public class QueriesImplTest {
         /* Risk notice is special because it is not backup. */
         testRiskNotice();
         /* Step 3: Restore schema. */
-        queries.restore(file.toFile());
+        queries.restore(path);
         /* Verify restored tables. */
         assertTrue(Utils.collectionEquals(Account.class, oldSchema.getAccounts(), queries.selectAccounts()), "Account restore failed.");
         assertTrue(Utils.collectionEquals(Contract.class, oldSchema.getContracts(), queries.selectContracts()), "Contract restore failed.");
@@ -115,7 +117,7 @@ public class QueriesImplTest {
     @Order(100)
     @DisplayName("Test insert/select Order.")
     public void testOrder() throws Exception {
-        WrapOrder.testOrder(queries);
+        assertTrue(WrapOrder.testOrder(queries), "Order restore failed.");
     }
 
     @Test
@@ -167,7 +169,7 @@ public class QueriesImplTest {
     @Test
     @Order(106)
     @DisplayName("Test insert/select Contract.")
-    public void testInsert_ContractArr() throws Exception {
+    public void testContract() throws Exception {
         testInsertSelect(Contract.class);
     }
 
@@ -253,18 +255,29 @@ public class QueriesImplTest {
         /* Step 1: Create new instance by reflecting on Factory. */
         Method factory;
         try {
-            name = "new" + clazz.getCanonicalName();
+            name = "new" + clazz.getSimpleName();
             factory = queries.getFactory().getClass().getMethod(name);
         } catch (NoSuchMethodException exception) {
             fail("Can't find factory method " + name + ", " + exception.getMessage());
             return;
         }
         /* Step 2: Create some instances to be inserted. */
+        var keySetterName = "set" + clazz.getSimpleName() + "Id";
+        Method keySetter;
+        try {
+            keySetter = clazz.getMethod(keySetterName, String.class);
+        } catch (NoSuchMethodException exception) {
+            fail("Can't find key setter " + keySetterName + ", " + exception.getMessage());
+            return;
+        }
         Set<T> items = new HashSet<>();
-        var totalInsertionCount = Utils.randomInteger();
+        var totalInsertionCount = Utils.positiveRandomInteger() % 100 + 1;
         while (totalInsertionCount-- > 0) {
             var item = factory.invoke(queries.getFactory());
             if (item != null) {
+                /* Item needs a key. */
+                keySetter.invoke(item, UUID.randomUUID().toString());
+                setOtherIds(clazz, item);
                 items.add((T) item);
             } else {
                 fail("Factory method " + name + " returns null.");
@@ -279,22 +292,22 @@ public class QueriesImplTest {
             fail("Can't find inserter method " + name + ", " + exception.getMessage());
             return;
         }
-        inserter.invoke(queries, items.toArray());
+        inserter.invoke(queries, (Object) toArray(clazz, items));
         /* Step 4: Get the inserted items for checking. */
         Method selector;
         try {
-            name = "select" + Account.class.getCanonicalName() + "s";
+            name = "select" + clazz.getSimpleName() + "s";
             selector = queries.getClass().getMethod(name);
         } catch (NoSuchMethodException exception) {
             fail("Can't find selector method " + name + ", " + exception.getMessage());
             return;
         }
         /* Step 5: Check inserted items. */
-        assertTrue(Utils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime insertion failed.");
+        assertTrue(Utils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getSimpleName() + " runtime insertion failed.");
         /* Step 6: Check schema file udpate success. */
         var anotherQueries = new QueriesImpl();
         anotherQueries.initialize();
-        assertTrue(Utils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
+        assertTrue(Utils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getSimpleName() + " loading schema failed.");
     }
 
     private <T> void testUpdate(Class<T> clazz) throws Exception {
@@ -302,29 +315,34 @@ public class QueriesImplTest {
         /* Step 1: Select items to be updated. */
         Method selector;
         try {
-            name = "select" + Account.class.getCanonicalName() + "s";
+            name = "select" + clazz.getSimpleName() + "s";
             selector = queries.getClass().getMethod(name);
-        } catch (NoSuchMethodException exception) {
-            fail("Can't find selector method " + name + ", " + exception.getMessage());
-            return;
+        } catch (NoSuchMethodException ignored) {
+            String name2 = "select" + clazz.getSimpleName();
+            try {
+                selector = queries.getClass().getMethod(name2);
+            } catch (NoSuchMethodException exception) {
+                fail("Can't find selector method " + name + " or " + name2 + ", " + exception.getMessage());
+                return;
+            }
         }
-        var items = (Set<T>) selector.invoke(queries);
+        Set<T> items = selectSet(clazz, selector);
         /* Step 2: Choose a field to update by reflecting on its setter. */
         Method setter = null;
-        var keySetter = "set" + clazz.getCanonicalName() + "Id";
+        var keySetter = "set" + clazz.getSimpleName() + "Id";
         for (var method : clazz.getMethods()) {
             if (method.getName().equals(keySetter)) {
                 continue;
             }
             var params = method.getParameterTypes();
-            if (params.length != 1 || params[1] != String.class) {
+            if (params.length != 1 || params[0] != String.class) {
                 continue;
             }
             setter = method;
             break;
         }
         if (setter == null) {
-            fail("No setter(String) found in " + clazz.getCanonicalName() + ".");
+            fail("No setter(String) found in " + clazz.getSimpleName() + ".");
             return;
         }
         /* Update field. */
@@ -334,18 +352,54 @@ public class QueriesImplTest {
         /* Step 3: Update items into schema. */
         Method updater;
         try {
-            name = "update" + clazz.getCanonicalName() + "s";
+            name = "update";
             updater = queries.getClass().getMethod(name, Array.newInstance(clazz, 1).getClass());
-            updater.invoke(queries, items);
+            updater.invoke(queries, (Object) toArray(clazz, items));
         } catch (NoSuchMethodException exception) {
-            fail("Can't find updater method " + name + " in " + clazz.getCanonicalName() + ", " + exception.getMessage(), exception);
+            fail("Can't find updater method " + name + ", " + exception.getMessage(), exception);
             return;
         }
         /* Step 4: Check updated items. */
-        assertTrue(Utils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime update failed.");
+        assertTrue(Utils.collectionEquals(clazz, items, selectSet(clazz, selector)), clazz.getSimpleName() + " runtime update failed.");
         /* Step 5: Check schema file udpate success. */
         var anotherQueries = new QueriesImpl();
         anotherQueries.initialize();
-        assertTrue(Utils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
+        assertTrue(Utils.collectionEquals(clazz, selectSet(clazz, selector, anotherQueries), selectSet(clazz, selector)), clazz.getSimpleName() + " loading schema failed.");
+    }
+
+    private <T> Set<T> selectSet(Class<T> clazz, Method selector) throws Exception {
+        return selectSet(clazz, selector, queries);
+    }
+
+    private <T> Set<T> selectSet(Class<T> clazz, Method selector, Object base) throws Exception {
+        Set<T> items;
+        if (clazz == TradingDay.class) {
+            items = new HashSet<>();
+            items.add((T) selector.invoke(base));
+        } else {
+            items = (Set<T>) selector.invoke(base);
+        }
+        return items;
+    }
+
+    private <T> T[] toArray(Class<T> clazz, Set<T> items) {
+        var array = (T[]) Array.newInstance(clazz, items.size());
+        int index = 0;
+        for (var item : items) {
+            array[index++] = item;
+        }
+        return array;
+    }
+
+    private <T> void setOtherIds(Class<T> clazz, Object item) throws Exception {
+        Method m;
+        if (clazz == Tick.class) {
+            m = clazz.getMethod("setInstrumentId", String.class);
+            m.invoke(item, UUID.randomUUID().toString());
+        }
+        if (clazz == StrategyProfile.class) {
+            m = clazz.getMethod("setStrategyId", String.class);
+            m.invoke(item, UUID.randomUUID().toString());
+        }
     }
 }

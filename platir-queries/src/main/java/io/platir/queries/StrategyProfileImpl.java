@@ -10,6 +10,7 @@ import java.util.Arrays;
  */
 class StrategyProfileImpl implements StrategyProfile {
 
+    private String strategyProfileId;
     private String strategyId;
     private String userId;
     private String password;
@@ -19,6 +20,16 @@ class StrategyProfileImpl implements StrategyProfile {
     private String[] instrumentIds;
     private String[] args;
     private URI uri;
+
+    @Override
+    public String getStrategyProfileId() {
+        return strategyProfileId;
+    }
+
+    @Override
+    public void setStrategyProfileId(String strategyProfileId) {
+        this.strategyProfileId = strategyProfileId;
+    }
 
     @Override
     public String getStrategyId() {
@@ -46,13 +57,13 @@ class StrategyProfileImpl implements StrategyProfile {
     }
 
     @Override
-    public void setPassword(String password) {
-        this.password = password;
+    public String getState() {
+        return state;
     }
 
     @Override
-    public String getState() {
-        return state;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     @Override
@@ -87,7 +98,9 @@ class StrategyProfileImpl implements StrategyProfile {
 
     @Override
     public void setInstrumentIds(String[] instrumentIds) {
-        this.instrumentIds = Arrays.copyOf(instrumentIds, instrumentIds.length);
+        if (instrumentIds != null && instrumentIds.length > 0) {
+            this.instrumentIds = Arrays.copyOf(instrumentIds, instrumentIds.length);
+        }
     }
 
     @Override
@@ -97,7 +110,9 @@ class StrategyProfileImpl implements StrategyProfile {
 
     @Override
     public void setArgs(String[] args) {
-        this.args = args;
+        if (args != null && args.length > 0) {
+            this.args = Arrays.copyOf(args, args.length);
+        }
     }
 
     @Override
