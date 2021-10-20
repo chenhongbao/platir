@@ -17,7 +17,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -89,9 +91,15 @@ public final class Utils {
         return LocalDateTime.now().format(datetimeFormat);
     }
 
+    public static Path applicationDirectory() {
+        var path = Paths.get(System.getProperty("user.dir"), "PlatirWorking");
+        dir(path);
+        return path;
+    }
+
     public static Path cwd() {
         var code = Integer.toString(physicalJarLocation().hashCode());
-        var path = Paths.get(System.getProperty("user.dir"), "PlatirWorking", code);
+        var path = Paths.get(applicationDirectory().toString(), code);
         dir(path);
         return path;
     }
@@ -130,39 +138,29 @@ public final class Utils {
     }
 
     public static void delete(Path root, boolean deleteRoot) throws IOException {
-        if (Files.isDirectory(root)) {
-            Files.walkFileTree(root, new FileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes bfa) throws IOException {
-                    if (!directory.equals(root)) {
-                        delete(directory, true);
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes bfa) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException ioe) throws IOException {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path directory, IOException ioe) throws IOException {
-                    Files.delete(directory);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-            if (deleteRoot) {
-                Files.delete(root);
+        Files.walkFileTree(root, new FileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes bfa) throws IOException {
+                return FileVisitResult.CONTINUE;
             }
-        } else if (Files.isRegularFile(root) || Files.isSymbolicLink(root)) {
-            Files.delete(root);
-        }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes bfa) throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException ioe) throws IOException {
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path directory, IOException ioe) throws IOException {
+                Files.delete(directory);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 
     public static Path schemaDirectory() {
@@ -286,6 +284,7 @@ public final class Utils {
             /* Console output is essential, just fallback to stdout/err. */
             out = new Console(System.out);
             err = new Console(System.err);
+
         }
     }
 
