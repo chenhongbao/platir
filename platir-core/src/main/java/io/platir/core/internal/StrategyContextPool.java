@@ -57,7 +57,7 @@ class StrategyContextPool {
 
     private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
         /* Insert strategy profile into data source. */
-        profile.setState("running");
+        profile.setState(Constants.FLAG_STRATEGY_RUNNING);
         profile.setCreateDate(Utils.date());
         try {
             queries.insert(profile);
@@ -147,7 +147,7 @@ class StrategyContextPool {
 
     private void setStrategyRemoved(StrategyProfile profile) throws StrategyRemovalException {
         /* Set strategy state in data source, to be removed at settlement. */
-        profile.setState("removed");
+        profile.setState(Constants.FLAG_STRATEGY_REMOVED);
         profile.setRemoveDate(Utils.date());
         try {
             queries.update(profile);

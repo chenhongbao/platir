@@ -1,6 +1,7 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
+import io.platir.service.Constants;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,7 +34,7 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
     @Override
     public TransactionContext open(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         checkTransactionParams(instrumentId, direction, price, volume);
-        return push(instrumentId, "open", direction, price, volume);
+        return push(instrumentId, Constants.FLAG_ORDER_OPEN, direction, price, volume);
     }
 
     private Transaction createTransaction(String strategyId, String instrumentId, String offset, String direction, Double price, Integer volume) {
@@ -77,7 +78,7 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
     @Override
     public TransactionContext close(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         checkTransactionParams(instrumentId, direction, price, volume);
-        return push(instrumentId, "close", direction, price, volume);
+        return push(instrumentId, Constants.FLAG_ORDER_CLOSE, direction, price, volume);
     }
 
     private TransactionContext push(String instrumentId, String offset, String direction, Double price, Integer volume) throws TransactionException {
@@ -98,13 +99,13 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
 
     void interrupt(boolean interrupted) throws InterruptionException {
         var state = getStrategyProfile().getState();
-        if (state.compareToIgnoreCase("removed") == 0) {
+        if (state.compareToIgnoreCase(Constants.FLAG_STRATEGY_REMOVED) == 0) {
             throw new InterruptionException("Can't interrupt a removed strategy.");
         }
         if (interrupted) {
-            getStrategyProfile().setState("interrupted");
+            getStrategyProfile().setState(Constants.FLAG_STRATEGY_INTERRUPTED);
         } else {
-            getStrategyProfile().setState("running");
+            getStrategyProfile().setState(Constants.FLAG_STRATEGY_RUNNING);
         }
         try {
             queries().update(getStrategyProfile());

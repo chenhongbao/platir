@@ -53,7 +53,7 @@ class MarketRouter implements MarketListener {
                 var datetime = Utils.datetime(tick.getUpdateTime());
                 /* if tick doesn't arrive for over 30 days, the instrument has expired. */
                 if (Duration.between(datetime, LocalDateTime.now()).toDays() < 30) {
-                    marketAdaptor.add(instrumentId);
+                    marketAdaptor.subscribe(instrumentId);
                 }
             }
         });
@@ -81,7 +81,7 @@ class MarketRouter implements MarketListener {
 
     private void subscribe(String instrumentId, StrategyContextImpl strategyContext) {
         var strategies = subscribedStrategies.computeIfAbsent(instrumentId, key -> {
-            marketAdaptor.add(key);
+            marketAdaptor.subscribe(key);
             return new ConcurrentSkipListSet<>();
         });
         if (!strategies.contains(strategyContext)) {

@@ -56,7 +56,7 @@ class TransactionQueue implements Runnable {
     void push(TransactionContextImpl transactionContext) throws DataQueryException {
         var transaction = transactionContext.getTransaction();
         /* Update states. */
-        transaction.setState(Constants.TRANSACTION_STATE_PENDING);
+        transaction.setState(Constants.FLAG_TRANSACTION_PENDING);
         transaction.setStateMessage("never enqueued");
         /* Initialize adding transaction to data source */
         transactionContext.getQueryClient().queries().update(transaction);
@@ -72,7 +72,7 @@ class TransactionQueue implements Runnable {
             if (pendingTransaction.getInstrumentId().compareTo(instrumentId) == 0) {
                 pendingIterator.remove();
                 /* Change state. */
-                pendingTransaction.setState(Constants.TRANSACTION_STATE_EXECUTING);
+                pendingTransaction.setState(Constants.FLAG_TRANSACTION_EXECUTING);
                 pendingTransaction.setStateMessage("tick triggers executiion");
                 try {
                     pending.getQueryClient().queries().update(pendingTransaction);
@@ -99,7 +99,7 @@ class TransactionQueue implements Runnable {
                 /* In-front risk assessment. */
                 var riskNotice = beforeRisk(executingContext.getLastTriggerTick(), executingContext);
                 if (!riskNotice.isGood()) {
-                    executingTransaction.setState(Constants.TRANSACTION_STATE_RISK_BLOCKED + ";" + riskNotice.getCode());
+                    executingTransaction.setState(Constants.FLAG_TRANSACTION_RISK_BLOCKED + ";" + riskNotice.getCode());
                     executingTransaction.setStateMessage(riskNotice.getMessage());
                     executingContext.awake();
                     /* save risk notice */
@@ -116,7 +116,7 @@ class TransactionQueue implements Runnable {
                         } else if ("close".compareToIgnoreCase(executingTransaction.getOffset()) == 0) {
                             close(executingContext);
                         } else {
-                            executingTransaction.setState(Constants.TRANSACTION_STATE_INVALID);
+                            executingTransaction.setState(Constants.FLAG_TRANSACTION_INVALID);
                             executingTransaction.setStateMessage("invalid offset(" + executingTransaction.getOffset() + ")");
                             try {
                                 executingContext.getQueryClient().queries().update(executingTransaction);
@@ -159,7 +159,7 @@ class TransactionQueue implements Runnable {
         var queryClient = transactionContext.getQueryClient();
         var checkReturn = TransactionFacilities.checkClose(transactionContext.getQueryClient(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
         if (!checkReturn.getNotice().isGood()) {
-            transaction.setState(Constants.TRANSACTION_STATE_CHECK_CLOSE + ";" + checkReturn.getNotice().getCode());
+            transaction.setState(Constants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getNotice().getCode());
             transaction.setStateMessage(checkReturn.getNotice().getMessage());
             try {
                 queryClient.queries().update(transaction);
@@ -194,7 +194,7 @@ class TransactionQueue implements Runnable {
         /* Check resource. */
         var checkReturn = TransactionFacilities.checkOpen(newOrderId, queryClient, transaction);
         if (!checkReturn.getNotice().isGood()) {
-            transaction.setState(Constants.TRANSACTION_STATE_CHECK_OPEN + ";" + checkReturn.getNotice().getCode());
+            transaction.setState(Constants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getNotice().getCode());
             transaction.setStateMessage(checkReturn.getNotice().getMessage());
             try {
                 queryClient.queries().update(transaction);
@@ -245,7 +245,7 @@ class TransactionQueue implements Runnable {
         if (!responseNotice.isGood()) {
             if (responseNotice.getCode() == Constants.CODE_ORDER_MARKET_CLOSE) {
                 /* market is not open, wait until it opens */
-                transaction.setState(Constants.TRANSACTION_STATE_SEND_PENDING + ";" + responseNotice.getCode()
+                transaction.setState(Constants.FLAG_TRANSACTION_SEND_PENDING + ";" + responseNotice.getCode()
                 );
                 transaction.setStateMessage(responseNotice.getMessage());
                 try {
@@ -267,7 +267,7 @@ class TransactionQueue implements Runnable {
                 }
             } else {
                 /* can't fill order because it is invalid or account is insufficient */
-                transaction.setState(Constants.TRANSACTION_STATE_SEND_ABORT + ";" + responseNotice.getCode());
+                transaction.setState(Constants.FLAG_TRANSACTION_SEND_ABORT + ";" + responseNotice.getCode());
                 transaction.setStateMessage(responseNotice.getMessage());
                 try {
                     queryClient.queries().update(transaction);
@@ -278,7 +278,7 @@ class TransactionQueue implements Runnable {
                 transactionContext.awake();
             }
         } else {
-            transaction.setState(Constants.TRANSACTION_STATE_SEND_OK);
+            transaction.setState(Constants.FLAG_TRANSACTION_SEND_OK);
             transaction.setStateMessage("order sent ok");
             try {
                 queryClient.queries().update(transaction);
