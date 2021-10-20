@@ -78,7 +78,7 @@ public class PlatirImpl extends Platir {
             marketAdaptor.shutdown();
             tradeAdaptor.shutdown();
             isShutdown.set(true);
-            queriesDestroy();
+            queriesShutdown();
             /* signal waiting thread on join() */
             signalJoiner();
             /* release instance lock */
@@ -108,8 +108,8 @@ public class PlatirImpl extends Platir {
             }
             /* ensure single instance */
             acquireInstance();
-            queriesInit();
             setup();
+            queriesInit();
             isShutdown.set(false);
         }
     }
@@ -143,9 +143,9 @@ public class PlatirImpl extends Platir {
         }
     }
 
-    private void queriesDestroy() {
+    private void queriesShutdown() {
         try {
-            queries.destroy();
+            queries.shutdown();
         } catch (DataQueryException ex) {
             throw new RuntimeException("Fail closing data source.", ex);
         }

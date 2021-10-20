@@ -9,7 +9,7 @@ public interface Queries {
 
     void initialize() throws DataQueryException;
 
-    void destroy() throws DataQueryException;
+    void shutdown() throws DataQueryException;
 
     Schema backup(Path directory);
 

@@ -59,30 +59,39 @@ public class QueriesImpl implements Queries {
 
     @Override
     public void initialize() throws DataQueryException {
+        accountTable.clear();
         readTable(AccountImpl.class, Account.class.getSimpleName()).rows().forEach(item -> {
             accountTable.put(item.getAccountId(), item);
         });
+        tickTable.clear();
         readTable(TickImpl.class, Tick.class.getSimpleName()).rows().forEach(item -> {
             tickTable.put(item.getInstrumentId(), item);
         });
+        transactionTable.clear();
         readTable(TransactionImpl.class, Transaction.class.getSimpleName()).rows().forEach(item -> {
             transactionTable.put(item.getTransactionId(), item);
         });
+        orderTable.clear();
         readTable(OrderImpl.class, Order.class.getSimpleName()).rows().forEach(item -> {
             orderTable.put(item.getOrderId(), item);
         });
+        tradeTable.clear();
         readTable(TradeImpl.class, Trade.class.getSimpleName()).rows().forEach(item -> {
             tradeTable.put(item.getTradeId(), item);
         });
+        contractTable.clear();
         readTable(ContractImpl.class, Contract.class.getSimpleName()).rows().forEach(item -> {
             contractTable.put(item.getContractId(), item);
         });
+        userTable.clear();
         readTable(UserImpl.class, User.class.getSimpleName()).rows().forEach(item -> {
             userTable.put(item.getUserId(), item);
         });
+        profileTable.clear();
         readTable(StrategyProfileImpl.class, StrategyProfile.class.getSimpleName()).rows().forEach(item -> {
             profileTable.put(item.getStrategyId(), item);
         });
+        instrumentTable.clear();
         readTable(InstrumentImpl.class, Instrument.class.getSimpleName()).rows().forEach(item -> {
             instrumentTable.put(item.getInstrumentId(), item);
         });
@@ -97,18 +106,18 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public void destroy() throws DataQueryException {
+    public void shutdown() throws DataQueryException {
         tradingDay.setTradingDay(null);
         tradingDay.setUpdateTime(null);
         instrumentTable.clear();
         userTable.clear();
-        clearAccounts();
-        clearContracts();
-        clearOrders();
-        clearStrategies();
-        clearTicks();
-        clearTrades();
-        clearTransactions();
+        accountTable.clear();
+        contractTable.clear();
+        orderTable.clear();
+        profileTable.clear();
+        tickTable.clear();
+        tradeTable.clear();
+        transactionTable.clear();
     }
 
     @Override
@@ -135,7 +144,7 @@ public class QueriesImpl implements Queries {
     @Override
     public Schema restore(Path backupDirectory) throws DataQueryException {
         try {
-            destroy();
+            shutdown();
             copySchema(backupDirectory);
             initialize();
             return buildSchema();

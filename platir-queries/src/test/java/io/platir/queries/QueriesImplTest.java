@@ -2,6 +2,7 @@ package io.platir.queries;
 
 import io.platir.service.Account;
 import io.platir.service.Contract;
+import io.platir.service.DataQueryException;
 import io.platir.service.Instrument;
 import io.platir.service.Queries;
 import io.platir.service.RiskNotice;
@@ -56,6 +57,18 @@ public class QueriesImplTest {
     @DisplayName("Test initializing empty tables.")
     public void testInitializeEmptyTable() throws Exception {
         queries.initialize();
+        checkEmptySchema();
+    }
+
+    @Test
+    @Order(999)
+    @DisplayName("Test destroying tables.")
+    public void testDestroy() throws Exception {
+        queries.shutdown();
+        checkEmptySchema();
+    }
+
+    private void checkEmptySchema() throws DataQueryException {
         assertTrue(queries.selectAccounts().isEmpty());
         assertTrue(queries.selectContracts().isEmpty());
         assertTrue(queries.selectInstruments().isEmpty());
@@ -66,14 +79,6 @@ public class QueriesImplTest {
         assertTrue(queries.selectTransactions().isEmpty());
         assertTrue(queries.selectUsers().isEmpty());
         assertTrue(Utils.beanEquals(TradingDay.class, queries.selectTradingDay(), new TradingDayImpl()));
-    }
-
-    @Test
-    @Order(999)
-    @DisplayName("Test destroying tables.")
-    public void testDestroy() throws Exception {
-        queries.destroy();
-        testInitializeEmptyTable();
     }
 
     @Test
