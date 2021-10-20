@@ -34,11 +34,7 @@ public abstract class Platir {
 
     public abstract Set<StrategyContext> getStrategies();
 
-    public abstract void join() throws InterruptedException;
-
     public abstract void start() throws StartupException;
-
-    public abstract void shutdown(int reason);
 
     public abstract void settle() throws SettlementException;
 

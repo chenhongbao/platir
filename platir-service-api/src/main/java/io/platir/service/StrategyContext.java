@@ -6,9 +6,9 @@ import java.util.logging.LogRecord;
 
 public interface StrategyContext {
 
-	void initialize();
+	void start();
 
-	void shutdown(int reason);
+	void stop(int reason);
 
 	void interruptTransaction(boolean interrupted) throws InterruptionException;
 

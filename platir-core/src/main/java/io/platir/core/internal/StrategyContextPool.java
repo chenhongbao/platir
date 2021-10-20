@@ -70,15 +70,15 @@ class StrategyContextPool {
         return strategies;
     }
 
-    void initialize() {
+    void start() {
         strategies.forEach(strategy -> {
-            strategy.initialize();
+            strategy.start();
         });
     }
 
-    void shutdown(int reason) {
+    void stop(int reason) {
         strategies.forEach(strategy -> {
-            strategy.shutdown(reason);
+            strategy.stop(reason);
         });
     }
 

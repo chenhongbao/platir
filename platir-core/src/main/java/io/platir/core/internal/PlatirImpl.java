@@ -1,13 +1,9 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
-import io.platir.queries.QueriesImpl;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import io.platir.core.IntegrityException;
 import io.platir.core.InvalidLoginException;
@@ -34,8 +30,6 @@ import io.platir.service.api.RiskManager;
 
 public class PlatirImpl extends Platir {
 
-    private final Lock shutdownLock = new ReentrantLock();
-    private final Condition shutdownCondition = shutdownLock.newCondition();
     private final AtomicBoolean isShutdown = new AtomicBoolean(true);
     private Queries queries;
     private RiskManager riskManager;
@@ -57,47 +51,8 @@ public class PlatirImpl extends Platir {
     }
 
     @Override
-    public void join() throws InterruptedException {
-        shutdownLock.lock();
-        try {
-            shutdownCondition.await();
-        } finally {
-            shutdownLock.unlock();
-        }
-    }
-
-    @Override
-    public void shutdown(int reason) {
-        synchronized (isShutdown) {
-            if (isShutdown.get()) {
-                return;
-            }
-            /* first shutdown strategies */
-            strategyContextPool.shutdown(reason);
-            /* then shutdown broker connection */
-            marketAdaptor.shutdown();
-            tradeAdaptor.shutdown();
-            isShutdown.set(true);
-            queriesShutdown();
-            /* signal waiting thread on join() */
-            signalJoiner();
-            /* release instance lock */
-            releaseInstance();
-        }
-    }
-
-    @Override
     public void setQueries(Queries queries) {
         this.queries = queries;
-    }
-
-    private void signalJoiner() {
-        shutdownLock.lock();
-        try {
-            shutdownCondition.signal();
-        } finally {
-            shutdownLock.unlock();
-        }
     }
 
     @Override
@@ -126,28 +81,11 @@ public class PlatirImpl extends Platir {
         }
     }
 
-    private void releaseInstance() {
-        try {
-            instanceLock.close();
-        } catch (IOException ex) {
-            /* slient shutdown */
-            Utils.err().write("Can;t release instance lock: " + ex.getMessage(), ex);
-        }
-    }
-
     private void queriesInit() {
         try {
             queries.initialize();
         } catch (DataQueryException e) {
             throw new RuntimeException("Fail preparing database.", e);
-        }
-    }
-
-    private void queriesShutdown() {
-        try {
-            queries.shutdown();
-        } catch (DataQueryException ex) {
-            throw new RuntimeException("Fail closing data source.", ex);
         }
     }
 
@@ -172,7 +110,7 @@ public class PlatirImpl extends Platir {
             strategyContextPool = new StrategyContextPool(transactionQueue, marketRouter, queries);
         }
         /* Finally initialize strategies when all are ready. */
-        strategyContextPool.initialize();
+        strategyContextPool.start();
     }
 
     @Override

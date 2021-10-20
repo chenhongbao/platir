@@ -9,8 +9,6 @@ public interface Queries {
 
     void initialize() throws DataQueryException;
 
-    void shutdown() throws DataQueryException;
-
     Schema backup(Path directory);
 
     Schema restore(Path backupDirectory) throws DataQueryException;

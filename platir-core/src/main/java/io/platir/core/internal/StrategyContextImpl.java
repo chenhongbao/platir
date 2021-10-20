@@ -241,13 +241,13 @@ class StrategyContextImpl implements StrategyContext {
     }
 
     @Override
-    public void initialize() {
+    public void start() {
         callbackQueue.timedOnStart(strategyProfile.getArgs(), platirClient);
         isShutdown.set(false);
     }
 
     @Override
-    public void shutdown(int reason) {
+    public void stop(int reason) {
         isShutdown.set(true);
         callbackQueue.timedOnStop(reason);
     }

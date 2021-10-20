@@ -62,27 +62,6 @@ public class QueriesImplTest {
 
     @Test
     @Order(999)
-    @DisplayName("Test destroying tables.")
-    public void testDestroy() throws Exception {
-        queries.shutdown();
-        checkEmptySchema();
-    }
-
-    private void checkEmptySchema() throws DataQueryException {
-        assertTrue(queries.selectAccounts().isEmpty());
-        assertTrue(queries.selectContracts().isEmpty());
-        assertTrue(queries.selectInstruments().isEmpty());
-        assertTrue(queries.selectOrders().isEmpty());
-        assertTrue(queries.selectStrategyProfiles().isEmpty());
-        assertTrue(queries.selectTicks().isEmpty());
-        assertTrue(queries.selectTrades().isEmpty());
-        assertTrue(queries.selectTransactions().isEmpty());
-        assertTrue(queries.selectUsers().isEmpty());
-        assertTrue(Utils.beanEquals(TradingDay.class, queries.selectTradingDay(), new TradingDayImpl()));
-    }
-
-    @Test
-    @Order(998)
     @DisplayName("Test backing up and restoring backup tables.")
     public void testBackupRestore() throws Exception {
         var path = Paths.get(Utils.backupDirectory().toString(), Utils.date());
@@ -252,6 +231,19 @@ public class QueriesImplTest {
     @DisplayName("Test update TradingDay.")
     public void testUpdateTradingDay() throws Exception {
         testUpdate(TradingDay.class);
+    }
+
+    private void checkEmptySchema() throws DataQueryException {
+        assertTrue(queries.selectAccounts().isEmpty());
+        assertTrue(queries.selectContracts().isEmpty());
+        assertTrue(queries.selectInstruments().isEmpty());
+        assertTrue(queries.selectOrders().isEmpty());
+        assertTrue(queries.selectStrategyProfiles().isEmpty());
+        assertTrue(queries.selectTicks().isEmpty());
+        assertTrue(queries.selectTrades().isEmpty());
+        assertTrue(queries.selectTransactions().isEmpty());
+        assertTrue(queries.selectUsers().isEmpty());
+        assertTrue(Utils.beanEquals(TradingDay.class, queries.selectTradingDay(), new TradingDayImpl()));
     }
 
     private <T> void testInsertSelect(Class<T> clazz) throws Exception {

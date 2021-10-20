@@ -105,21 +105,6 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public void shutdown() throws DataQueryException {
-        tradingDay.setTradingDay(null);
-        tradingDay.setUpdateTime(null);
-        instrumentTable.clear();
-        userTable.clear();
-        accountTable.clear();
-        contractTable.clear();
-        orderTable.clear();
-        profileTable.clear();
-        tickTable.clear();
-        tradeTable.clear();
-        transactionTable.clear();
-    }
-
-    @Override
     public Schema backup(Path directory) {
         try {
             Utils.dir(directory);
@@ -143,7 +128,7 @@ public class QueriesImpl implements Queries {
     @Override
     public Schema restore(Path backupDirectory) throws DataQueryException {
         try {
-            shutdown();
+            clearRuntime();
             copySchema(backupDirectory);
             initialize();
             return buildSchema();
@@ -699,6 +684,20 @@ public class QueriesImpl implements Queries {
             });
             return notices;
         }
+    }
+
+    private void clearRuntime() {
+        tradingDay.setTradingDay(null);
+        tradingDay.setUpdateTime(null);
+        instrumentTable.clear();
+        userTable.clear();
+        accountTable.clear();
+        contractTable.clear();
+        orderTable.clear();
+        profileTable.clear();
+        tickTable.clear();
+        tradeTable.clear();
+        transactionTable.clear();
     }
 
     private QuerySchema buildSchema() throws DataQueryException {
