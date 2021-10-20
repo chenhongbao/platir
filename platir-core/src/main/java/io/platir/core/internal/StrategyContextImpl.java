@@ -41,7 +41,7 @@ class StrategyContextImpl implements StrategyContext {
 
     private final Logger logger;
     private final StrategyProfile strategyProfile;
-    private final AnnotatedStrategy annotatedStrategy;
+    private final CompositeStrategy annotatedStrategy;
     private final PlatirClientImpl platirClient;
     private final Set<TransactionContextImpl> transactions = new ConcurrentSkipListSet<>();
     private final StrategyLoggingHandler loggingHandler;
@@ -54,7 +54,7 @@ class StrategyContextImpl implements StrategyContext {
 
     StrategyContextImpl(StrategyProfile strategyProfile, Object strategyObject, TransactionQueue transactionQueue, MarketRouter marketQueue, Queries queries) throws AnnotationParsingException {
         this.strategyProfile = strategyProfile;
-        this.annotatedStrategy = new AnnotatedStrategy(strategyObject);
+        this.annotatedStrategy = new CompositeStrategy(strategyObject);
         this.platirClient = new PlatirClientImpl(this, transactionQueue, marketQueue, queries);
         this.callbackQueue = new StrategyCallbackQueue(annotatedStrategy, queries.getFactory());
         this.loggingHandler = new StrategyLoggingHandler();
@@ -111,7 +111,7 @@ class StrategyContextImpl implements StrategyContext {
         transactions.add(transaction);
     }
 
-    AnnotatedStrategy getAnnotatedStrategy() {
+    CompositeStrategy getAnnotatedStrategy() {
         return annotatedStrategy;
     }
 

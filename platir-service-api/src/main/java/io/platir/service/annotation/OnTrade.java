@@ -1,4 +1,4 @@
-package io.platir.service.annotations;
+package io.platir.service.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

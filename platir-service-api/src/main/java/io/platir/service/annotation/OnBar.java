@@ -1,4 +1,4 @@
-package io.platir.service.annotations;
+package io.platir.service.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -9,6 +9,8 @@ import java.lang.annotation.Target;
 @Documented
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface OnDestroy {
+public @interface OnBar {
+	String[] id();
 
+	int[] minute() default {};
 }
