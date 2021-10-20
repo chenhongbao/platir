@@ -180,20 +180,20 @@ class StrategyContextPool {
         if (strategyContext == null) {
             throw new StrategyUpdateException("Strategy(" + profile.getStrategyId() + ") not found in pool.");
         }
-        update(strategyContext.getProfile(), profile);
+        update(strategyContext, profile);
         marketRouter.updateSubscription(strategyContext);
     }
 
-    private void update(StrategyProfile previousProfile, StrategyProfile newProfile) throws StrategyUpdateException {
+    private void update(StrategyContextImpl strategyContext, StrategyProfile newProfile) throws StrategyUpdateException {
+        var exsistingProfile = strategyContext.getProfile();
         try {
             /* Only argument and subscription are changed. */
-            previousProfile.setArgs(newProfile.getArgs());
-            previousProfile.setInstrumentIds(newProfile.getInstrumentIds());
+            exsistingProfile.setArgs(newProfile.getArgs());
+            exsistingProfile.setInstrumentIds(newProfile.getInstrumentIds());
             /* Update data source. */
-            queries.update(previousProfile);
+            queries.update(exsistingProfile);
         } catch (DataQueryException e) {
-            throw new StrategyUpdateException("Can't update strategy(" + previousProfile.getStrategyId()
-                    + ") profile in data source: " + e.getMessage(), e);
+            throw new StrategyUpdateException("Can't update strategy(" + exsistingProfile.getStrategyId() + ") profile in data source: " + e.getMessage(), e);
         }
     }
 
