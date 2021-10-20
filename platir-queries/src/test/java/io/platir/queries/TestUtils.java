@@ -1,6 +1,7 @@
 package io.platir.queries;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -10,6 +11,12 @@ import java.util.logging.Logger;
  * @author Chen Hongbao
  */
 class TestUtils {
+
+    private static final Random random = new Random();
+
+    static int randomInteger() {
+        return random.nextInt() + 1;
+    }
 
     static <T> boolean beanEquals(Class<T> clazz, Object o1, Object o2) {
         if (o1.getClass() != clazz || o2.getClass() != clazz) {

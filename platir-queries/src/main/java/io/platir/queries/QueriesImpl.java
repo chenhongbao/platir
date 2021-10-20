@@ -637,6 +637,15 @@ public class QueriesImpl implements Queries {
         return factory;
     }
 
+    @Override
+    public List<RiskNotice> selectRiskNotices() throws DataQueryException {
+        synchronized(riskNoticeTable) {
+            var notices = new LinkedList<RiskNotice>();
+            notices.addAll(riskNoticeTable);
+            return notices;
+        }
+    }
+
     private <T> Table<T> readTable(Class<T> clazz) {
         var target = tablePath(clazz.getCanonicalName());
         try (FileReader fileReader = new FileReader(target.toFile())) {

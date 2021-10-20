@@ -3,6 +3,7 @@ package io.platir.service;
 import java.util.Set;
 
 import java.io.File;
+import java.util.List;
 
 public interface Queries {
 
@@ -87,5 +88,7 @@ public interface Queries {
     Set<User> selectUsers() throws DataQueryException;
 
     Set<Tick> selectTicks() throws DataQueryException;
+    
+    List<RiskNotice> selectRiskNotices() throws DataQueryException;
 
 }

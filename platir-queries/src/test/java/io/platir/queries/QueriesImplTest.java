@@ -2,7 +2,6 @@ package io.platir.queries;
 
 import io.platir.service.Account;
 import io.platir.service.Contract;
-import io.platir.service.Factory;
 import io.platir.service.Instrument;
 import io.platir.service.Queries;
 import io.platir.service.RiskNotice;
@@ -13,13 +12,12 @@ import io.platir.service.TradingDay;
 import io.platir.service.Transaction;
 import io.platir.service.User;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -86,18 +84,18 @@ public class QueriesImplTest {
         /* Step 1: Back up schema. */
         var oldSchema = queries.backup(file.toFile());
         /* Step 2: Make change to schema. */
-        testInsert_AccountArr();
+        testAccount();
         testInsert_ContractArr();
-        testInsert_InstrumentArr();
-        testInsert_StrategyProfileArr();
-        testInsert_TickArr();
-        testInsert_TradingDay();
-        testInsert_UserArr();
-        testClearTrades();
-        testClearOrders();
-        testClearTransactions();
+        testInstrument();
+        testStrategyProfile();
+        testTick();
+        testTradingDay();
+        testUser();
+        testTrade();
+        testOrder();
+        testTransaction();
         /* Risk notice is special because it is not backup. */
-        testInsert_RiskNoticeArr();
+        testRiskNotice();
         /* Step 3: Restore schema. */
         queries.restore(file.toFile());
         /* Verify restored tables. */
@@ -110,474 +108,244 @@ public class QueriesImplTest {
         assertTrue(TestUtils.collectionEquals(Trade.class, oldSchema.getTrades(), queries.selectTrades()), "Trade restore failed.");
         assertTrue(TestUtils.collectionEquals(Transaction.class, oldSchema.getTransactions(), queries.selectTransactions()), "Transaction restore failed.");
         assertTrue(TestUtils.collectionEquals(User.class, oldSchema.getUsers(), queries.selectUsers()), "User restore failed.");
-        assertEquals(oldSchema.getTradingDay(), queries.selectTradingDay(), "TradingDay restore failed.");
+        assertTrue(TestUtils.beanEquals(TradingDay.class, oldSchema.getTradingDay(), queries.selectTradingDay()), "TradingDay restore failed.");
     }
 
     @Test
-    public void testInsert_OrderArr() throws Exception {
-        System.out.println("insert");
-        WrapOrder order = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(order);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Order(100)
+    @DisplayName("Test insert/select Order.")
+    public void testOrder() throws Exception {
+        WrapOrder.testOrder(queries);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_TradingDay() throws Exception {
-        System.out.println("insert");
-        TradingDay day = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(day);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(101)
+    @DisplayName("Test insert/select TradingDay.")
+    public void testTradingDay() throws Exception {
+        /* Step 1: Insert TradingDay. */
+        TradingDay day = queries.getFactory().newTradingDay();
+        day.setTradingDay(Utils.date());
+        day.setUpdateTime(Utils.datetime());
+        queries.insert(day);
+        /* Step 2: Check insertion succeeds. */
+        assertTrue(TestUtils.beanEquals(TradingDay.class, day, queries.selectTradingDay()));
+        /* Step 3; Load schema files. */
+        var anotherQueries = new QueriesImpl();
+        anotherQueries.initialize();
+        /* Step 4: Check loaded schema against runtime. */
+        assertTrue(TestUtils.beanEquals(TradingDay.class, anotherQueries.selectTradingDay(), queries.selectTradingDay()), "TradingDay restore failed.");
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_AccountArr() throws Exception {
-        System.out.println("insert");
-        Account[] accounts = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(accounts);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(102)
+    @DisplayName("Test insert/select Account.")
+    public void testAccount() throws Exception {
+        testInsertSelect(Account.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_TickArr() throws Exception {
-        System.out.println("insert");
-        Tick[] ticks = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(ticks);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(103)
+    @DisplayName("Test insert/select Tick.")
+    public void testTick() throws Exception {
+        testInsertSelect(Tick.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_TransactionArr() throws Exception {
-        System.out.println("insert");
-        Transaction[] transactions = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(transactions);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(104)
+    @DisplayName("Test insert/select Transaction.")
+    public void testTransaction() throws Exception {
+        testInsertSelect(Transaction.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_TradeArr() throws Exception {
-        System.out.println("insert");
-        Trade[] trades = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(trades);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(105)
+    @DisplayName("Test insert/select Trade.")
+    public void testTrade() throws Exception {
+        testInsertSelect(Trade.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
+    @Test
+    @Order(106)
+    @DisplayName("Test insert/select Contract.")
     public void testInsert_ContractArr() throws Exception {
-        System.out.println("insert");
-        Contract[] contracts = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(contracts);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        testInsertSelect(Contract.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_UserArr() throws Exception {
-        System.out.println("insert");
-        User[] users = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(users);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(107)
+    @DisplayName("Test insert/select User.")
+    public void testUser() throws Exception {
+        testInsertSelect(User.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_StrategyProfileArr() throws Exception {
-        System.out.println("insert");
-        StrategyProfile[] profiles = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(profiles);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(108)
+    @DisplayName("Test insert/select StrategyProfile.")
+    public void testStrategyProfile() throws Exception {
+        testInsertSelect(StrategyProfile.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_InstrumentArr() throws Exception {
-        System.out.println("insert");
-        Instrument[] instruments = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(instruments);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(109)
+    @DisplayName("Test insert/select Instrument.")
+    public void testInstrument() throws Exception {
+        testInsertSelect(Instrument.class);
     }
 
-    /**
-     * Test of insert method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testInsert_RiskNoticeArr() throws Exception {
-        System.out.println("insert");
-        RiskNotice[] notices = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.insert(notices);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(110)
+    @DisplayName("Test insert/select RiskNotice.")
+    public void testRiskNotice() throws Exception {
+        testInsertSelect(RiskNotice.class);
     }
 
-    /**
-     * Test of update method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testUpdate_AccountArr() throws Exception {
-        System.out.println("update");
-        Account[] accounts = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.update(accounts);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(111)
+    @DisplayName("Test update Account.")
+    public void testUpdateAccount() throws Exception {
+        testUpdate(Account.class);
     }
 
-    /**
-     * Test of update method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testUpdate_ContractArr() throws Exception {
-        System.out.println("update");
-        Contract[] contracts = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.update(contracts);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(112)
+    @DisplayName("Test update Contract.")
+    public void testUpdateContract() throws Exception {
+        testUpdate(Contract.class);
     }
 
-    /**
-     * Test of update method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testUpdate_TransactionArr() throws Exception {
-        System.out.println("update");
-        Transaction[] transactions = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.update(transactions);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(113)
+    @DisplayName("Test update Transaction.")
+    public void testUpdateTransaction() throws Exception {
+        testUpdate(Transaction.class);
     }
 
-    /**
-     * Test of update method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testUpdate_InstrumentArr() throws Exception {
-        System.out.println("update");
-        Instrument[] instruments = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.update(instruments);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(114)
+    @DisplayName("Test update Instrument.")
+    public void testUpdateInstrument() throws Exception {
+        testUpdate(Instrument.class);
     }
 
-    /**
-     * Test of update method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testUpdate_UserArr() throws Exception {
-        System.out.println("update");
-        User[] users = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.update(users);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(115)
+    @DisplayName("Test update User.")
+    public void testUpdateUser() throws Exception {
+        testUpdate(User.class);
     }
 
-    /**
-     * Test of update method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testUpdate_StrategyProfileArr() throws Exception {
-        System.out.println("update");
-        StrategyProfile[] profiles = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.update(profiles);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    @Test
+    @Order(116)
+    @DisplayName("Test update StrategyProfile.")
+    public void testUpdateStrategyProfile() throws Exception {
+        testUpdate(StrategyProfile.class);
     }
 
-    /**
-     * Test of updateTradingDay method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
+    @Test
+    @Order(117)
+    @DisplayName("Test update TradingDay.")
     public void testUpdateTradingDay() throws Exception {
-        System.out.println("updateTradingDay");
-        TradingDay day = null;
-        QueriesImpl instance = new QueriesImpl();
-        instance.updateTradingDay(day);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        testUpdate(TradingDay.class);
     }
 
-    /**
-     * Test of clearAccounts method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearAccounts() throws Exception {
-        System.out.println("clearAccounts");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearAccounts();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private <T> void testInsertSelect(Class<T> clazz) throws Exception {
+        String name = null;
+        /* Step 1: Create new instance by reflecting on Factory. */
+        Method factory;
+        try {
+            name = "new" + clazz.getCanonicalName();
+            factory = queries.getFactory().getClass().getMethod(name);
+        } catch (NoSuchMethodException exception) {
+            fail("Can't find factory method " + name + ", " + exception.getMessage());
+            return;
+        }
+        /* Step 2: Create some instances to be inserted. */
+        Set<T> items = new HashSet<>();
+        var totalInsertionCount = TestUtils.randomInteger();
+        while (totalInsertionCount-- > 0) {
+            var item = factory.invoke(queries.getFactory());
+            if (item != null) {
+                items.add((T) item);
+            } else {
+                fail("Factory method " + name + " returns null.");
+            }
+        }
+        /* Step 3: Insert items. */
+        Method inserter;
+        try {
+            name = "insert";
+            inserter = queries.getClass().getMethod(name, Array.newInstance(clazz, 1).getClass());
+        } catch (NoSuchMethodException exception) {
+            fail("Can't find inserter method " + name + ", " + exception.getMessage());
+            return;
+        }
+        inserter.invoke(queries, items.toArray());
+        /* Step 4: Get the inserted items for checking. */
+        Method selector;
+        try {
+            name = "select" + Account.class.getCanonicalName() + "s";
+            selector = queries.getClass().getMethod(name);
+        } catch (NoSuchMethodException exception) {
+            fail("Can't find selector method " + name + ", " + exception.getMessage());
+            return;
+        }
+        /* Step 5: Check inserted items. */
+        assertTrue(TestUtils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime insertion failed.");
+        /* Step 6: Check schema file udpate success. */
+        var anotherQueries = new QueriesImpl();
+        anotherQueries.initialize();
+        assertTrue(TestUtils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
     }
 
-    /**
-     * Test of clearContracts method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearContracts() throws Exception {
-        System.out.println("clearContracts");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearContracts();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private <T> void testUpdate(Class<T> clazz) throws Exception {
+        String name = null;
+        /* Step 1: Select items to be updated. */
+        Method selector;
+        try {
+            name = "select" + Account.class.getCanonicalName() + "s";
+            selector = queries.getClass().getMethod(name);
+        } catch (NoSuchMethodException exception) {
+            fail("Can't find selector method " + name + ", " + exception.getMessage());
+            return;
+        }
+        var items = (Set<T>) selector.invoke(queries);
+        /* Step 2: Choose a field to update by reflecting on its setter. */
+        Method setter = null;
+        var keySetter = "set" + clazz.getCanonicalName() + "Id";
+        for (var method : clazz.getMethods()) {
+            if (method.getName().equals(keySetter)) {
+                continue;
+            }
+            var params = method.getParameterTypes();
+            if (params.length != 1 || params[1] != String.class) {
+                continue;
+            }
+            setter = method;
+            break;
+        }
+        if (setter == null) {
+            fail("No setter(String) found in " + clazz.getCanonicalName() + ".");
+            return;
+        }
+        /* Update field. */
+        for (var item : items) {
+            setter.invoke(item, UUID.randomUUID().toString());
+        }
+        /* Step 3: Update items into schema. */
+        Method updater;
+        try {
+            name = "update" + clazz.getCanonicalName() + "s";
+            updater = queries.getClass().getMethod(name, Array.newInstance(clazz, 1).getClass());
+            updater.invoke(queries, items);
+        } catch (NoSuchMethodException exception) {
+            fail("Can't find updater method " + name + " in " + clazz.getCanonicalName() + ", " + exception.getMessage(), exception);
+            return;
+        }
+        /* Step 4: Check updated items. */
+        assertTrue(TestUtils.collectionEquals(clazz, items, (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " runtime update failed.");
+        /* Step 5: Check schema file udpate success. */
+        var anotherQueries = new QueriesImpl();
+        anotherQueries.initialize();
+        assertTrue(TestUtils.collectionEquals(clazz, (Set<T>) selector.invoke(anotherQueries), (Set<T>) selector.invoke(queries)), clazz.getCanonicalName() + " loading schema failed.");
     }
-
-    /**
-     * Test of clearOrders method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearOrders() throws Exception {
-        System.out.println("clearOrders");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearOrders();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of clearTrades method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearTrades() throws Exception {
-        System.out.println("clearTrades");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearTrades();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of clearTransactions method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearTransactions() throws Exception {
-        System.out.println("clearTransactions");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearTransactions();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of clearTicks method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearTicks() throws Exception {
-        System.out.println("clearTicks");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearTicks();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of clearStrategies method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearStrategies() throws Exception {
-        System.out.println("clearStrategies");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearStrategies();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of clearRiskNotices method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testClearRiskNotices() throws Exception {
-        System.out.println("clearRiskNotices");
-        QueriesImpl instance = new QueriesImpl();
-        instance.clearRiskNotices();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectTradingDay method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectTradingDay() throws Exception {
-        System.out.println("selectTradingDay");
-        QueriesImpl instance = new QueriesImpl();
-        TradingDay expResult = null;
-        TradingDay result = instance.selectTradingDay();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectAccounts method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectAccounts() throws Exception {
-        System.out.println("selectAccounts");
-        QueriesImpl instance = new QueriesImpl();
-        Set<Account> expResult = null;
-        Set<Account> result = instance.selectAccounts();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectContracts method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectContracts() throws Exception {
-        System.out.println("selectContracts");
-        QueriesImpl instance = new QueriesImpl();
-        Set<Contract> expResult = null;
-        Set<Contract> result = instance.selectContracts();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectInstruments method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectInstruments() throws Exception {
-        System.out.println("selectInstruments");
-        QueriesImpl instance = new QueriesImpl();
-        Set<Instrument> expResult = null;
-        Set<Instrument> result = instance.selectInstruments();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectStrategyProfiles method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectStrategyProfiles() throws Exception {
-        System.out.println("selectStrategyProfiles");
-        QueriesImpl instance = new QueriesImpl();
-        Set<StrategyProfile> expResult = null;
-        Set<StrategyProfile> result = instance.selectStrategyProfiles();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectTrades method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectTrades() throws Exception {
-        System.out.println("selectTrades");
-        QueriesImpl instance = new QueriesImpl();
-        Set<Trade> expResult = null;
-        Set<Trade> result = instance.selectTrades();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectTransactions method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectTransactions() throws Exception {
-        System.out.println("selectTransactions");
-        QueriesImpl instance = new QueriesImpl();
-        Set<Transaction> expResult = null;
-        Set<Transaction> result = instance.selectTransactions();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectUsers method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectUsers() throws Exception {
-        System.out.println("selectUsers");
-        QueriesImpl instance = new QueriesImpl();
-        Set<User> expResult = null;
-        Set<User> result = instance.selectUsers();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of selectTicks method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testSelectTicks() throws Exception {
-        System.out.println("selectTicks");
-        QueriesImpl instance = new QueriesImpl();
-        Set<Tick> expResult = null;
-        Set<Tick> result = instance.selectTicks();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getFactory method, of class QueriesImpl.
-     */
-    @org.junit.jupiter.api.Test
-    public void testGetFactory() {
-        System.out.println("getFactory");
-        QueriesImpl instance = new QueriesImpl();
-        Factory expResult = null;
-        Factory result = instance.getFactory();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
 }
