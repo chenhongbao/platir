@@ -15,10 +15,12 @@ import io.platir.service.User;
 import io.platir.service.DataQueryException;
 import io.platir.service.Factory;
 import io.platir.service.Queries;
+import io.platir.service.Schema;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -102,24 +104,46 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public void backup(File target) {
+    public Schema backup(File target) {
         try {
+            /* Ensure file exists. */
+            Utils.file(target.toPath());
             var schema = new QuerySchema();
-            schema.backupTime = Utils.datetime();
-            schema.tradingDay = tradingDay.get();
-            schema.accounts.addAll(selectAccounts());
-            schema.ticks.addAll(selectTicks());
-            schema.transactions.addAll(selectTransactions());
-            schema.orders.addAll(selectOrders());
-            schema.trades.addAll(selectTrades());
-            schema.contracts.addAll(selectContracts());
-            schema.users.addAll(selectUsers());
-            schema.strategyProfiles.addAll(selectStrategyProfiles());
-            schema.instruments.addAll(selectInstruments());
+            schema.setLastModifiedTime(Utils.datetime());
+            schema.setTradingDay(tradingDay.get());
+            schema.setAccounts(selectAccounts());
+            schema.setTicks(selectTicks());
+            schema.setTransactions(selectTransactions());
+            schema.setOrders(selectOrders());
+            schema.setTrades(selectTrades());
+            schema.setContracts(selectContracts());
+            schema.setUsers(selectUsers());
+            schema.setStrategyProfiles(selectStrategyProfiles());
+            schema.setInstruments(selectInstruments());
             writeJson(target, schema);
-        } catch (DataQueryException ex) {
-            Utils.err.write("Can't backup schema: " + ex.getMessage(), ex);
+            return schema;
+        } catch (DataQueryException exception) {
+            Utils.err.write("Can't backup schema: " + exception.getMessage(), exception);
+            return null;
         }
+    }
+
+    @Override
+    public Schema restore(File backup) throws DataQueryException {
+        destroy();
+        var schema = readSchema(backup);
+        insert(schema.getTradingDay());
+        insert(schema.getAccounts().toArray(new Account[1]));
+        insert(schema.getContracts().toArray(new Contract[1]));
+        insert(schema.getInstruments().toArray(new Instrument[1]));
+        insert(schema.getOrders().toArray(new Order[1]));
+        insert(schema.getStrategyProfiles().toArray(new StrategyProfile[1]));
+        insert(schema.getTicks().toArray(new Tick[1]));
+        insert(schema.getTrades().toArray(new Trade[1]));
+        insert(schema.getTransactions().toArray(new Transaction[1]));
+        insert(schema.getUsers().toArray(new User[1]));
+        initialize();
+        return schema;
     }
 
     @Override
@@ -616,7 +640,7 @@ public class QueriesImpl implements Queries {
     private <T> Table<T> readTable(Class<T> clazz) {
         var target = tablePath(clazz.getCanonicalName());
         try (FileReader fileReader = new FileReader(target.toFile())) {
-            return g.fromJson(fileReader, new Table<T>().getClass());
+            return readJson(fileReader, new Table<T>().getClass());
         } catch (IOException exception) {
             Utils.err.write("Can't read table: " + exception.getMessage(), exception);
             var table = new Table<T>();
@@ -625,8 +649,21 @@ public class QueriesImpl implements Queries {
         }
     }
 
+    private QuerySchema readSchema(File backup) {
+        try (FileReader fileReader = new FileReader(backup)) {
+            return readJson(fileReader, QuerySchema.class);
+        } catch (IOException exception) {
+            Utils.err.write("Can't read backup schema: " + exception.getMessage(), exception);
+            return new QuerySchema();
+        }
+    }
+
+    private <T> T readJson(Reader reader, Class<T> clazz) {
+        return g.fromJson(reader, clazz);
+    }
+
     private Path tablePath(String name) {
-        return Paths.get(Utils.cwd().toString(), "Schema", name);
+        return Paths.get(Utils.schemaDirectory().toString(), name);
     }
 
     private void writeTradingDay() {
@@ -677,21 +714,6 @@ public class QueriesImpl implements Queries {
         String name;
         String updateTime;
         Set<T> rows = new HashSet<>();
-    }
-
-    private class QuerySchema {
-
-        String backupTime;
-        TradingDay tradingDay;
-        Set<Account> accounts = new HashSet<>();
-        Set<Tick> ticks = new HashSet<>();
-        Set<Transaction> transactions = new HashSet<>();
-        Set<Order> orders = new HashSet<>();
-        Set<Trade> trades = new HashSet<>();
-        Set<Contract> contracts = new HashSet<>();
-        Set<User> users = new HashSet<>();
-        Set<StrategyProfile> strategyProfiles = new HashSet<>();
-        Set<Instrument> instruments = new HashSet<>();
     }
 
 }

@@ -5,9 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -151,5 +154,51 @@ public final class Utils {
         if (!Files.isReadable(path)) {
             path.toFile().setReadable(true);
         }
+    }
+
+    public static void delete(Path root, boolean deleteRoot) throws IOException {
+        if (Files.isDirectory(root)) {
+            Files.walkFileTree(root, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes bfa) throws IOException {
+                    delete(directory, true);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes bfa) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException ioe) throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path directory, IOException ioe) throws IOException {
+                    Files.delete(directory);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            if (deleteRoot) {
+                Files.delete(root);
+            }
+        } else if (Files.isRegularFile(root) || Files.isSymbolicLink(root)) {
+            Files.delete(root);
+        }
+    }
+
+    public static Path schemaDirectory() {
+        var path = Paths.get(Utils.cwd().toString(), "Schema");
+        dir(path);
+        return path;
+    }
+
+    public static Path backupDirectory() {
+        var path = Paths.get(Utils.cwd().toString(), "Backup");
+        dir(path);
+        return path;
     }
 }

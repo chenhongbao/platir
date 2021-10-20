@@ -5,14 +5,16 @@ import java.util.Set;
 import java.io.File;
 
 public interface Queries {
-    
+
     Factory getFactory();
 
     void initialize() throws DataQueryException;
 
     void destroy() throws DataQueryException;
 
-    void backup(File target);
+    Schema backup(File target);
+
+    Schema restore(File backup) throws DataQueryException;
 
     void insert(TradingDay day) throws DataQueryException;
 

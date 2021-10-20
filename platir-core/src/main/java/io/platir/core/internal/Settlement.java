@@ -100,9 +100,9 @@ public class Settlement {
     }
 
     private void prepareDirs() {
-        var dir = Utils.dir(Paths.get(Utils.cwd().toString(), Utils.date()));
-        before = Utils.file(Paths.get(dir.toString(), "before_settlement.json"));
-        after = Utils.file(Paths.get(dir.toString(), "settled.json"));
+        var dir = Utils.dir(Paths.get(Utils.backupDirectory().toString(), Utils.date()));
+        before = Utils.file(Paths.get(dir.toString(), "today.json"));
+        after = Utils.file(Paths.get(dir.toString(), "tomorrow.json"));
     }
 
     private void snapshot() throws DataQueryException {
