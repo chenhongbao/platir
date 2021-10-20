@@ -18,9 +18,42 @@ public class TickImpl implements Tick {
     private Integer todayVolume;
     private Integer openInterest;
     private Double openPrice;
+    private Double highPrice;
+    private Double lowPrice;
     private Double closePrice;
     private Double settlementPrice;
+    private String tradingDay;
     private String updateTime;
+
+    @Override
+    public String getTradingDay() {
+        return tradingDay;
+    }
+
+    @Override
+    public void setTradingDay(String tradingDay) {
+        this.tradingDay = tradingDay;
+    }
+
+    @Override
+    public Double getHighPrice() {
+        return highPrice;
+    }
+
+    @Override
+    public void setHighPrice(Double highPrice) {
+        this.highPrice = highPrice;
+    }
+
+    @Override
+    public Double getLowPrice() {
+        return lowPrice;
+    }
+
+    @Override
+    public void setLowPrice(Double lowPrice) {
+        this.lowPrice = lowPrice;
+    }
 
     @Override
     public String getTickId() {

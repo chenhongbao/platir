@@ -54,4 +54,16 @@ public interface Tick {
 
     void setUpdateTime(String updateTime);
 
+    Double getHighPrice();
+
+    void setHighPrice(Double highPrice);
+
+    Double getLowPrice();
+
+    void setLowPrice(Double lowPrice);
+
+    String getTradingDay();
+
+    void setTradingDay(String tradingDay);
+
 }

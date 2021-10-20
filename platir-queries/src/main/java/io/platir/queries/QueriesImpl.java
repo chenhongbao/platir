@@ -652,6 +652,9 @@ public class QueriesImpl implements Queries {
                 tick.setTickId(item.getTickId());
                 tick.setTodayVolume(item.getTodayVolume());
                 tick.setUpdateTime(item.getUpdateTime());
+                tick.setTradingDay(item.getTradingDay());
+                tick.setHighPrice(item.getHighPrice());
+                tick.setLowPrice(item.getLowPrice());
                 return tick;
             }).forEach(tick -> {
                 ticks.add(tick);
