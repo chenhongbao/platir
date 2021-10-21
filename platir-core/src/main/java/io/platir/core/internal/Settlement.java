@@ -94,8 +94,8 @@ public class Settlement {
 
     private void prepare() throws DataQueryException {
         var dir = Utils.dir(Paths.get(Utils.backupDirectory().toString(), Utils.date()));
-        before = Utils.dir(Paths.get(dir.toString(), Utils.date(), "ThisDay"));
-        after = Utils.dir(Paths.get(dir.toString(), Utils.date(), "NextDay"));
+        before = Utils.dir(Paths.get(dir.toString(), "ThisDay"));
+        after = Utils.dir(Paths.get(dir.toString(), "NextDay"));
         ticks.addAll(queries.selectTicks());
         instruments.addAll(queries.selectInstruments());
     }
