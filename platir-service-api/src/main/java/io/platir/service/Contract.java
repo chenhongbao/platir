@@ -38,4 +38,8 @@ public interface Contract {
 
     void setClosePrice(Double closePrice);
 
+    String getSettlementTradingDay();
+
+    void setSettlementTradingDay(String settlementTradingDay);
+
 }

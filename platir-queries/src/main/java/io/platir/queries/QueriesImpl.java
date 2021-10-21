@@ -492,6 +492,7 @@ public class QueriesImpl implements Queries {
                 contract.setPrice(item.getPrice());
                 contract.setState(item.getState());
                 contract.setUserId(item.getUserId());
+                contract.setSettlementTradingDay(item.getSettlementTradingDay());
                 return contract;
             }).forEachOrdered(contract -> {
                 contracts.add(contract);

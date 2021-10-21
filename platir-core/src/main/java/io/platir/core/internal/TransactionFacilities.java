@@ -34,15 +34,13 @@ class TransactionFacilities {
         String userId = client.getStrategyProfile().getUserId();
         for (int i = 0; i < transaction.getVolume(); ++i) {
             Contract contract = client.queries().getFactory().newContract();
-            /*
-             * Contract ID = <order-id>.<some-digits>
-             */
+            /* Contract ID = <order-id>.<some-digits> */
             contract.setContractId(orderId + "." + Integer.toString(i));
             contract.setUserId(userId);
             contract.setInstrumentId(transaction.getInstrumentId());
             contract.setDirection(transaction.getDirection());
             contract.setPrice(transaction.getPrice());
-            contract.setState("opening");
+            contract.setState(Constants.FLAG_CONTRACT_OPENING);
             contract.setOpenTradingDay(client.getTradingDay());
             contract.setOpenTime(Utils.datetime());
             contracts.add(contract);
@@ -92,16 +90,13 @@ class TransactionFacilities {
             checkReturn.getNotice().setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
             return checkReturn;
         }
-        /*
-         * Remove extra contracts from container until it only has the contracts for
-         * closing and lock those contracts.
-         */
+        /* Remove extra contracts from container until it only has the contracts for closing and lock those contracts. */
         while (available.size() > volume) {
             Contract h = available.iterator().next();
             available.remove(h);
         }
         closing(available, query);
-        /* return good */
+        /* Return good. */
         checkReturn.getNotice().setCode(Constants.CODE_OK);
         checkReturn.getNotice().setMessage("good");
         checkReturn.getContracts().addAll(available);
@@ -110,7 +105,7 @@ class TransactionFacilities {
 
     static void closing(Set<Contract> available, PlatirInfoClientImpl client) {
         available.stream().map(contract -> {
-            contract.setState("closing");
+            contract.setState(Constants.FLAG_CONTRACT_CLOSING);
             return contract;
         }).forEachOrdered(contract -> {
             try {
@@ -133,16 +128,16 @@ class TransactionFacilities {
         order.setOffset(offset);
         order.setTradingDay(client.getTradingDay());
         try {
-            /* save order to data source */
+            /* Save order to data source. */
             client.queries().insert(order);
         } catch (DataQueryException exception) {
-            /* worker thread can't pass out the exception, just log it */
+            /* Worker thread can't pass out the exception, just log it. */
             Utils.err().write("Can't insert order(" + order.getOrderId() + ") to data source: " + exception.getMessage(), exception);
         }
-        /* create order context. */
+        /* Create order context. */
         OrderContextImpl orderContext = new OrderContextImpl(order, transactionContect);
         orderContext.lockedContracts().addAll(contracts);
-        /* add order context to transaction context */
+        /* Add order context to transaction context. */
         transactionContect.addOrderContext(orderContext);
         return orderContext;
     }

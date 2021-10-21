@@ -10,6 +10,7 @@ import java.util.Set;
 import io.platir.core.BrokenSettingException;
 import io.platir.core.SettlementException;
 import io.platir.service.Account;
+import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.Tick;
@@ -43,8 +44,7 @@ class SettlementFacilities {
         var instrumentLookup = instrumentMap(instruments);
         resetAccount(user.getAccount(), tradingDay);
         for (var entry : user.contracts().entrySet()) {
-            settleInstrument(user.getAccount(), entry.getValue(), getTick(entry.getKey(), tickLookup),
-                    getInstrument(entry.getKey(), instrumentLookup));
+            settleInstrument(user.getAccount(), entry.getValue(), getTick(entry.getKey(), tickLookup), getInstrument(entry.getKey(), instrumentLookup), tradingDay);
         }
         finishSettlement(user.getAccount());
     }
@@ -54,22 +54,22 @@ class SettlementFacilities {
         account.setAvailable(account.getBalance() - account.getMargin() - account.getOpeningMargin() - account.getOpeningCommission() - account.getCommission() - account.getClosingCommission());
     }
 
-    private static void settleInstrument(Account account, Set<Contract> contracts, Tick tick, Instrument instrument) throws SettlementException {
+    private static void settleInstrument(Account account, Set<Contract> contracts, Tick tick, Instrument instrument, String tradingDay) throws SettlementException {
         var contractInterator = contracts.iterator();
         while (contractInterator.hasNext()) {
             var contract = contractInterator.next();
             var state = contract.getState();
-            if (state.compareToIgnoreCase("closing") == 0) {
-                contract.setState("open");
-            } else if (state.compareToIgnoreCase("opening") == 0) {
+            if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSING) == 0) {
+                contract.setState(Constants.FLAG_CONTRACT_OPEN);
+            } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_OPENING) == 0) {
                 contractInterator.remove();
                 continue;
             }
-            var settlementPrice = tick.getLastPrice();
-            settleContract(account, contract, settlementPrice, instrument);
-            /* set (open)price to settlement price of today */
-            contract.setPrice(settlementPrice);
-            if (state.compareToIgnoreCase("closed") == 0) {
+            settleContract(account, contract, tick.getSettlementPrice(), instrument);
+            /* Set (open)price to settlement price of today. */
+            contract.setPrice(tick.getSettlementPrice());
+            contract.setSettlementTradingDay(tradingDay);
+            if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSED) == 0) {
                 contractInterator.remove();
             }
         }
@@ -86,14 +86,14 @@ class SettlementFacilities {
 
     private static void settleContract(Account account, Contract contract, Double settlementPrice, Instrument instrument) throws SettlementException {
         var state = contract.getState();
-        if (state.compareToIgnoreCase("open") == 0) {
+        if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_OPEN) == 0) {
             account.setMargin(account.getMargin() + margin(contract, instrument));
             account.setPositionProfit(account.getPositionProfit() + positionProfit(settlementPrice, contract, instrument));
             if (contract.getOpenTradingDay().equals(account.getTradingDay())) {
                 /* today open commission */
                 account.setCommission(account.getCommission() + commission(contract, instrument));
             }
-        } else if (state.compareToIgnoreCase("closed") == 0) {
+        } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSED) == 0) {
             account.setCloseProfit(account.getCloseProfit() + closeProfit(contract, instrument));
             account.setCommission(account.getCommission() + commission(contract, instrument));
         }
@@ -101,10 +101,10 @@ class SettlementFacilities {
 
     private static void settleContract0(Account account, Contract contract, Double settlementPrice, Instrument instrument) throws SettlementException {
         var state = contract.getState();
-        if (state.compareToIgnoreCase("opening") == 0) {
+        if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_OPENING) == 0) {
             account.setOpeningMargin(account.getOpeningMargin() + margin(contract, instrument));
             account.setOpeningCommission(account.getOpeningCommission() + commission(contract, instrument));
-        } else if (state.compareToIgnoreCase("closing") == 0) {
+        } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSING) == 0) {
             account.setMargin(account.getMargin() + margin(contract, instrument));
             account.setClosingCommission(account.getCommission() + commission(contract, instrument));
             account.setPositionProfit(account.getPositionProfit() + positionProfit(settlementPrice, contract, instrument));
@@ -136,9 +136,9 @@ class SettlementFacilities {
     private static Double profit(Contract contract, Double closePrice, Double multiple) throws SettlementException {
         var direction = contract.getDirection();
         var price = contract.getPrice();
-        if (direction.compareToIgnoreCase("buy") == 0) {
+        if (direction.compareToIgnoreCase(Constants.FLAG_BUY) == 0) {
             return (closePrice - price) * multiple;
-        } else if (direction.compareToIgnoreCase("sell") == 0) {
+        } else if (direction.compareToIgnoreCase(Constants.FLAG_SELL) == 0) {
             return (price - closePrice) * multiple;
         } else {
             throw new SettlementException("Contract(" + contract.getContractId() + ") has invalid direction(" + direction + ").");

@@ -111,9 +111,9 @@ class TransactionQueue implements Runnable {
                         /* the transaction has been processed but order is not completed. */
                         sendPending(executingContext);
                     } else {
-                        if ("open".compareToIgnoreCase(executingTransaction.getOffset()) == 0) {
+                        if (executingTransaction.getOffset().compareToIgnoreCase(Constants.FLAG_OPEN) == 0) {
                             open(executingContext);
-                        } else if ("close".compareToIgnoreCase(executingTransaction.getOffset()) == 0) {
+                        } else if (executingTransaction.getOffset().compareToIgnoreCase(Constants.FLAG_CLOSE) == 0) {
                             close(executingContext);
                         } else {
                             executingTransaction.setState(Constants.FLAG_TRANSACTION_INVALID);
@@ -164,8 +164,7 @@ class TransactionQueue implements Runnable {
             try {
                 queryClient.queries().update(transaction);
             } catch (DataQueryException e) {
-                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
-                        + "): " + e.getMessage(), e);
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + e.getMessage(), e);
             }
             transactionContext.awake();
             /* notice callback */
@@ -177,12 +176,12 @@ class TransactionQueue implements Runnable {
             var today = checkReturn.getContracts().stream().filter(c -> c.getOpenTradingDay().equals(tradingDay))
                     .collect(Collectors.toSet());
             var orderCtxToday = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
-                    transaction.getVolume(), transaction.getDirection(), today, "close-today", transactionContext);
+                    transaction.getVolume(), transaction.getDirection(), today, Constants.FLAG_CLOSE_TODAY, transactionContext);
             send(orderCtxToday, transactionContext);
             /* process history contracts */
             var history = checkReturn.getContracts().stream().filter(c -> !today.contains(c)).collect(Collectors.toSet());
             var orderCtxHistory = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
-                    transaction.getVolume(), transaction.getDirection(), history, "close-history", transactionContext);
+                    transaction.getVolume(), transaction.getDirection(), history, Constants.FLAG_CLOSE_HISTORY, transactionContext);
             send(orderCtxHistory, transactionContext);
         }
     }
@@ -199,8 +198,7 @@ class TransactionQueue implements Runnable {
             try {
                 queryClient.queries().update(transaction);
             } catch (DataQueryException e) {
-                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState()
-                        + "): " + e.getMessage(), e);
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + e.getMessage(), e);
             }
             /* notify joiner the transaction fails. */
             transactionContext.awake();
@@ -220,7 +218,7 @@ class TransactionQueue implements Runnable {
         while (pendingIterator.hasNext()) {
             var pendingOrder = pendingIterator.next();
             pendingIterator.remove();
-            /* send order until error. */
+            /* Send order until error. */
             if (!send(pendingOrder, transactionContext).isGood()) {
                 break;
             }

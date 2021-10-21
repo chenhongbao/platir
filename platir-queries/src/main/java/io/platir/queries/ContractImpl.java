@@ -15,8 +15,19 @@ class ContractImpl implements Contract {
     private Double price;
     private Double closePrice;
     private String state;
+    private String settlementTradingDay;
     private String openTradingDay;
     private String openTime;
+
+    @Override
+    public String getSettlementTradingDay() {
+        return settlementTradingDay;
+    }
+
+    @Override
+    public void setSettlementTradingDay(String settlementTradingDay) {
+        this.settlementTradingDay = settlementTradingDay;
+    }
 
     @Override
     public String getContractId() {

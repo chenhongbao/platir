@@ -34,7 +34,7 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
     @Override
     public TransactionContext open(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         checkTransactionParams(instrumentId, direction, price, volume);
-        return push(instrumentId, Constants.FLAG_ORDER_OPEN, direction, price, volume);
+        return push(instrumentId, Constants.FLAG_OPEN, direction, price, volume);
     }
 
     private Transaction createTransaction(String strategyId, String instrumentId, String offset, String direction, Double price, Integer volume) {
@@ -78,7 +78,7 @@ class PlatirClientImpl extends PlatirInfoClientImpl implements PlatirClient {
     @Override
     public TransactionContext close(String instrumentId, String direction, Double price, Integer volume) throws TransactionException {
         checkTransactionParams(instrumentId, direction, price, volume);
-        return push(instrumentId, Constants.FLAG_ORDER_CLOSE, direction, price, volume);
+        return push(instrumentId, Constants.FLAG_CLOSE, direction, price, volume);
     }
 
     private TransactionContext push(String instrumentId, String offset, String direction, Double price, Integer volume) throws TransactionException {
