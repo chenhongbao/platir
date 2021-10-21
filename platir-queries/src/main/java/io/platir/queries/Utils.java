@@ -17,9 +17,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -119,7 +117,8 @@ public final class Utils {
     public static String physicalJarLocation() {
         try {
             return new File(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
-        } catch (Throwable throwable) {
+        } catch (Throwable throwable /* note below */) {
+            /* Chaining calls may have null pointer, need to catch NullPointerException. */
             throw new RuntimeException("Fail obtaining jar physical path: " + throwable.getMessage(), throwable);
         }
     }

@@ -251,8 +251,7 @@ class TransactionQueue implements Runnable {
         if (!responseNotice.isGood()) {
             if (responseNotice.getCode() == Constants.CODE_ORDER_MARKET_CLOSE) {
                 /* market is not open, wait until it opens */
-                transaction.setState(Constants.FLAG_TRANSACTION_SEND_PENDING + ";" + responseNotice.getCode()
-                );
+                transaction.setState(Constants.FLAG_TRANSACTION_SEND_PENDING + ";" + responseNotice.getCode());
                 transaction.setStateMessage(responseNotice.getMessage());
                 try {
                     queryClient.queries().update(transaction);
