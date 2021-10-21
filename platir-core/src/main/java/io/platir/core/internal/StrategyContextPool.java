@@ -128,7 +128,7 @@ class StrategyContextPool {
         } catch (InterruptionException ex) {
             throw new StrategyRemovalException("Can't interrupt client before strategy(" + strategy.getProfile().getStrategyId() + ") removal.");
         }
-        var count = transactionQueue.countTransactionRunning(strategy);
+        var count = transactionQueue.countOnlineTransactions(strategy);
         if (count > 0) {
             try {
                 /* Restore interrupt state as it can't be removed */
@@ -136,7 +136,7 @@ class StrategyContextPool {
             } catch (InterruptionException ex) {
                 throw new StrategyRemovalException("Can't restore client interrupt state for strategy(" + strategy.getProfile().getStrategyId() + ") removal.");
             }
-            throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has " + count + " transaction running.");
+            throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has " + count + " transaction online.");
         }
         /* Remove the strategy. */
         strategy.remove();

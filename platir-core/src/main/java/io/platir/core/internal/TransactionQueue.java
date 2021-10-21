@@ -45,12 +45,20 @@ class TransactionQueue implements Runnable {
         tradeListener.clearContexts();
     }
 
-    int countTransactionRunning(StrategyContextImpl strategy) {
-        int count = 0;
-        count += executingTransactions.stream().mapToInt(t -> t.getStrategyContext() == strategy ? 1 : 0).sum();
-        count += pendingTransactions.stream().mapToInt(t -> t.getStrategyContext() == strategy ? 1 : 0).sum();
-        count += tradeListener.countStrategyRunning(strategy);
-        return count;
+    int countPendingTransactions(StrategyContextImpl strategy) {
+        return pendingTransactions.stream().mapToInt(t -> t.getStrategyContext() == strategy ? 1 : 0).sum();
+    }
+
+    int countExecutingTransactions(StrategyContextImpl strategy) {
+        return executingTransactions.stream().mapToInt(t -> t.getStrategyContext() == strategy ? 1 : 0).sum();
+    }
+
+    int countTradingTransactions(StrategyContextImpl strategy) {
+        return tradeListener.countStrategyRunning(strategy);
+    }
+
+    int countOnlineTransactions(StrategyContextImpl strategy) {
+        return countPendingTransactions(strategy) + countExecutingTransactions(strategy) + countTradingTransactions(strategy);
     }
 
     void push(TransactionContextImpl transactionContext) throws DataQueryException {
