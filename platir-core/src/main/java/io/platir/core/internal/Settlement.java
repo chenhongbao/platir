@@ -33,22 +33,27 @@ public class Settlement {
         prepare();
         queries.backup(before);
         var snapshot = createSnapshot();
-        computeSettlement(snapshot);
-        rollQueries(snapshot);
+        var users = computeSettlement(snapshot);
+        rollQueries(snapshot, users);
         queries.backup(after);
     }
 
-    private void rollQueries(RuntimeSnapshot snapshot) throws DataQueryException {
+    private void rollQueries(RuntimeSnapshot runtimeSnapshot, Set<UserSnapshot> userSnapshots) throws DataQueryException {
         clearSchema();
-        resetSchema(snapshot);
+        resetSchema(runtimeSnapshot, userSnapshots);
     }
 
-    private void resetSchema(RuntimeSnapshot snapshot) throws DataQueryException {
-        queries.insert(snapshot.accounts().toArray(new Account[1]));
-        queries.insert(snapshot.contracts().toArray(new Contract[1]));
-        /* Insert the updated strategy profiles. */
-        removeSomeStrategies(snapshot);
-        queries.insert(snapshot.strategyProfiles().toArray(new StrategyProfile[1]));
+    private void resetSchema(RuntimeSnapshot runtimeSnapshot, Set<UserSnapshot> userSnapshots) throws DataQueryException {
+        for (var snapshot : userSnapshots) {
+            queries.insert(snapshot.getAccount());
+            for (var contracts : snapshot.contracts().values()) {
+                queries.insert(contracts.toArray(new Contract[1]));
+            }
+        }
+        removeSomeStrategies(runtimeSnapshot);
+        if (!runtimeSnapshot.strategyProfiles().isEmpty()) {
+            queries.insert(runtimeSnapshot.strategyProfiles().toArray(new StrategyProfile[1]));
+        }
     }
 
     private void removeSomeStrategies(RuntimeSnapshot snapshot) {
@@ -76,7 +81,7 @@ public class Settlement {
         queries.clearStrategies();
     }
 
-    private void computeSettlement(RuntimeSnapshot snapshot) throws SettlementException, DataQueryException {
+    private Set<UserSnapshot> computeSettlement(RuntimeSnapshot snapshot) throws SettlementException, DataQueryException {
         var users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
         requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
         requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
@@ -84,6 +89,7 @@ public class Settlement {
         for (var user : users.values()) {
             SettlementFacilities.settle(user, tradingDay, ticks, instruments);
         }
+        return new HashSet<>(users.values());
     }
 
     private void prepare() throws DataQueryException {

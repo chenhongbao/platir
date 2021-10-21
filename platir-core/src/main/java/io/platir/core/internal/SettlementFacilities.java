@@ -50,7 +50,7 @@ class SettlementFacilities {
 
     private static void finishSettlement(Account account) {
         account.setBalance(account.getYdBalance() + account.getCloseProfit() + account.getPositionProfit() - account.getCommission());
-        account.setAvailable(account.getBalance() - account.getMargin() - account.getOpeningMargin() - account.getOpeningCommission() - account.getCommission() - account.getClosingCommission());
+        account.setAvailable(account.getBalance() - account.getMargin() - account.getOpeningMargin() - account.getOpeningCommission() - account.getClosingCommission());
     }
 
     private static void settleInstrument(Account account, Set<Contract> contracts, Tick tick, Instrument instrument, String tradingDay) throws SettlementException {
@@ -95,6 +95,10 @@ class SettlementFacilities {
         } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSED) == 0) {
             account.setCloseProfit(account.getCloseProfit() + closeProfit(contract, instrument));
             account.setCommission(account.getCommission() + commission(contract, instrument));
+            if (contract.getOpenTradingDay().equals(account.getTradingDay())) {
+                /* Today open commission. */
+                account.setCommission(account.getCommission() + commission(contract, instrument));
+            }
         }
     }
 
@@ -105,8 +109,12 @@ class SettlementFacilities {
             account.setOpeningCommission(account.getOpeningCommission() + commission(contract, instrument));
         } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSING) == 0) {
             account.setMargin(account.getMargin() + margin(contract, instrument));
-            account.setClosingCommission(account.getClosingCommission()+ commission(contract, instrument));
+            account.setClosingCommission(account.getClosingCommission() + commission(contract, instrument));
             account.setPositionProfit(account.getPositionProfit() + positionProfit(settlementPrice, contract, instrument));
+            if (contract.getOpenTradingDay().equals(account.getTradingDay())) {
+                /* Today open commission. */
+                account.setCommission(account.getCommission() + commission(contract, instrument));
+            }
         }
     }
 
@@ -186,8 +194,11 @@ class SettlementFacilities {
                     throw new SettlementException("Duplicated account(" + account.getAccountId() + "/" + userSnapshot.getAccount().getAccountId() + ") for user(" + user.getUserId() + ").");
                 }
                 userSnapshot.setAccount(account);
+                accountIterator.remove();
             }
-            accountIterator.remove();
+        }
+        if (userSnapshot.getAccount() == null) {
+            throw new SettlementException("Account for found for user(" + user.getUserId() + ").");
         }
         contracts(userSnapshot, contracts);
     }
@@ -199,8 +210,8 @@ class SettlementFacilities {
             var contract = contractIterator.next();
             if (contract.getUserId().equals(userSnapshot.getUser().getUserId())) {
                 userSnapshot.contracts().computeIfAbsent(contract.getInstrumentId(), key -> new HashSet<Contract>()).add(contract);
+                contractIterator.remove();
             }
-            contractIterator.remove();
         }
     }
 
