@@ -33,8 +33,7 @@ class SettlementFacilities {
         var instrumentLookup = instrumentMap(instruments);
         resetAccount(user.getAccount(), tradingDay);
         for (var entry : user.contracts().entrySet()) {
-            settleInstrumentInDay(user.getAccount(), entry.getValue(), getTick(entry.getKey(), tickLookup),
-                    getInstrument(entry.getKey(), instrumentLookup));
+            settleInstrumentInDay(user.getAccount(), entry.getValue(), getTick(entry.getKey(), tickLookup), getInstrument(entry.getKey(), instrumentLookup));
         }
         finishSettlement(user.getAccount());
     }
@@ -90,7 +89,7 @@ class SettlementFacilities {
             account.setMargin(account.getMargin() + margin(contract, instrument));
             account.setPositionProfit(account.getPositionProfit() + positionProfit(settlementPrice, contract, instrument));
             if (contract.getOpenTradingDay().equals(account.getTradingDay())) {
-                /* today open commission */
+                /* Today open commission. */
                 account.setCommission(account.getCommission() + commission(contract, instrument));
             }
         } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSED) == 0) {
@@ -106,7 +105,7 @@ class SettlementFacilities {
             account.setOpeningCommission(account.getOpeningCommission() + commission(contract, instrument));
         } else if (state.compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSING) == 0) {
             account.setMargin(account.getMargin() + margin(contract, instrument));
-            account.setClosingCommission(account.getCommission() + commission(contract, instrument));
+            account.setClosingCommission(account.getClosingCommission()+ commission(contract, instrument));
             account.setPositionProfit(account.getPositionProfit() + positionProfit(settlementPrice, contract, instrument));
         }
     }

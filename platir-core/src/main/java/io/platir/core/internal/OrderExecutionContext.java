@@ -122,15 +122,15 @@ class OrderExecutionContext {
         while (++updateCount <= trade.getVolume() && lockedContractIterator.hasNext()) {
             var lockedContract = lockedContractIterator.next();
             var prevState = lockedContract.getState();
-            if (lockedContract.getState().compareToIgnoreCase("opening") == 0) {
+            if (lockedContract.getState().compareToIgnoreCase(Constants.FLAG_CONTRACT_OPENING) == 0) {
                 /* Update open price because the real traded price may be different. */
-                lockedContract.setState("open");
+                lockedContract.setState(Constants.FLAG_CONTRACT_OPEN);
                 lockedContract.setPrice(trade.getPrice());
                 lockedContract.setOpenTime(Utils.datetime());
                 lockedContract.setOpenTradingDay(strategyContext.getPlatirClientImpl().getTradingDay());
-            } else if (lockedContract.getState().compareToIgnoreCase("closing") == 0) {
+            } else if (lockedContract.getState().compareToIgnoreCase(Constants.FLAG_CONTRACT_CLOSING) == 0) {
                 /* Don't forget the close price here. */
-                lockedContract.setState("closed");
+                lockedContract.setState(Constants.FLAG_CONTRACT_CLOSED);
                 lockedContract.setClosePrice(trade.getPrice());
             } else {
                 Utils.err().write("Incorrect contract state(" + lockedContract.getState() + "/" + lockedContract.getContractId() + ") before completing trade.");

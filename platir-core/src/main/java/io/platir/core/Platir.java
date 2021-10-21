@@ -24,11 +24,9 @@ public abstract class Platir {
 
     public abstract void setMarketAdaptor(MarketAdaptor market);
 
-    public abstract StrategyContext addStrategy(StrategyProfile profile, Object strategy)
-            throws StrategyCreateException, InvalidLoginException;
+    public abstract StrategyContext addStrategy(StrategyProfile profile, Object strategy) throws StrategyCreateException, InvalidLoginException;
 
-    public abstract void updateStrategyProfile(StrategyProfile profile)
-            throws StrategyUpdateException, InvalidLoginException;
+    public abstract void updateStrategyProfile(StrategyProfile profile) throws StrategyUpdateException, InvalidLoginException;
 
     public abstract void removeStrategy(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException;
 

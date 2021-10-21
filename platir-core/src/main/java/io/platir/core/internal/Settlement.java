@@ -8,6 +8,7 @@ import java.util.Set;
 
 import io.platir.core.SettlementException;
 import io.platir.service.Account;
+import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.StrategyProfile;
@@ -19,7 +20,6 @@ import java.nio.file.Path;
 public class Settlement {
 
     private final Queries queries;
-    private final RuntimeSnapshot snapshot = new RuntimeSnapshot();
     private final Set<Tick> ticks = new HashSet<>();
     private final Set<Instrument> instruments = new HashSet<>();
     private Path before;
@@ -30,40 +30,40 @@ public class Settlement {
     }
 
     public void settle() throws DataQueryException, SettlementException {
-        prepareDirs();
+        prepare();
         queries.backup(before);
-        snapshot();
-        computeSettlement();
-        roll();
+        var snapshot = createSnapshot();
+        computeSettlement(snapshot);
+        rollQueries(snapshot);
         queries.backup(after);
     }
 
-    private void roll() throws DataQueryException {
-        clearTables();
-        pushTables();
+    private void rollQueries(RuntimeSnapshot snapshot) throws DataQueryException {
+        clearSchema();
+        resetSchema(snapshot);
     }
 
-    private void pushTables() throws DataQueryException {
+    private void resetSchema(RuntimeSnapshot snapshot) throws DataQueryException {
         queries.insert(snapshot.accounts().toArray(new Account[1]));
         queries.insert(snapshot.contracts().toArray(new Contract[1]));
         /* Insert the updated strategy profiles. */
-        removeSomeStrategies();
+        removeSomeStrategies(snapshot);
         queries.insert(snapshot.strategyProfiles().toArray(new StrategyProfile[1]));
     }
 
-    private void removeSomeStrategies() {
+    private void removeSomeStrategies(RuntimeSnapshot snapshot) {
         /* Remove strategies that was scheduled to remove. */
         var profileIterator = snapshot.strategyProfiles().iterator();
         while (profileIterator.hasNext()) {
             var profile = profileIterator.next();
-            if (profile.getState().compareToIgnoreCase("removed") == 0) {
+            if (profile.getState().compareToIgnoreCase(Constants.FLAG_STRATEGY_REMOVED) == 0) {
                 profileIterator.remove();
             }
         }
     }
 
-    private void clearTables() throws DataQueryException {
-        /* Ticks are set before settlement. */
+    private void clearSchema() throws DataQueryException {
+        /* Ticks are set before settlement every time. */
         queries.clearTicks();
         /* Write settled information. */
         queries.clearAccounts();
@@ -76,36 +76,26 @@ public class Settlement {
         queries.clearStrategies();
     }
 
-    private void computeSettlement() throws SettlementException, DataQueryException {
-        java.util.HashMap<java.lang.String, io.platir.core.internal.UserSnapshot> users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
+    private void computeSettlement(RuntimeSnapshot snapshot) throws SettlementException, DataQueryException {
+        var users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
         requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
         requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
         var tradingDay = queries.selectTradingDay().getTradingDay();
-        for (io.platir.core.internal.UserSnapshot user : users.values()) {
+        for (var user : users.values()) {
             SettlementFacilities.settle(user, tradingDay, ticks, instruments);
-            push0(user);
         }
-        /* clear snapshot so backup the settled data */
-        snapshot.orders().clear();
-        snapshot.trades().clear();
-        snapshot.transactions().clear();
     }
 
-    private void push0(UserSnapshot userSnapshot) {
-        snapshot.accounts().add(userSnapshot.getAccount());
-        userSnapshot.contracts().values().forEach(contracts -> {
-            snapshot.contracts().addAll(contracts);
-        });
-
-    }
-
-    private void prepareDirs() {
+    private void prepare() throws DataQueryException {
         var dir = Utils.dir(Paths.get(Utils.backupDirectory().toString(), Utils.date()));
         before = Utils.dir(Paths.get(dir.toString(), Utils.date(), "ThisDay"));
         after = Utils.dir(Paths.get(dir.toString(), Utils.date(), "NextDay"));
+        ticks.addAll(queries.selectTicks());
+        instruments.addAll(queries.selectInstruments());
     }
 
-    private void snapshot() throws DataQueryException {
+    private RuntimeSnapshot createSnapshot() throws DataQueryException {
+        var snapshot = new RuntimeSnapshot();
         snapshot.accounts().addAll(queries.selectAccounts());
         snapshot.contracts().addAll(queries.selectContracts());
         snapshot.instruments().addAll(queries.selectInstruments());
@@ -114,8 +104,7 @@ public class Settlement {
         snapshot.trades().addAll(queries.selectTrades());
         snapshot.transactions().addAll(queries.selectTransactions());
         snapshot.users().addAll(queries.selectUsers());
-        ticks.addAll(queries.selectTicks());
-        instruments.addAll(queries.selectInstruments());
+        return snapshot;
     }
 
     private void requireEmpty(Collection<?> container, String message) throws SettlementException {
