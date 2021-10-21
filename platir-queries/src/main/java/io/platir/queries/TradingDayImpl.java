@@ -8,17 +8,17 @@ import io.platir.service.TradingDay;
  */
 class TradingDayImpl implements TradingDay {
 
-    private String tradingDay;
+    private String day;
     private String updateTime;
 
     @Override
-    public String getTradingDay() {
-        return tradingDay;
+    public String getDay() {
+        return day;
     }
 
     @Override
-    public void setTradingDay(String tradingDay) {
-        this.tradingDay = tradingDay;
+    public void setDay(String tradingDay) {
+        this.day = tradingDay;
     }
 
     @Override

@@ -49,7 +49,7 @@ public class QuerySchema implements Schema {
 
     @Override
     public void setTradingDay(TradingDay tradingDay) {
-        this.tradingDay.setTradingDay(tradingDay.getTradingDay());
+        this.tradingDay.setDay(tradingDay.getDay());
         this.tradingDay.setUpdateTime(tradingDay.getUpdateTime());
     }
 

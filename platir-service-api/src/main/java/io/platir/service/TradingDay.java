@@ -6,9 +6,9 @@ package io.platir.service;
  */
 public interface TradingDay {
 
-    String getTradingDay();
+    String getDay();
 
-    void setTradingDay(String tradingDay);
+    void setDay(String tradingDay);
 
     String getUpdateTime();
 

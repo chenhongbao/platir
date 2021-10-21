@@ -109,7 +109,7 @@ public class QueriesImplTest {
     public void testTradingDay() throws Exception {
         /* Step 1: Insert TradingDay. */
         TradingDay day = queries.getFactory().newTradingDay();
-        day.setTradingDay(Utils.date());
+        day.setDay(Utils.date());
         day.setUpdateTime(Utils.datetime());
         queries.insert(day);
         /* Step 2: Check insertion succeeds. */

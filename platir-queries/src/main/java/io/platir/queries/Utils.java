@@ -81,6 +81,17 @@ public final class Utils {
 
     }
 
+    public static String maxDate(String date1, String date2) {
+        if (date2 == null) {
+            return date1;
+        }
+        if (date1 != null && date1.compareTo(date2) > 0) {
+            return date1;
+        } else {
+            return date2;
+        }
+    }
+
     public static String date() {
         return LocalDate.now().format(dateFormat);
     }

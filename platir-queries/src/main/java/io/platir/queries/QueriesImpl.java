@@ -99,7 +99,7 @@ public class QueriesImpl implements Queries {
             throw new DataQueryException("Duplicated TradingDay.");
         } else if (days.size() == 1) {
             var day = days.iterator().next();
-            tradingDay.setTradingDay(day.getTradingDay());
+            tradingDay.setDay(day.getDay());
             tradingDay.setUpdateTime(day.getUpdateTime());
         }
     }
@@ -140,7 +140,7 @@ public class QueriesImpl implements Queries {
     @Override
     public void insert(TradingDay day) throws DataQueryException {
         if (day != null) {
-            tradingDay.setTradingDay(day.getTradingDay());
+            tradingDay.setDay(day.getDay());
             tradingDay.setUpdateTime(day.getUpdateTime());
             /* persist */
             writeTradingDay(schemaTablePath(TradingDay.class.getSimpleName()));
@@ -373,7 +373,7 @@ public class QueriesImpl implements Queries {
         var list = Arrays.asList(days);
         list.sort((TradingDay day1, TradingDay day2) -> day2.getUpdateTime().compareTo(day1.getUpdateTime()));
         var day = list.get(0);
-        tradingDay.setTradingDay(day.getTradingDay());
+        tradingDay.setDay(day.getDay());
         tradingDay.setUpdateTime(day.getUpdateTime());
         writeTradingDay(schemaTablePath(TradingDay.class.getSimpleName()));
     }
@@ -444,7 +444,7 @@ public class QueriesImpl implements Queries {
     @Override
     public TradingDay selectTradingDay() throws DataQueryException {
         var day = factory.newTradingDay();
-        day.setTradingDay(tradingDay.getTradingDay());
+        day.setDay(tradingDay.getDay());
         day.setUpdateTime(tradingDay.getUpdateTime());
         return day;
     }
@@ -691,7 +691,7 @@ public class QueriesImpl implements Queries {
     }
 
     private void clearRuntime() {
-        tradingDay.setTradingDay(null);
+        tradingDay.setDay(null);
         tradingDay.setUpdateTime(null);
         instrumentTable.clear();
         userTable.clear();

@@ -101,7 +101,7 @@ public class PlatirImpl extends Platir {
             Utils.threads().submit(transactionQueue);
         }
         if (marketRouter == null) {
-            marketRouter = new MarketRouter(marketAdaptor, transactionQueue);
+            marketRouter = new MarketRouter(marketAdaptor, transactionQueue, queries);
         } else {
             /* Need subscribe again after re-login. */
             marketRouter.refreshAllSubscriptions();

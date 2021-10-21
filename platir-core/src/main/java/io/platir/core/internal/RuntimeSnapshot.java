@@ -9,53 +9,63 @@ import io.platir.service.Instrument;
 import io.platir.service.Order;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Trade;
+import io.platir.service.TradingDay;
 import io.platir.service.Transaction;
 import io.platir.service.User;
 
 public class RuntimeSnapshot {
 
-	private final Set<Account> accounts = new HashSet<>();
-	private final Set<Contract> contracts = new HashSet<>();
-	private final Set<Instrument> instruments = new HashSet<>();
-	private final Set<Order> orders = new HashSet<>();
-	private final Set<StrategyProfile> strategyProfiles = new HashSet<>();
-	private final Set<Trade> trades = new HashSet<>();
-	private final Set<Transaction> transactions = new HashSet<>();
-	private final Set<User> users = new HashSet<>();
+    private TradingDay tradingDay;
+    private final Set<Account> accounts = new HashSet<>();
+    private final Set<Contract> contracts = new HashSet<>();
+    private final Set<Instrument> instruments = new HashSet<>();
+    private final Set<Order> orders = new HashSet<>();
+    private final Set<StrategyProfile> strategyProfiles = new HashSet<>();
+    private final Set<Trade> trades = new HashSet<>();
+    private final Set<Transaction> transactions = new HashSet<>();
+    private final Set<User> users = new HashSet<>();
 
-	public RuntimeSnapshot() {
-	}
+    public TradingDay getTradingDay() {
+        return tradingDay;
+    }
 
-	public Set<Account> accounts() {
-		return accounts;
-	}
+    public void setTradingDay(TradingDay tradingDay) {
+        this.tradingDay = tradingDay;
+    }
 
-	public Set<Contract> contracts() {
-		return contracts;
-	}
+    public RuntimeSnapshot() {
+    }
 
-	public Set<Instrument> instruments() {
-		return instruments;
-	}
+    public Set<Account> accounts() {
+        return accounts;
+    }
 
-	public Set<Order> orders() {
-		return orders;
-	}
+    public Set<Contract> contracts() {
+        return contracts;
+    }
 
-	public Set<StrategyProfile> strategyProfiles() {
-		return strategyProfiles;
-	}
+    public Set<Instrument> instruments() {
+        return instruments;
+    }
 
-	public Set<Trade> trades() {
-		return trades;
-	}
+    public Set<Order> orders() {
+        return orders;
+    }
 
-	public Set<Transaction> transactions() {
-		return transactions;
-	}
+    public Set<StrategyProfile> strategyProfiles() {
+        return strategyProfiles;
+    }
 
-	public Set<User> users() {
-		return users;
-	}
+    public Set<Trade> trades() {
+        return trades;
+    }
+
+    public Set<Transaction> transactions() {
+        return transactions;
+    }
+
+    public Set<User> users() {
+        return users;
+    }
 
 }

@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import io.platir.core.SettlementException;
-import io.platir.service.Account;
 import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
@@ -85,9 +84,8 @@ public class Settlement {
         var users = SettlementFacilities.users(snapshot.users(), snapshot.accounts(), snapshot.contracts());
         requireEmpty(snapshot.accounts(), "Some accounts have no owner.");
         requireEmpty(snapshot.contracts(), "Some contracts have no owner.");
-        var tradingDay = queries.selectTradingDay().getTradingDay();
         for (var user : users.values()) {
-            SettlementFacilities.settle(user, tradingDay, ticks, instruments);
+            SettlementFacilities.settle(user, snapshot.getTradingDay().getDay(), ticks, instruments);
         }
         return new HashSet<>(users.values());
     }
@@ -110,6 +108,8 @@ public class Settlement {
         snapshot.trades().addAll(queries.selectTrades());
         snapshot.transactions().addAll(queries.selectTransactions());
         snapshot.users().addAll(queries.selectUsers());
+        snapshot.setTradingDay(queries.selectTradingDay());
+        chooseProperTradingDay(snapshot);
         return snapshot;
     }
 
@@ -117,5 +117,11 @@ public class Settlement {
         if (!container.isEmpty()) {
             throw new SettlementException(message);
         }
+    }
+
+    private void chooseProperTradingDay(RuntimeSnapshot snapshot) {
+        /* Always choose the latest date because trading day may not be updated. */
+        var properTradingDay = Utils.maxDate(snapshot.getTradingDay().getDay(), Utils.date());
+        snapshot.getTradingDay().setDay(properTradingDay);
     }
 }

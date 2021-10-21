@@ -65,7 +65,9 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
         var userId = strategyContext.getProfile().getUserId();
         try {
             var snapshot = selectUserSnapshot(userId);
-            SettlementFacilities.settleInDay(snapshot, getTradingDay(), marketRouter.getLastTicks(), queries.selectInstruments());
+            /* Always choose the latest date because trading day may not be updated. */
+            var properTradingDay = Utils.maxDate(getTradingDay(), Utils.date());
+            SettlementFacilities.settleInDay(snapshot, properTradingDay, marketRouter.getLastTicks(), queries.selectInstruments());
             return snapshot.getAccount();
         } catch (DataQueryException | SettlementException exception) {
             Utils.err().write("Fail querying account by user(" + userId + ").", exception);
@@ -241,21 +243,19 @@ class PlatirInfoClientImpl implements PlatirInfoClient {
     public String getTradingDay() {
         var today = Utils.date();
         if (whenQryTradingDay == null || !whenQryTradingDay.equals(today)) {
-            return qryTradingDay();
-        } else {
-            return tradingDay;
+            tradingDay = qryTradingDay();
+            whenQryTradingDay = today;
         }
+        return tradingDay;
     }
 
     private String qryTradingDay() {
         try {
-            tradingDay = queries.selectTradingDay().getTradingDay();
-            whenQryTradingDay = Utils.date();
+            return queries.selectTradingDay().getDay();
         } catch (DataQueryException e) {
             Utils.err().write("Fail querying trading day.", e);
             return null;
         }
-        return tradingDay;
     }
 
     private class InstrumentPosition {

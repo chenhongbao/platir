@@ -1,6 +1,8 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
+import io.platir.service.DataQueryException;
+import io.platir.service.Queries;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -13,6 +15,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import io.platir.service.Tick;
 import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.MarketListener;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class MarketRouter implements MarketListener {
 
@@ -20,11 +23,14 @@ class MarketRouter implements MarketListener {
     private final Map<String, Tick> ticks = new ConcurrentHashMap<>();
     private final TransactionQueue transactionQueue;
     private final MarketAdaptor marketAdaptor;
+    private final AtomicInteger tradingDayHashCode = new AtomicInteger(0);
+    private final Queries queries;
 
-    MarketRouter(MarketAdaptor marketAdaptor, TransactionQueue transactionQueue) {
+    MarketRouter(MarketAdaptor marketAdaptor, TransactionQueue transactionQueue, Queries queries) {
         this.marketAdaptor = marketAdaptor;
         this.transactionQueue = transactionQueue;
         this.marketAdaptor.setListener(this);
+        this.queries = queries;
     }
 
     Set<Tick> getLastTicks() {
@@ -95,10 +101,12 @@ class MarketRouter implements MarketListener {
         strategies.parallelStream().forEach(context -> {
             context.processTick(tick);
         });
-        /* signal transaction queue to work on pending transactions. */
+        /* Signal transaction queue to work on pending transactions. */
         tryAwake(tick);
-        /* save ticks for settlement */
+        /* Save ticks for settlement. */
         ticks.put(tick.getInstrumentId(), tick);
+        /* Save trading day if it updated. */
+        updateTradingDay(tick.getTradingDay());
     }
 
     private void tryAwake(Tick tick) {
@@ -113,5 +121,24 @@ class MarketRouter implements MarketListener {
             return;
         }
         transactionQueue.awake(tick);
+    }
+
+    private void updateTradingDay(String newTradingDay) {
+        if (newTradingDay != null && newTradingDay.hashCode() != tradingDayHashCode.get()) {
+            var day = queries.getFactory().newTradingDay();
+            day.setDay(newTradingDay);
+            day.setUpdateTime(Utils.datetime());
+            try {
+                var oldTradingDay = queries.selectTradingDay();
+                if (oldTradingDay == null || oldTradingDay.getDay() == null) {
+                    queries.insert(day);
+                } else {
+                    queries.update(day);
+                }
+                tradingDayHashCode.set(newTradingDay.hashCode());
+            } catch (DataQueryException exception) {
+                Utils.err().write("Fail updating trading day: " + exception.getMessage(), exception);
+            }
+        }
     }
 }

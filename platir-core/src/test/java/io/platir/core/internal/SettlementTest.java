@@ -88,8 +88,8 @@ public class SettlementTest {
         var snapshot1 = iterator.next();
         var snapshot2 = iterator.next();
         /* Settlement in day. */
-        SettlementFacilities.settleInDay(snapshot1, queries.selectTradingDay().getTradingDay(), queries.selectTicks(), queries.selectInstruments());
-        SettlementFacilities.settleInDay(snapshot2, queries.selectTradingDay().getTradingDay(), queries.selectTicks(), queries.selectInstruments());
+        SettlementFacilities.settleInDay(snapshot1, queries.selectTradingDay().getDay(), queries.selectTicks(), queries.selectInstruments());
+        SettlementFacilities.settleInDay(snapshot2, queries.selectTradingDay().getDay(), queries.selectTicks(), queries.selectInstruments());
         /* Check account. */
         var account = snapshot1.getAccount();
         assertEquals(20000D, account.getYdBalance(), 0.01, "YdBalance not matched.");
@@ -127,34 +127,36 @@ public class SettlementTest {
     }
 
     private void prepareSchema() throws Exception {
+        var tradingDay = Utils.date();
+        var preDay = Integer.toString(Integer.parseInt(tradingDay) - 1);
         /* Set up information. */
         addInstrument("c2201", "DCE", 0D, 1.2D, 0.1D, 0D, 10D, Utils.datetime());
         addInstrument("c2205", "DCE", 0D, 1.2D, 0.1D, 0D, 10D, Utils.datetime());
         addTick("c2201", 2580D, 2575D);
         addTick("c2205", 2575D, 2570D);
-        addTradingDay("20211027");
+        addTradingDay(tradingDay);
         /* Add user1. */
         addUser("user1");
         addAccount("account1", "user1", 20000.0D);
-        addContract("user1.contract1", "user1", "c2201", 2580.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, "20211026", null, null);
-        addContract("user1.contract2", "user1", "c2201", 2585.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, "20211027", null, null);
-        addContract("user1.contract3", "user1", "c2205", 2575.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_SELL, "20211027", null, null);
+        addContract("user1.contract1", "user1", "c2201", 2580.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, preDay, null, null);
+        addContract("user1.contract2", "user1", "c2201", 2585.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, tradingDay, null, null);
+        addContract("user1.contract3", "user1", "c2205", 2575.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_SELL, tradingDay, null, null);
         addContract("user1.contract4", "user1", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_BUY, null, null, null);
         addContract("user1.contract5", "user1", "c2205", 2595.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_SELL, null, null, null);
-        addContract("user1.contract6", "user1", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_CLOSING, Constants.FLAG_BUY, "20211027", null, null);
-        addContract("user1.contract7", "user1", "c2205", 2565.0D, 2580.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_BUY, "20211027", null, null);
-        addContract("user1.contract8", "user1", "c2205", 2565.0D, 2590.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_SELL, "20211027", null, null);
+        addContract("user1.contract6", "user1", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_CLOSING, Constants.FLAG_BUY, tradingDay, null, null);
+        addContract("user1.contract7", "user1", "c2205", 2565.0D, 2580.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_BUY, tradingDay, null, null);
+        addContract("user1.contract8", "user1", "c2205", 2565.0D, 2590.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_SELL, tradingDay, null, null);
         /* Add user2. */
         addUser("user2");
         addAccount("account2", "user2", 20000.0D);
-        addContract("user2.contract1", "user2", "c2201", 2580.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, "20211026", null, null);
-        addContract("user2.contract2", "user2", "c2201", 2585.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, "20211027", null, null);
-        addContract("user2.contract3", "user2", "c2205", 2575.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_SELL, "20211027", null, null);
+        addContract("user2.contract1", "user2", "c2201", 2580.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, preDay, null, null);
+        addContract("user2.contract2", "user2", "c2201", 2585.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, tradingDay, null, null);
+        addContract("user2.contract3", "user2", "c2205", 2575.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_SELL, tradingDay, null, null);
         addContract("user2.contract4", "user2", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_BUY, null, null, null);
         addContract("user2.contract5", "user2", "c2205", 2595.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_SELL, null, null, null);
-        addContract("user2.contract6", "user2", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_CLOSING, Constants.FLAG_BUY, "20211027", null, null);
-        addContract("user2.contract7", "user2", "c2205", 2565.0D, 2580.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_BUY, "20211027", null, null);
-        addContract("user2.contract8", "user2", "c2205", 2565.0D, 2590.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_SELL, "20211027", null, null);
+        addContract("user2.contract6", "user2", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_CLOSING, Constants.FLAG_BUY, tradingDay, null, null);
+        addContract("user2.contract7", "user2", "c2205", 2565.0D, 2580.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_BUY, tradingDay, null, null);
+        addContract("user2.contract8", "user2", "c2205", 2565.0D, 2590.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_SELL, tradingDay, null, null);
         /* Add two identical users so it checks whether settlements are the same. */
     }
 
@@ -168,7 +170,7 @@ public class SettlementTest {
 
     private void addTradingDay(String tradingDay) throws DataQueryException {
         var day = queries.getFactory().newTradingDay();
-        day.setTradingDay(tradingDay);
+        day.setDay(tradingDay);
         day.setUpdateTime(Utils.datetime());
         queries.insert(day);
     }

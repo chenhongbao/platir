@@ -2,39 +2,39 @@ package io.platir.service;
 
 public interface Trade {
 
-	String getTradeId();
+    String getTradeId();
 
     void setTradeId(String tradeId);
 
-	String getOrderId();
+    String getOrderId();
 
     void setOrderId(String orderId);
 
-	String getInstrumentId();
+    String getInstrumentId();
 
     void setInstrumentId(String instrumentId);
 
-	Double getPrice();
+    Double getPrice();
 
     void setPrice(Double price);
 
-	Integer getVolume();
+    Integer getVolume();
 
     void setVolume(Integer volume);
 
-	String getDirection();
+    String getDirection();
 
     void setDirection(String direction);
-        
-        String getOffset();
+
+    String getOffset();
 
     void setOffset(String offset);
 
-	String getTradingDay();
+    String getTradingDay();
 
     void setTradingDay(String tradingDay);
 
-	String getUpdateTime();
+    String getUpdateTime();
 
     void setUpdateTime(String updateTime);
 
