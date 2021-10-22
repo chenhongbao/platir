@@ -27,6 +27,7 @@ import java.nio.file.StandardOpenOption;
 import io.platir.service.api.RiskManager;
 import io.platir.service.api.TradeAdapter;
 import io.platir.service.api.MarketAdapter;
+import io.platir.service.api.ApiConstants;
 
 public class PlatirImpl extends Platir {
 
@@ -90,11 +91,14 @@ public class PlatirImpl extends Platir {
     }
 
     private void setup() throws StartupException {
-        try {
-            tradeAdaptor.start();
-            marketAdaptor.start();
-        } catch (AdaptorStartupException e) {
-            throw new StartupException("Adaptor startup failure: " + e.getMessage(), e);
+        int code;
+        code = tradeAdaptor.start();
+        if (code != ApiConstants.CODE_OK) {
+            throw new StartupException("Trader adapter startup failure: " + code + ".");
+        }
+        code = marketAdaptor.start();
+        if (code != ApiConstants.CODE_OK) {
+            throw new StartupException("Market adapter startup failure: " + code + ".");
         }
         if (transactionQueue == null) {
             transactionQueue = new TransactionQueue(tradeAdaptor, riskManager, queries.getFactory());

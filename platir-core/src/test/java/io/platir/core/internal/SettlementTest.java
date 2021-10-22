@@ -3,10 +3,11 @@ package io.platir.core.internal;
 import io.platir.queries.QueriesImpl;
 import io.platir.queries.Utils;
 import io.platir.service.Account;
-import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
+import io.platir.service.ServiceConstants;
+import io.platir.service.api.ApiConstants;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -138,25 +139,25 @@ public class SettlementTest {
         /* Add user1. */
         addUser("user1");
         addAccount("account1", "user1", 20000.0D);
-        addContract("user1.contract1", "user1", "c2201", 2580.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, preDay, null, null);
-        addContract("user1.contract2", "user1", "c2201", 2585.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, tradingDay, null, null);
-        addContract("user1.contract3", "user1", "c2205", 2575.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_SELL, tradingDay, null, null);
-        addContract("user1.contract4", "user1", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_BUY, null, null, null);
-        addContract("user1.contract5", "user1", "c2205", 2595.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_SELL, null, null, null);
-        addContract("user1.contract6", "user1", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_CLOSING, Constants.FLAG_BUY, tradingDay, null, null);
-        addContract("user1.contract7", "user1", "c2205", 2565.0D, 2580.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_BUY, tradingDay, null, null);
-        addContract("user1.contract8", "user1", "c2205", 2565.0D, 2590.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_SELL, tradingDay, null, null);
+        addContract("user1.contract1", "user1", "c2201", 2580.0D, null, ServiceConstants.FLAG_CONTRACT_OPEN, ApiConstants.FLAG_BUY, preDay, null, null);
+        addContract("user1.contract2", "user1", "c2201", 2585.0D, null, ServiceConstants.FLAG_CONTRACT_OPEN, ApiConstants.FLAG_BUY, tradingDay, null, null);
+        addContract("user1.contract3", "user1", "c2205", 2575.0D, null, ServiceConstants.FLAG_CONTRACT_OPEN, ApiConstants.FLAG_SELL, tradingDay, null, null);
+        addContract("user1.contract4", "user1", "c2201", 2565.0D, null, ServiceConstants.FLAG_CONTRACT_OPENING, ApiConstants.FLAG_BUY, null, null, null);
+        addContract("user1.contract5", "user1", "c2205", 2595.0D, null, ServiceConstants.FLAG_CONTRACT_OPENING, ApiConstants.FLAG_SELL, null, null, null);
+        addContract("user1.contract6", "user1", "c2201", 2565.0D, null, ServiceConstants.FLAG_CONTRACT_CLOSING, ApiConstants.FLAG_BUY, tradingDay, null, null);
+        addContract("user1.contract7", "user1", "c2205", 2565.0D, 2580.D, ServiceConstants.FLAG_CONTRACT_CLOSED, ApiConstants.FLAG_BUY, tradingDay, null, null);
+        addContract("user1.contract8", "user1", "c2205", 2565.0D, 2590.D, ServiceConstants.FLAG_CONTRACT_CLOSED, ApiConstants.FLAG_SELL, tradingDay, null, null);
         /* Add user2. */
         addUser("user2");
         addAccount("account2", "user2", 20000.0D);
-        addContract("user2.contract1", "user2", "c2201", 2580.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, preDay, null, null);
-        addContract("user2.contract2", "user2", "c2201", 2585.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_BUY, tradingDay, null, null);
-        addContract("user2.contract3", "user2", "c2205", 2575.0D, null, Constants.FLAG_CONTRACT_OPEN, Constants.FLAG_SELL, tradingDay, null, null);
-        addContract("user2.contract4", "user2", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_BUY, null, null, null);
-        addContract("user2.contract5", "user2", "c2205", 2595.0D, null, Constants.FLAG_CONTRACT_OPENING, Constants.FLAG_SELL, null, null, null);
-        addContract("user2.contract6", "user2", "c2201", 2565.0D, null, Constants.FLAG_CONTRACT_CLOSING, Constants.FLAG_BUY, tradingDay, null, null);
-        addContract("user2.contract7", "user2", "c2205", 2565.0D, 2580.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_BUY, tradingDay, null, null);
-        addContract("user2.contract8", "user2", "c2205", 2565.0D, 2590.D, Constants.FLAG_CONTRACT_CLOSED, Constants.FLAG_SELL, tradingDay, null, null);
+        addContract("user2.contract1", "user2", "c2201", 2580.0D, null, ServiceConstants.FLAG_CONTRACT_OPEN, ApiConstants.FLAG_BUY, preDay, null, null);
+        addContract("user2.contract2", "user2", "c2201", 2585.0D, null, ServiceConstants.FLAG_CONTRACT_OPEN, ApiConstants.FLAG_BUY, tradingDay, null, null);
+        addContract("user2.contract3", "user2", "c2205", 2575.0D, null, ServiceConstants.FLAG_CONTRACT_OPEN, ApiConstants.FLAG_SELL, tradingDay, null, null);
+        addContract("user2.contract4", "user2", "c2201", 2565.0D, null, ServiceConstants.FLAG_CONTRACT_OPENING, ApiConstants.FLAG_BUY, null, null, null);
+        addContract("user2.contract5", "user2", "c2205", 2595.0D, null, ServiceConstants.FLAG_CONTRACT_OPENING, ApiConstants.FLAG_SELL, null, null, null);
+        addContract("user2.contract6", "user2", "c2201", 2565.0D, null, ServiceConstants.FLAG_CONTRACT_CLOSING, ApiConstants.FLAG_BUY, tradingDay, null, null);
+        addContract("user2.contract7", "user2", "c2205", 2565.0D, 2580.D, ServiceConstants.FLAG_CONTRACT_CLOSED, ApiConstants.FLAG_BUY, tradingDay, null, null);
+        addContract("user2.contract8", "user2", "c2205", 2565.0D, 2590.D, ServiceConstants.FLAG_CONTRACT_CLOSED, ApiConstants.FLAG_SELL, tradingDay, null, null);
         /* Add two identical users so it checks whether settlements are the same. */
     }
 

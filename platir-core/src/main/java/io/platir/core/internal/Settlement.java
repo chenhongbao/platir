@@ -7,13 +7,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 import io.platir.core.SettlementException;
-import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
+import io.platir.service.ServiceConstants;
 import java.nio.file.Path;
 
 public class Settlement {
@@ -60,7 +60,7 @@ public class Settlement {
         var profileIterator = snapshot.strategyProfiles().iterator();
         while (profileIterator.hasNext()) {
             var profile = profileIterator.next();
-            if (profile.getState().compareToIgnoreCase(Constants.FLAG_STRATEGY_REMOVED) == 0) {
+            if (profile.getState().compareToIgnoreCase(ServiceConstants.FLAG_STRATEGY_REMOVED) == 0) {
                 profileIterator.remove();
             }
         }

@@ -35,6 +35,4 @@ public abstract class RiskNotice {
 
     public abstract void setLevel(Integer level);
 
-    public abstract boolean isGood();
-
 }

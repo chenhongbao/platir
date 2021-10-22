@@ -9,19 +9,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import io.platir.core.AnnotationParsingException;
 import io.platir.service.Bar;
-import io.platir.service.Notice;
 import io.platir.service.PlatirClient;
 import io.platir.service.Strategy;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.annotation.OnBar;
 import io.platir.service.annotation.OnDestroy;
-import io.platir.service.annotation.OnNotice;
 import io.platir.service.annotation.OnStart;
 import io.platir.service.annotation.OnStop;
 import io.platir.service.annotation.OnTick;
 import io.platir.service.annotation.OnTrade;
 import io.platir.service.PlatirInfoClient;
+import io.platir.service.TradeUpdate;
+import io.platir.service.annotation.OnTradeUpdate;
 
 /**
  * Wrapper for invoking annotated methods or interface.
@@ -74,9 +74,9 @@ class CompositeStrategy implements Strategy {
     }
 
     @Override
-    public void onNotice(Notice notice) {
+    public void onTradeUpdate(TradeUpdate notice) {
         if (strategy != null) {
-            strategy.onNotice(notice);
+            strategy.onTradeUpdate(notice);
         }
         invoker.invokeNotice(notice);
     }
@@ -130,7 +130,7 @@ class CompositeStrategy implements Strategy {
         }
 
         private void parseMethod(Method method) throws AnnotationParsingException {
-            if (parseOnBar(method) || parseOnTick(method) || parseOnTrade(method) || parseOnNotice(method) || parseOnStart(method)) {
+            if (parseOnBar(method) || parseOnTick(method) || parseOnTrade(method) || parseOnTradeUpdate(method) || parseOnStart(method)) {
                 return;
             }
             parseOnStop(method);
@@ -148,8 +148,8 @@ class CompositeStrategy implements Strategy {
             return false;
         }
 
-        private boolean parseOnNotice(Method method) throws AnnotationParsingException {
-            if (checkMethodAndParameters(OnNotice.class, method, Notice.class)) {
+        private boolean parseOnTradeUpdate(Method method) throws AnnotationParsingException {
+            if (checkMethodAndParameters(OnTradeUpdate.class, method, TradeUpdate.class)) {
                 if (noticeMethod != null) {
                     throw new AnnotationParsingException("Ambiguious OnNotice annotation.");
                 }
@@ -331,7 +331,7 @@ class CompositeStrategy implements Strategy {
             }
         }
 
-        void invokeNotice(Notice notice) {
+        void invokeNotice(TradeUpdate notice) {
             if (noticeMethod != null) {
                 try {
                     noticeMethod.invoke(target, notice);

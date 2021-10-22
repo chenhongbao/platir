@@ -5,7 +5,6 @@ import io.platir.service.Bar;
 import io.platir.service.Contract;
 import io.platir.service.Factory;
 import io.platir.service.Instrument;
-import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.Position;
 import io.platir.service.RiskNotice;
@@ -15,6 +14,7 @@ import io.platir.service.Trade;
 import io.platir.service.TradingDay;
 import io.platir.service.Transaction;
 import io.platir.service.User;
+import io.platir.service.TradeUpdate;
 
 /**
  *
@@ -43,8 +43,8 @@ public class FactoryImpl implements Factory {
     }
 
     @Override
-    public Notice newNotice() {
-        return new NoticeImpl();
+    public TradeUpdate newTradeUpdate() {
+        return new TradeUpdateImpl();
     }
 
     @Override

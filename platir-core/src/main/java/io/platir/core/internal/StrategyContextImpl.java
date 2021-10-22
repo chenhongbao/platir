@@ -10,9 +10,7 @@ import io.platir.core.AnnotationParsingException;
 import io.platir.core.IntegrityException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.service.Bar;
-import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
-import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.OrderContext;
 import io.platir.service.PlatirClient;
@@ -23,6 +21,7 @@ import io.platir.service.Trade;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
 import io.platir.service.Queries;
+import io.platir.service.ServiceConstants;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,6 +30,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import io.platir.service.TradeUpdate;
 
 /**
  *
@@ -136,7 +136,7 @@ class StrategyContextImpl implements StrategyContext {
         callbackQueue.push(callbackQueue);
     }
 
-    void processNotice(Notice notice) {
+    void processTradeUpdate(TradeUpdate notice) {
         callbackQueue.push(notice);
     }
 
@@ -154,22 +154,15 @@ class StrategyContextImpl implements StrategyContext {
                 /* transaction is completed, awake. */
                 transaction.awake();
                 /* call strategy callback */
-                simpleNotice(Constants.CODE_OK, "Completed");
+                TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_OK, "completed", null, transaction, null);
             } else if (tradedVolume > totalVolume) {
                 /* trade more than expected */
                 transaction.awake();
                 Utils.err().write("Transaction(" + transaction.getTransaction().getTransactionId() + ") over traded(" + tradedVolume + ">" + totalVolume + ").");
-                /* call strategy callback */
-                simpleNotice(Constants.CODE_TRANSACTION_OVER_TRADE, "Over traded");
+                /* Call strategy callback. */
+                TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_OVER_TRADE, "over trade", null, transaction, null);
             }
         }
-    }
-
-    private void simpleNotice(int code, String message) {
-        var notice = platirClient.queries().getFactory().newNotice();
-        notice.setCode(code);
-        notice.setMessage(message);
-        processNotice(notice);
     }
 
     void checkIntegrity() throws IntegrityException {

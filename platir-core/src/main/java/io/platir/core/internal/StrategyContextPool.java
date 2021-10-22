@@ -10,17 +10,16 @@ import io.platir.core.InvalidLoginException;
 import io.platir.core.StrategyCreateException;
 import io.platir.core.StrategyRemovalException;
 import io.platir.core.StrategyUpdateException;
-import io.platir.service.Constants;
 import io.platir.service.InterruptionException;
-import io.platir.service.Notice;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.DataQueryException;
 import io.platir.service.Queries;
+import io.platir.service.ServiceConstants;
 
 /**
  *
- * @author chenh
+ * @author Chen Hongbao
  *
  */
 class StrategyContextPool {
@@ -37,9 +36,9 @@ class StrategyContextPool {
     }
 
     StrategyContext add(StrategyProfile strategyProfile, Object strategyObject) throws StrategyCreateException, InvalidLoginException {
-        var notice = verifyLogin(strategyProfile);
-        if (!notice.isGood()) {
-            throw new InvalidLoginException("Can't add strategy on login verification failure(" + notice.getCode() + "): " + notice.getMessage() + ".");
+        var returnCode = verifyLogin(strategyProfile);
+        if (returnCode != ServiceConstants.CODE_OK) {
+            throw new InvalidLoginException("Can't add strategy on login verification failure(" + returnCode + ").");
         }
         /* Erase password */
         strategyProfile.setPassword("");
@@ -57,7 +56,7 @@ class StrategyContextPool {
 
     private void setStrategyCreated(StrategyProfile profile) throws StrategyCreateException {
         /* Insert strategy profile into data source. */
-        profile.setState(Constants.FLAG_STRATEGY_RUNNING);
+        profile.setState(ServiceConstants.FLAG_STRATEGY_RUNNING);
         profile.setCreateDate(Utils.date());
         try {
             queries.insert(profile);
@@ -82,10 +81,7 @@ class StrategyContextPool {
         });
     }
 
-    private Notice verifyLogin(StrategyProfile profile) {
-        var notice = queries.getFactory().newNotice();
-        notice.setCode(Constants.CODE_OK);
-        notice.setMessage("good");
+    private int verifyLogin(StrategyProfile profile) {
         try {
             var found = false;
             for (var user : queries.selectUsers()) {
@@ -95,15 +91,13 @@ class StrategyContextPool {
                 }
             }
             if (!found) {
-                notice.setCode(Constants.CODE_LOGIN_FAIL);
-                notice.setMessage("login failure");
+                return ServiceConstants.CODE_LOGIN_FAIL;
+            } else {
+                return ServiceConstants.CODE_OK;
             }
         } catch (DataQueryException exception) {
-            notice.setCode(Constants.CODE_LOGIN_QUERY_FAIL);
-            notice.setMessage("login SQL operation failure");
-            notice.setError(exception);
+            return ServiceConstants.CODE_LOGIN_QUERY_FAIL;
         }
-        return notice;
     }
 
     void checkIntegrity() throws IntegrityException {
@@ -114,9 +108,9 @@ class StrategyContextPool {
 
     void remove(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
         /* Check precondition for removal. */
-        var notice = verifyLogin(profile);
-        if (!notice.isGood()) {
-            throw new InvalidLoginException("Identity check failure(" + notice.getCode() + ") on removal: " + notice.getMessage() + ".");
+        var returnCode = verifyLogin(profile);
+        if (returnCode != ServiceConstants.CODE_OK) {
+            throw new InvalidLoginException("Identity check failure(" + returnCode + ") on removal.");
         }
         var strategy = findStrategyContext(profile);
         if (strategy == null) {
@@ -147,7 +141,7 @@ class StrategyContextPool {
 
     private void setStrategyRemoved(StrategyProfile profile) throws StrategyRemovalException {
         /* Set strategy state in data source, to be removed at settlement. */
-        profile.setState(Constants.FLAG_STRATEGY_REMOVED);
+        profile.setState(ServiceConstants.FLAG_STRATEGY_REMOVED);
         profile.setRemoveDate(Utils.date());
         try {
             queries.update(profile);
@@ -166,9 +160,9 @@ class StrategyContextPool {
     }
 
     void update(StrategyProfile profile) throws StrategyUpdateException, InvalidLoginException {
-        var notice = verifyLogin(profile);
-        if (!notice.isGood()) {
-            throw new InvalidLoginException("Identity check failure(" + notice.getCode() + ") on update profile: " + notice.getMessage() + ".");
+        var returnCode = verifyLogin(profile);
+        if (returnCode != ServiceConstants.CODE_OK) {
+            throw new InvalidLoginException("Identity check failure(" + returnCode + ") on update profile.");
         }
         StrategyContextImpl strategyContext = null;
         for (var existingContext : strategyContexts()) {

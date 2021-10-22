@@ -1,13 +1,11 @@
 package io.platir.core.internal;
 
 import io.platir.service.Bar;
-import io.platir.service.Notice;
 import io.platir.service.PlatirClient;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.annotation.OnBar;
 import io.platir.service.annotation.OnDestroy;
-import io.platir.service.annotation.OnNotice;
 import io.platir.service.annotation.OnStart;
 import io.platir.service.annotation.OnStop;
 import io.platir.service.annotation.OnTick;
@@ -16,6 +14,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import io.platir.service.TradeUpdate;
+import io.platir.service.annotation.OnTradeUpdate;
 
 /**
  *
@@ -27,7 +27,7 @@ public class AnnotationStrategy {
     private final Map<Tick, List<String>> tickCounts = new HashMap<>();
     private final Map<Trade, List<String>> tradeCounts = new HashMap<>();
     private final List<String> destroyCounts = new LinkedList<>();
-    private final List<String> noticeCounts = new LinkedList<>();
+    private final List<String> tradeUpdateCounts = new LinkedList<>();
     private final List<String> startCounts = new LinkedList<>();
     private final List<String> stopCounts = new LinkedList<>();
 
@@ -47,8 +47,8 @@ public class AnnotationStrategy {
         return destroyCounts;
     }
 
-    List<String> noticeCounts() {
-        return noticeCounts;
+    List<String> tradeUpdateCounts() {
+        return tradeUpdateCounts;
     }
 
     List<String> startCounts() {
@@ -78,10 +78,11 @@ public class AnnotationStrategy {
     public void whenDestroy() {
         destroyCounts.add("@OnDestroy");
     }
-
-    @OnNotice
-    public void whenNotice(Notice notice) {
-        noticeCounts.add("@OnNotice");
+    
+    
+    @OnTradeUpdate
+    public void whenTradeUpdate(TradeUpdate update) {
+        tradeUpdateCounts.add("@OnTradeUpdate");
     }
 
     @OnStart

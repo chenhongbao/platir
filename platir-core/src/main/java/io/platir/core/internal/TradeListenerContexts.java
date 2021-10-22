@@ -3,7 +3,6 @@ package io.platir.core.internal;
 import io.platir.queries.Utils;
 import io.platir.service.DataQueryException;
 import io.platir.service.Factory;
-import io.platir.service.Notice;
 import io.platir.service.Queries;
 import io.platir.service.Trade;
 import io.platir.service.api.TradeListener;
@@ -12,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import io.platir.service.api.RiskManager;
 import java.util.concurrent.atomic.AtomicInteger;
+import io.platir.service.TradeUpdate;
 
 /**
  * Error code explaination:
@@ -26,17 +26,12 @@ class TradeListenerContexts implements TradeListener {
     private final Map<String, OrderExecutionContext> executionContexts = new ConcurrentHashMap<>();
     private final RiskManager riskManager;
     private final TradeCallbackQueue tradeQueue;
-    private final NoticeCallbackQueue noticeQueue;
-    private final Factory factory;
     private final AtomicInteger tradingDayHashCode = new AtomicInteger(0);
 
-    TradeListenerContexts(RiskManager riskManager, Factory factory) {
+    TradeListenerContexts(RiskManager riskManager) {
         this.riskManager = riskManager;
-        this.factory = factory;
         this.tradeQueue = new TradeCallbackQueue();
-        this.noticeQueue = new NoticeCallbackQueue();
         Utils.threads().submit(tradeQueue);
-        Utils.threads().submit(noticeQueue);
     }
 
     int countStrategyRunning(StrategyContextImpl strategy) {
@@ -47,21 +42,15 @@ class TradeListenerContexts implements TradeListener {
         executionContexts.clear();
     }
 
-    void register(OrderContextImpl orderCtx, TransactionContextImpl ctx) throws DuplicatedOrderException {
-        var orderId = orderCtx.getOrder().getOrderId();
+    void register(String orderId, OrderContextImpl orderCtx, TransactionContextImpl ctx) throws DuplicatedOrderException {
         if (executionContexts.containsKey(orderId)) {
             throw new DuplicatedOrderException("Order(" + orderId + ") duplicated.");
         }
         executionContexts.put(orderId, new OrderExecutionContext(orderCtx, ctx, riskManager));
     }
-
-    Notice waitResponse(String orderId) {
-        var ctx = executionContexts.get(orderId);
-        if (ctx != null) {
-            return ctx.waitResponse();
-        } else {
-            throw new RuntimeException("Order execution context not found for order(" + orderId + ").");
-        }
+    
+    void unregister(String orderId) {
+        executionContexts.remove(orderId);
     }
 
     @Override
@@ -73,20 +62,6 @@ class TradeListenerContexts implements TradeListener {
             updateTradingDay(trade.getTradingDay(), ctx.getTransactionContext().getQueryClient().queries());
         } else {
             Utils.err().write("Order execution context not found for order(" + trade.getOrderId() + ").");
-        }
-    }
-
-    @Override
-    public void onNotice(String orderId, int code, String message) {
-        var context = executionContexts.get(orderId);
-        if (context != null) {
-            var notice = factory.newNotice();
-            notice.setCode(code);
-            notice.setMessage(message);
-            notice.setContext(context.getTransactionContext());
-            noticeQueue.push(notice, context);
-        } else {
-            Utils.err().write("Order execution context not found for order(" + orderId + ").");
         }
     }
 

@@ -1,7 +1,6 @@
 package io.platir.core.internal;
 
 import io.platir.service.Contract;
-import io.platir.service.Notice;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,15 +10,24 @@ import java.util.Set;
  */
 class CheckReturn {
 
-    private Notice notice;
+    private int code;
+    private String message;
     private Set<Contract> contracts = new HashSet<>();
 
-    public Notice getNotice() {
-        return notice;
+    public int getCode() {
+        return code;
     }
 
-    public void setNotice(Notice notice) {
-        this.notice = notice;
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public Set<Contract> getContracts() {
@@ -29,5 +37,4 @@ class CheckReturn {
     public void setContracts(Set<Contract> contracts) {
         this.contracts = contracts;
     }
-
 }

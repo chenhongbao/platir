@@ -1,18 +1,30 @@
 package io.platir.queries;
 
-import io.platir.service.Notice;
+import io.platir.service.OrderContext;
 import io.platir.service.TransactionContext;
+import io.platir.service.TradeUpdate;
 
 /**
  *
  * @author Chen Hongbao
  */
-class NoticeImpl implements Notice {
+class TradeUpdateImpl implements TradeUpdate {
 
     private String message;
     private Integer code;
     private Throwable throwable;
-    private TransactionContext context;
+    private TransactionContext transactionContext;
+    private OrderContext orderContext;
+
+    @Override
+    public OrderContext getOrderContext() {
+        return orderContext;
+    }
+
+    @Override
+    public void setOrderContext(OrderContext orderContext) {
+        this.orderContext = orderContext;
+    }
 
     @Override
     public String getMessage() {
@@ -50,12 +62,12 @@ class NoticeImpl implements Notice {
     }
 
     @Override
-    public TransactionContext getContext() {
-        return context;
+    public TransactionContext getTransactionContext() {
+        return transactionContext;
     }
 
     @Override
-    public void setContext(TransactionContext context) {
-        this.context = context;
+    public void setTransactionContext(TransactionContext context) {
+        this.transactionContext = context;
     }
 }

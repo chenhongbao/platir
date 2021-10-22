@@ -1,5 +1,6 @@
 package io.platir.core.internal;
 
+import io.platir.service.ServiceConstants;
 import io.platir.queries.Utils;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -7,14 +8,15 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import io.platir.service.Constants;
-import io.platir.service.Notice;
 import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
 import io.platir.service.Factory;
+import io.platir.service.Transaction;
 import io.platir.service.api.RiskManager;
+import io.platir.service.api.ApiConstants;
 import io.platir.service.api.TradeAdapter;
+import java.util.HashSet;
 
 /**
  *
@@ -35,7 +37,7 @@ class TransactionQueue implements Runnable {
         this.factory = factory;
         this.tradeAdaptor = tradeAdaptor;
         this.riskManager = riskManager;
-        this.tradeListener = new TradeListenerContexts(riskManager, factory);
+        this.tradeListener = new TradeListenerContexts(riskManager);
         this.tradeAdaptor.setListener(tradeListener);
     }
 
@@ -64,7 +66,7 @@ class TransactionQueue implements Runnable {
     void push(TransactionContextImpl transactionContext) throws DataQueryException {
         var transaction = transactionContext.getTransaction();
         /* Update states. */
-        transaction.setState(Constants.FLAG_TRANSACTION_PENDING);
+        transaction.setState(ServiceConstants.FLAG_TRANSACTION_PENDING);
         transaction.setStateMessage("never enqueued");
         /* Initialize adding transaction to data source */
         transactionContext.getQueryClient().queries().update(transaction);
@@ -80,7 +82,7 @@ class TransactionQueue implements Runnable {
             if (pendingTransaction.getInstrumentId().compareTo(instrumentId) == 0) {
                 pendingIterator.remove();
                 /* Change state. */
-                pendingTransaction.setState(Constants.FLAG_TRANSACTION_EXECUTING);
+                pendingTransaction.setState(ServiceConstants.FLAG_TRANSACTION_EXECUTING);
                 pendingTransaction.setStateMessage("tick triggers executiion");
                 try {
                     pending.getQueryClient().queries().update(pendingTransaction);
@@ -102,39 +104,48 @@ class TransactionQueue implements Runnable {
     public void run() {
         while (!Thread.currentThread().isInterrupted() || !executingTransactions.isEmpty()) {
             try {
+                Throwable throwable = null;
                 var executingContext = executingTransactions.poll(24, TimeUnit.HOURS);
                 var executingTransaction = executingContext.getTransaction();
                 /* In-front risk assessment. */
                 var riskNotice = beforeRisk(executingContext.getLastTriggerTick(), executingContext);
-                if (!riskNotice.isGood()) {
-                    executingTransaction.setState(Constants.FLAG_TRANSACTION_RISK_BLOCKED + ";" + riskNotice.getCode());
+                if (riskNotice.getCode() == ServiceConstants.CODE_OK) {
+                    executingTransaction.setState(ServiceConstants.FLAG_TRANSACTION_RISK_BLOCKED + ";" + riskNotice.getCode());
                     executingTransaction.setStateMessage(riskNotice.getMessage());
                     executingContext.awake();
                     /* save risk notice */
                     TransactionFacilities.saveRiskNotice(riskNotice.getCode(), riskNotice.getMessage(), riskNotice.getLevel(), executingContext);
                     /* notice callback */
-                    TransactionFacilities.processNotice(riskNotice.getCode(), riskNotice.getMessage(), executingContext);
+                    TransactionFacilities.processTradeUpdate(riskNotice.getCode(), riskNotice.getMessage(), null, executingContext, throwable);
                 } else {
-                    if (!executingContext.pendingOrder().isEmpty()) {
-                        /* the transaction has been processed but order is not completed. */
-                        sendPending(executingContext);
+                    if (!executingContext.pendingOrders().isEmpty()) {
+                        /* The transaction has been processed but order is not completed. */
+                        if (!sendPending(executingContext)) {
+                            /* If pending orders in transaction are not completed, transaction waits again in pending list. */
+                            pendingTransactions.add(executingContext);
+                        }
                     } else {
-                        if (executingTransaction.getOffset().compareToIgnoreCase(Constants.FLAG_OPEN) == 0) {
-                            open(executingContext);
-                        } else if (executingTransaction.getOffset().compareToIgnoreCase(Constants.FLAG_CLOSE) == 0) {
-                            close(executingContext);
-                        } else {
-                            executingTransaction.setState(Constants.FLAG_TRANSACTION_INVALID);
-                            executingTransaction.setStateMessage("invalid offset(" + executingTransaction.getOffset() + ")");
-                            try {
-                                executingContext.getQueryClient().queries().update(executingTransaction);
-                            } catch (DataQueryException e) {
-                                Utils.err().write("Can't update transaction(" + executingTransaction.getTransactionId() + ") state(" + executingTransaction.getState() + "): " + e.getMessage(), e);
-                            }
-                            /* Notify the transaction has failed. */
-                            executingContext.awake();
-                            /* notice callback */
-                            TransactionFacilities.processNotice(Constants.CODE_INVALID_OFFSET, "invalid order offset(" + executingTransaction.getOffset() + ")", executingContext);
+                        switch (executingTransaction.getOffset()) {
+                            case ApiConstants.FLAG_OPEN:
+                                open(executingContext);
+                                break;
+                            case ApiConstants.FLAG_CLOSE:
+                                close(executingContext);
+                                break;
+                            default:
+                                executingTransaction.setState(ServiceConstants.FLAG_TRANSACTION_INVALID);
+                                executingTransaction.setStateMessage("invalid offset(" + executingTransaction.getOffset() + ")");
+                                try {
+                                    executingContext.getQueryClient().queries().update(executingTransaction);
+                                } catch (DataQueryException exception) {
+                                    throwable = exception;
+                                    Utils.err().write("Can't update transaction(" + executingTransaction.getTransactionId() + ") state(" + executingTransaction.getState() + "): " + exception.getMessage(), exception);
+                                }
+                                /* Notify the transaction has failed. */
+                                executingContext.awake();
+                                /* Notice callback. */
+                                TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_INVALID_OFFSET, "invalid order offset(" + executingTransaction.getOffset() + ")", null, executingContext, throwable);
+                                break;
                         }
                     }
                 }
@@ -154,146 +165,150 @@ class TransactionQueue implements Runnable {
         } catch (Throwable throwable) {
             Utils.err().write("Risk assess after() throws exception: " + throwable.getMessage(), throwable);
             var riskNotice = factory.newRiskNotice();
-            riskNotice.setCode(Constants.CODE_RISK_EXCEPTION);
-            riskNotice.setMessage("before(Tick, TransactionContext) throws exception");
-            riskNotice.setLevel(RiskNotice.ERROR);
+            riskNotice.setCode(ServiceConstants.CODE_OK);
+            riskNotice.setMessage("before(Tick, TransactionContext) not callable");
             return riskNotice;
         }
     }
 
     private void close(TransactionContextImpl transactionContext) throws DuplicatedOrderException {
+        Throwable throwable = null;
         var transaction = transactionContext.getTransaction();
         var newOrderId = TransactionFacilities.getOrderId(transaction.getTransactionId());
         var queryClient = transactionContext.getQueryClient();
         var checkReturn = TransactionFacilities.checkClose(transactionContext.getQueryClient(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
-        if (!checkReturn.getNotice().isGood()) {
-            transaction.setState(Constants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getNotice().getCode());
-            transaction.setStateMessage(checkReturn.getNotice().getMessage());
+        if (checkReturn.getCode() != ServiceConstants.CODE_OK) {
+            transaction.setState(ServiceConstants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getCode());
+            transaction.setStateMessage(checkReturn.getMessage());
             try {
                 queryClient.queries().update(transaction);
-            } catch (DataQueryException e) {
-                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + e.getMessage(), e);
+            } catch (DataQueryException exception) {
+                throwable = exception;
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
             }
             transactionContext.awake();
             /* notice callback */
-            TransactionFacilities.processNotice(checkReturn.getNotice().getCode(), checkReturn.getNotice().getMessage(), transactionContext);
+            TransactionFacilities.processTradeUpdate(checkReturn.getCode(), checkReturn.getMessage(), null, transactionContext, throwable);
         } else {
             @SuppressWarnings("unchecked")
             var tradingDay = queryClient.getTradingDay();
             /* process today's contracts */
-            var today = checkReturn.getContracts().stream().filter(c -> c.getOpenTradingDay().equals(tradingDay))
-                    .collect(Collectors.toSet());
-            var orderCtxToday = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
-                    transaction.getVolume(), transaction.getDirection(), today, Constants.FLAG_CLOSE_TODAY, transactionContext);
-            send(orderCtxToday, transactionContext);
-            /* process history contracts */
-            var history = checkReturn.getContracts().stream().filter(c -> !today.contains(c)).collect(Collectors.toSet());
-            var orderCtxHistory = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
-                    transaction.getVolume(), transaction.getDirection(), history, Constants.FLAG_CLOSE_HISTORY, transactionContext);
-            send(orderCtxHistory, transactionContext);
+            var todayContracts = checkReturn.getContracts().stream().filter(c -> c.getOpenTradingDay().equals(tradingDay)).collect(Collectors.toSet());
+            var todayOrderContext = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
+                    transaction.getVolume(), transaction.getDirection(), todayContracts, ApiConstants.FLAG_CLOSE_TODAY, transactionContext);
+            int returnCode = send(todayOrderContext, transactionContext);
+            if (returnCode == ApiConstants.CODE_OK) {
+                /* process history contracts */
+                var historyContracts = checkReturn.getContracts().stream().filter(c -> !todayContracts.contains(c)).collect(Collectors.toSet());
+                var historyOrderContext = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
+                        transaction.getVolume(), transaction.getDirection(), historyContracts, ApiConstants.FLAG_CLOSE_HISTORY, transactionContext);
+                returnCode = send(historyOrderContext, transactionContext);
+                if (returnCode == ApiConstants.CODE_MARKET_CLOSED) {
+                    transactionContext.pendingOrders().add(historyOrderContext);
+                    pendingTransactions.add(transactionContext);
+                }
+            } else {
+                if (returnCode == ApiConstants.CODE_MARKET_CLOSED) {
+                    transactionContext.pendingOrders().add(todayOrderContext);
+                    pendingTransactions.add(transactionContext);
+                }
+            }
         }
     }
 
     private void open(TransactionContextImpl transactionContext) throws DuplicatedOrderException {
+        Throwable throwable = null;
         var transaction = transactionContext.getTransaction();
         var newOrderId = TransactionFacilities.getOrderId(transaction.getTransactionId());
         var queryClient = transactionContext.getQueryClient();
         /* Check resource. */
         var checkReturn = TransactionFacilities.checkOpen(newOrderId, queryClient, transaction);
-        if (!checkReturn.getNotice().isGood()) {
-            transaction.setState(Constants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getNotice().getCode());
-            transaction.setStateMessage(checkReturn.getNotice().getMessage());
+        if (checkReturn.getCode() != ServiceConstants.CODE_OK) {
+            transaction.setState(ServiceConstants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getCode());
+            transaction.setStateMessage(checkReturn.getMessage());
             try {
                 queryClient.queries().update(transaction);
-            } catch (DataQueryException e) {
-                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + e.getMessage(), e);
+            } catch (DataQueryException exception) {
+                throwable = exception;
+                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
             }
             /* notify joiner the transaction fails. */
             transactionContext.awake();
             /* notice callback */
-            TransactionFacilities.processNotice(checkReturn.getNotice().getCode(), checkReturn.getNotice().getMessage(), transactionContext);
+            TransactionFacilities.processTradeUpdate(checkReturn.getCode(), checkReturn.getMessage(), null, transactionContext, throwable);
         } else {
             /* Lock resource for opening. */
             @SuppressWarnings("unchecked")
-            var orderCtx = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
+            var orderContext = TransactionFacilities.createOrderContext(newOrderId, transaction.getTransactionId(), transaction.getInstrumentId(), transaction.getPrice(),
                     transaction.getVolume(), transaction.getDirection(), checkReturn.getContracts(), "open", transactionContext);
-            send(orderCtx, transactionContext);
-        }
-    }
-
-    private void sendPending(TransactionContextImpl transactionContext) throws DuplicatedOrderException {
-        var pendingIterator = transactionContext.pendingOrder().iterator();
-        while (pendingIterator.hasNext()) {
-            var pendingOrder = pendingIterator.next();
-            pendingIterator.remove();
-            /* Send order until error. */
-            if (!send(pendingOrder, transactionContext).isGood()) {
-                break;
+            var returnCode = send(orderContext, transactionContext);
+            if (returnCode == ApiConstants.CODE_MARKET_CLOSED) {
+                transactionContext.pendingOrders().add(orderContext);
+                pendingTransactions.add(transactionContext);
             }
         }
     }
 
-    private Notice send(OrderContextImpl orderContext, TransactionContextImpl transactionContext) throws DuplicatedOrderException {
-        /*
-         * Precondition: order context is not on transaction's pending order list.
-         * 
-         * If order is successful, map order to its locked contracts, or add order
-         * context to pending list of the transaction, and put transaction to queue's
-         * pending list.
-         */
-        var transaction = transactionContext.getTransaction();
-        var queryClient = transactionContext.getQueryClient();
+    private boolean sendPending(TransactionContextImpl transactionContext) throws DuplicatedOrderException {
+        var failedOrders = new HashSet<OrderContextImpl>();
+        while (!transactionContext.pendingOrders().isEmpty()) {
+            var pendingOrder = transactionContext.pendingOrders().poll();
+            if (pendingOrder == null) {
+                /* If pending orders are polled in other places, it may be null before calling poll(). */
+                break;
+            }
+            int returnCode = send(pendingOrder, transactionContext);
+            if (returnCode == ApiConstants.CODE_MARKET_CLOSED) {
+                /* Only failure for market close needs a second try. If it succeeds or fails because of invalidity, drop the order. */
+                failedOrders.add(pendingOrder);
+            } else if (returnCode != ApiConstants.CODE_OK) {
+                /* Invalidity error. */
+                TransactionFacilities.processTradeUpdate(returnCode, "fatal error", pendingOrder, transactionContext, null);
+            }
+        }
+        if (!failedOrders.isEmpty()) {
+            transactionContext.pendingOrders().addAll(failedOrders);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private int send(OrderContextImpl orderContext, TransactionContextImpl transactionContext) throws DuplicatedOrderException {
+        Throwable throwable;
         var order = orderContext.getOrder();
-        tradeListener.register(orderContext, transactionContext);
-        tradeAdaptor.require(order.getOrderId(), order.getInstrumentId(), order.getOffset(), order.getDirection(), order.getPrice(), order.getVolume());
-        /* Wait for the first response telling if the order is accepted. */
-        var responseNotice = tradeListener.waitResponse(order.getOrderId());
-        if (!responseNotice.isGood()) {
-            if (responseNotice.getCode() == Constants.CODE_ORDER_MARKET_CLOSE) {
-                /* market is not open, wait until it opens */
-                transaction.setState(Constants.FLAG_TRANSACTION_SEND_PENDING + ";" + responseNotice.getCode());
-                transaction.setStateMessage(responseNotice.getMessage());
-                try {
-                    queryClient.queries().update(transaction);
-                } catch (DataQueryException exception) {
-                    Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
-                }
-                /*
-                 * Put order context to pending list of the transaction, and put transaction to
-                 * queue's pending list.
-                 */
-                transactionContext.pendingOrder().add(orderContext);
-                if (!pendingTransactions.contains(transactionContext)) {
-                    /*
-                     * Call send() more than once in a batch, it may be added to pending 
-                     * list for more then once, Need to check if it has been added. 
-                     */
-                    pendingTransactions.add(transactionContext);
-                }
+        tradeListener.register(order.getOrderId(), orderContext, transactionContext);
+        var returnCode = tradeAdaptor.require(order.getOrderId(), order.getInstrumentId(), order.getOffset(), order.getDirection(), order.getPrice(), order.getVolume());
+        if (returnCode != ApiConstants.CODE_OK) {
+            tradeListener.unregister(order.getOrderId());
+            if (returnCode == ApiConstants.CODE_MARKET_CLOSED) {
+                /* Market is not open, wait until it opens. */
+                throwable = updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_PENDING + ";" + returnCode, Integer.toString(returnCode), transactionContext);
             } else {
-                /* can't fill order because it is invalid or account is insufficient */
-                transaction.setState(Constants.FLAG_TRANSACTION_SEND_ABORT + ";" + responseNotice.getCode());
-                transaction.setStateMessage(responseNotice.getMessage());
-                try {
-                    queryClient.queries().update(transaction);
-                } catch (DataQueryException exception) {
-                    Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
-                }
-                /* notify joiner the transaction fails. */
+                /* Can't fill order because it is invalid or account is insufficient. */
+                throwable = updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT + ";" + returnCode, Integer.toString(returnCode), transactionContext);
+                /* Notify joiner the transaction fails. */
                 transactionContext.awake();
             }
         } else {
-            transaction.setState(Constants.FLAG_TRANSACTION_SEND_OK);
-            transaction.setStateMessage("order sent ok");
-            try {
-                queryClient.queries().update(transaction);
-            } catch (DataQueryException exception) {
-                Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
-            }
+            throwable = updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, "order sent ok", transactionContext);
         }
         /* notice callback */
-        TransactionFacilities.processNotice(responseNotice.getCode(), responseNotice.getMessage(), transactionContext);
-        return responseNotice;
+        TransactionFacilities.processTradeUpdate(returnCode, Integer.toString(returnCode), orderContext, transactionContext, throwable);
+        return returnCode;
+    }
+
+    private Throwable updateTransactionState(String state, String stateMessage, TransactionContextImpl transactionContext) {
+        var transaction = transactionContext.getTransaction();
+        transaction.setState(state);
+        transaction.setStateMessage(stateMessage);
+        try {
+            transactionContext.getQueryClient().queries().update(transaction);
+            return null;
+        } catch (DataQueryException exception) {
+            Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
+            return exception;
+        }
     }
 
 }

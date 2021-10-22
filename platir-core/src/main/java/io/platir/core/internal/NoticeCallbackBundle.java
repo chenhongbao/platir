@@ -1,6 +1,6 @@
 package io.platir.core.internal;
 
-import io.platir.service.Notice;
+import io.platir.service.TradeUpdate;
 
 /**
  *
@@ -9,9 +9,9 @@ import io.platir.service.Notice;
 class NoticeCallbackBundle {
 
     final OrderExecutionContext executionContext;
-    private final Notice notice;
+    private final TradeUpdate notice;
 
-    NoticeCallbackBundle(Notice notice, OrderExecutionContext executionContext) {
+    NoticeCallbackBundle(TradeUpdate notice, OrderExecutionContext executionContext) {
         this.executionContext = executionContext;
         this.notice = notice;
     }
@@ -20,7 +20,7 @@ class NoticeCallbackBundle {
         return executionContext;
     }
 
-    Notice getNotice() {
+    TradeUpdate getNotice() {
         return notice;
     }
 

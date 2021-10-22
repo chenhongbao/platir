@@ -1,20 +1,21 @@
 package io.platir.core.internal;
 
 import io.platir.queries.Utils;
-import io.platir.service.Constants;
 import io.platir.service.Contract;
 import io.platir.service.Instrument;
-import io.platir.service.Notice;
 import io.platir.service.Order;
 import io.platir.service.RiskNotice;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Transaction;
 import io.platir.service.DataQueryException;
+import io.platir.service.OrderContext;
+import io.platir.service.ServiceConstants;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import io.platir.service.TradeUpdate;
 
 /**
  *
@@ -40,7 +41,7 @@ class TransactionFacilities {
             contract.setInstrumentId(transaction.getInstrumentId());
             contract.setDirection(transaction.getDirection());
             contract.setPrice(transaction.getPrice());
-            contract.setState(Constants.FLAG_CONTRACT_OPENING);
+            contract.setState(ServiceConstants.FLAG_CONTRACT_OPENING);
             contract.setOpenTradingDay(client.getTradingDay());
             contract.setOpenTime(Utils.datetime());
             contracts.add(contract);
@@ -57,25 +58,25 @@ class TransactionFacilities {
         var checkReturn = new CheckReturn();
         Double available = query.getAccount().getAvailable();
         if (available <= 0) {
-            checkReturn.getNotice().setCode(Constants.CODE_INVALID_AVAILABLE);
-            checkReturn.getNotice().setMessage("no available(" + available + ") for opening");
+            checkReturn.setCode(ServiceConstants.CODE_INVALID_AVAILABLE);
+            checkReturn.setMessage("no available(" + available + ") for opening");
             return checkReturn;
         }
         Instrument instrument = query.getInstrument(t.getInstrumentId());
         if (instrument == null) {
-            checkReturn.getNotice().setCode(Constants.CODE_NO_INSTRUMENT);
-            checkReturn.getNotice().setMessage("no instrument information for " + t.getInstrumentId());
+            checkReturn.setCode(ServiceConstants.CODE_NO_INSTRUMENT);
+            checkReturn.setMessage("no instrument information for " + t.getInstrumentId());
             return checkReturn;
         }
         double margin = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(), instrument.getAmountMargin(), instrument.getVolumeMargin()) * t.getVolume();
         double commission = SettlementFacilities.computeRatio(t.getPrice(), instrument.getMultiple(), instrument.getAmountCommission(), instrument.getVolumeCommission()) * t.getVolume();
         if (available < margin + commission) {
-            checkReturn.getNotice().setCode(Constants.CODE_NO_MONEY);
-            checkReturn.getNotice().setMessage("no available(" + available + ") for opening(" + (commission + margin) + ")");
+            checkReturn.setCode(ServiceConstants.CODE_NO_MONEY);
+            checkReturn.setMessage("no available(" + available + ") for opening(" + (commission + margin) + ")");
             return checkReturn;
         }
-        checkReturn.getNotice().setCode(Constants.CODE_OK);
-        checkReturn.getNotice().setMessage("good");
+        checkReturn.setCode(ServiceConstants.CODE_OK);
+        checkReturn.setMessage("good");
         /* Lock contracts for opening and return those contracts. */
         checkReturn.getContracts().addAll(opening(oid, query, t));
         return checkReturn;
@@ -86,8 +87,8 @@ class TransactionFacilities {
         var checkReturn = new CheckReturn();
         Set<Contract> available = query.getContracts(instrumentId).stream().filter(c -> c.getDirection().compareToIgnoreCase(direction) != 0).filter(c -> c.getState().compareToIgnoreCase("open") == 0).collect(Collectors.toSet());
         if (available.size() < volume) {
-            checkReturn.getNotice().setCode(Constants.CODE_NO_POSITION);
-            checkReturn.getNotice().setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
+            checkReturn.setCode(ServiceConstants.CODE_NO_POSITION);
+            checkReturn.setMessage("no available contracts(" + available.size() + ") for closing(" + volume + ")");
             return checkReturn;
         }
         /* Remove extra contracts from container until it only has the contracts for closing and lock those contracts. */
@@ -97,15 +98,15 @@ class TransactionFacilities {
         }
         closing(available, query);
         /* Return good. */
-        checkReturn.getNotice().setCode(Constants.CODE_OK);
-        checkReturn.getNotice().setMessage("good");
+        checkReturn.setCode(ServiceConstants.CODE_OK);
+        checkReturn.setMessage("good");
         checkReturn.getContracts().addAll(available);
         return checkReturn;
     }
 
     static void closing(Set<Contract> available, PlatirInfoClientImpl client) {
         available.stream().map(contract -> {
-            contract.setState(Constants.FLAG_CONTRACT_CLOSING);
+            contract.setState(ServiceConstants.FLAG_CONTRACT_CLOSING);
             return contract;
         }).forEachOrdered(contract -> {
             try {
@@ -163,12 +164,14 @@ class TransactionFacilities {
         }
     }
 
-    static void processNotice(int code, String message, TransactionContextImpl transactionContext) {
-        Notice notice = transactionContext.getQueryClient().queries().getFactory().newNotice();
-        notice.setCode(code);
-        notice.setMessage(message);
-        notice.setContext(transactionContext);
-        transactionContext.getStrategyContext().processNotice(notice);
+    static void processTradeUpdate(int code, String message, OrderContext orderContext, TransactionContextImpl transactionContext, Throwable throwable) {
+        TradeUpdate tradeUpdate = transactionContext.getQueryClient().queries().getFactory().newTradeUpdate();
+        tradeUpdate.setCode(code);
+        tradeUpdate.setMessage(message);
+        tradeUpdate.setError(throwable);
+        tradeUpdate.setOrderContext(orderContext);
+        tradeUpdate.setTransactionContext(transactionContext);
+        transactionContext.getStrategyContext().processTradeUpdate(tradeUpdate);
     }
 
 }

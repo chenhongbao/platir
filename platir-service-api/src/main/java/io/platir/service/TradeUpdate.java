@@ -1,6 +1,6 @@
 package io.platir.service;
 
-public interface Notice {
+public interface TradeUpdate {
 
     String getMessage();
 
@@ -14,9 +14,13 @@ public interface Notice {
 
     void setError(Throwable throwable);
 
-    TransactionContext getContext();
+    TransactionContext getTransactionContext();
 
-    void setContext(TransactionContext context);
+    void setTransactionContext(TransactionContext context);
+    
+    OrderContext getOrderContext();
+    
+    void setOrderContext(OrderContext orderContext);
 
     boolean isGood();
 

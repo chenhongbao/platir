@@ -14,6 +14,8 @@ import io.platir.service.OrderContext;
 import io.platir.service.Tick;
 import io.platir.service.Transaction;
 import io.platir.service.TransactionContext;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 class TransactionContextImpl implements TransactionContext {
 
@@ -21,7 +23,7 @@ class TransactionContextImpl implements TransactionContext {
     private final StrategyContextImpl strategyContext;
     private final AtomicBoolean isAwaken = new AtomicBoolean(false);
     private final AtomicReference<Tick> triggerTick = new AtomicReference<>();
-    private final Set<OrderContextImpl> pendingOrder = new ConcurrentSkipListSet<>();
+    private final Queue<OrderContextImpl> pendingOrder = new ConcurrentLinkedQueue<>();
     private final Set<OrderContextImpl> orders = new ConcurrentSkipListSet<>();
     private final Lock completionLock = new ReentrantLock();
     private final Condition conpletionCondition = completionLock.newCondition();
@@ -47,7 +49,7 @@ class TransactionContextImpl implements TransactionContext {
         orders.add(order);
     }
 
-    Set<OrderContextImpl> pendingOrder() {
+    Queue<OrderContextImpl> pendingOrders() {
         return pendingOrder;
     }
 

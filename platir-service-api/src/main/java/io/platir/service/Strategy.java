@@ -13,5 +13,5 @@ public interface Strategy {
 	
 	void onBar(Bar bar);
 	
-	void onNotice(Notice notice);
+	void onTradeUpdate(TradeUpdate notice);
 }

@@ -1,11 +1,11 @@
 package io.platir.core.internal;
 
 import io.platir.service.Bar;
-import io.platir.service.Notice;
 import io.platir.service.PlatirClient;
 import io.platir.service.Strategy;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
+import io.platir.service.TradeUpdate;
 
 /**
  *
@@ -44,8 +44,8 @@ class SuperStrategy extends AnnotationStrategy implements Strategy {
     }
 
     @Override
-    public void onNotice(Notice notice) {
-        noticeCounts().add("onNotice()");
+    public void onTradeUpdate(TradeUpdate notice) {
+        tradeUpdateCounts().add("onNotice()");
     }
 
 }

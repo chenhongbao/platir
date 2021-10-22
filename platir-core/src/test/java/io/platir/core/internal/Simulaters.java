@@ -8,10 +8,10 @@ import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.Trade;
 import io.platir.service.TransactionContext;
-import io.platir.service.api.AdaptorStartupException;
 import io.platir.service.api.MarketAdapter;
 import io.platir.service.api.MarketListener;
 import io.platir.service.api.RiskManager;
+import io.platir.service.api.ApiConstants;
 import io.platir.service.api.TradeListener;
 import java.util.Map;
 import io.platir.service.api.TradeAdapter;
@@ -33,13 +33,15 @@ public class Simulaters {
         private final Map<String, Order> executingOrders = new HashMap<>();
         private final Queries queries;
         private TradeListener listener;
+        private int requireReturnCode = ApiConstants.CODE_OK;
 
         public SimulaterTradeAdapter(Queries queries) {
             this.queries = queries;
         }
 
         @Override
-        public void start() throws AdaptorStartupException {
+        public int start() {
+            return ApiConstants.CODE_OK;
         }
 
         @Override
@@ -58,7 +60,7 @@ public class Simulaters {
         }
 
         @Override
-        public void require(String orderId, String instrumentId, String offset, String direction, Double price, Integer volume) {
+        public int require(String orderId, String instrumentId, String offset, String direction, Double price, Integer volume) {
             var order = queries.getFactory().newOrder();
             order.setOrderId(orderId);
             order.setInstrumentId(instrumentId);
@@ -67,6 +69,11 @@ public class Simulaters {
             order.setPrice(price);
             order.setVolume(volume);
             executingOrders.put(order.getOrderId(), order);
+            return requireReturnCode;
+        }
+
+        public void setRequireReturnCode(int code) {
+            this.requireReturnCode = code;
         }
 
         public Map<String, Order> executingOrders() {
@@ -79,14 +86,6 @@ public class Simulaters {
             }
             callbackTrade(fillingOrder, volume);
             updateOrder(fillingOrder, volume);
-        }
-
-        public void makeNotice(String orderId, int code, String message) {
-            try {
-                listener().onNotice(orderId, code, message);
-            } catch (Throwable throwable) {
-                Utils.err().write("onNotice(String, int, String) throws exception: " + throwable.getMessage(), throwable);
-            }
         }
 
         private void updateOrder(Order fillingOrder, int volume) {
@@ -137,7 +136,8 @@ public class Simulaters {
         private MarketListener listener;
 
         @Override
-        public void start() throws AdaptorStartupException {
+        public int start() {
+            return ApiConstants.CODE_OK;
         }
 
         @Override
@@ -156,8 +156,9 @@ public class Simulaters {
         }
 
         @Override
-        public void subscribe(String instrumentId) {
+        public int subscribe(String instrumentId) {
             subscription.add(instrumentId);
+            return ApiConstants.CODE_OK;
         }
 
         public Set<String> subscription() {

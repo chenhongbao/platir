@@ -14,7 +14,7 @@ public interface Factory {
 
     Instrument newInstrument();
 
-    Notice newNotice();
+    TradeUpdate newTradeUpdate();
 
     Order newOrder();
 

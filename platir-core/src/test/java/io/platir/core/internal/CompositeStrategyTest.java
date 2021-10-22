@@ -119,10 +119,10 @@ public class CompositeStrategyTest {
      * Test of onNotice method, of class AnnotatedStrategy.
      */
     @Test
-    public void testOnNotice() {
-        var notice = factory.newNotice();
-        composite.onNotice(notice);
-        assertEquals(2, strategy.noticeCounts().size(), "Notice callback not hit.");
+    public void testOnTradeUpdate() {
+        var tradeUpdate = factory.newTradeUpdate();
+        composite.onTradeUpdate(tradeUpdate);
+        assertEquals(2, strategy.tradeUpdateCounts().size(), "Notice callback not hit.");
     }
 
 }

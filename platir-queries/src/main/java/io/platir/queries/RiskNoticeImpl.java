@@ -77,11 +77,6 @@ class RiskNoticeImpl extends RiskNotice {
     }
 
     @Override
-    public boolean isGood() {
-        return code == 0;
-    }
-
-    @Override
     public String getRiskNoticeId() {
         return riskNoticeId;
     }
