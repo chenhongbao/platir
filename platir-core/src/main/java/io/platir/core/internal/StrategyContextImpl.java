@@ -171,10 +171,10 @@ class StrategyContextImpl implements StrategyContext {
 
     private boolean checkOrders(TransactionContextImpl transactionContext) {
         var totalOrders = transactionContext.getOrderContexts();
-        if (transactionContext.failedOrders().size() + transactionContext.successOrders().size() != totalOrders.size()) {
+        if (transactionContext.failedOrders().size() + transactionContext.successOrders().size() + transactionContext.pendingOrders().size() != totalOrders.size()) {
             return false;
         }
-        return totalOrders.containsAll(transactionContext.successOrders()) && totalOrders.containsAll(transactionContext.failedOrders());
+        return totalOrders.containsAll(transactionContext.successOrders()) && totalOrders.containsAll(transactionContext.failedOrders()) && totalOrders.containsAll(transactionContext.pendingOrders());
     }
 
     void checkIntegrity() throws IntegrityException {
@@ -192,7 +192,7 @@ class StrategyContextImpl implements StrategyContext {
         if (!Utils.beanEquals(Transaction.class, transactionContext.getTransaction(), transaction)) {
             throw new IntegrityException("Transaction(" + transactionId + ") don't match between data source and runtime.");
         }
-        if (!checkOrders(transactionContext))  {
+        if (!checkOrders(transactionContext)) {
             throw new IntegrityException("Transaction(" + transactionId + ") misses some orders.");
         }
         var orders = platirClient.getOrders(transactionContext.getTransaction().getTransactionId());
