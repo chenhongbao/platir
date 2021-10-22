@@ -17,6 +17,7 @@ public class ServiceConstants {
     public static final int CODE_TRANSACTION_SEND_PENDING = 2002;
     public static final int CODE_TRANSACTION_SEND_PART = 2003;
     public static final int CODE_TRANSACTION_SEND_ABORT = 2004;
+    public static final int CODE_TRANSACTION_ORDERS_MISSING = 2005;
     public static final int CODE_RESPONSE_TIMEOUT = 3001;
     public static final int CODE_ORDER_OVER_TRADE = 3002;
     public static final int CODE_NO_LOCK_CONTRACT = 3003;

@@ -323,10 +323,10 @@ class TransactionQueue implements Runnable {
         if (returnCode != ApiConstants.CODE_OK) {
             tradeListener.unregister(order.getOrderId());
             if (returnCode != ApiConstants.CODE_MARKET_CLOSED) {
-                transactionContext.markFailedOrder();
+                transactionContext.addFailedOrder(orderContext);
             }
         } else {
-            transactionContext.markSuccessOrder();
+            transactionContext.addSuccessOrder(orderContext);
         }
         /* notice callback */
         TransactionFacilities.processTradeUpdate(returnCode, Integer.toString(returnCode), orderContext, transactionContext, null);

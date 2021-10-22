@@ -133,7 +133,7 @@ class StrategyContextImpl implements StrategyContext {
 
     void processTrade(Trade trade) {
         checkTransactionCompleted();
-        callbackQueue.push(callbackQueue);
+        callbackQueue.push(trade);
     }
 
     void processTradeUpdate(TradeUpdate notice) {
@@ -146,7 +146,11 @@ class StrategyContextImpl implements StrategyContext {
 
     private void checkTransactionCompleted() {
         for (var transaction : transactions) {
-            var tradedVolume = transaction.getOrderContexts().stream().mapToInt(ctx -> {
+            if (!checkOrders(transaction)) {
+                Utils.err().write("Transaction(" + transaction.getTransaction().getTransactionId() + ") misses some orders.");
+                TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_ORDERS_MISSING, "orders missing", null, transaction, null);
+            }
+            var tradedVolume = transaction.successOrders().stream().mapToInt(ctx -> {
                 return ctx.getTrades().stream().mapToInt(trade -> trade.getVolume()).sum();
             }).sum();
             var totalVolume = transaction.getTransaction().getVolume();
@@ -165,23 +169,34 @@ class StrategyContextImpl implements StrategyContext {
         }
     }
 
+    private boolean checkOrders(TransactionContextImpl transactionContext) {
+        var totalOrders = transactionContext.getOrderContexts();
+        if (transactionContext.failedOrders().size() + transactionContext.successOrders().size() != totalOrders.size()) {
+            return false;
+        }
+        return totalOrders.containsAll(transactionContext.successOrders()) && totalOrders.containsAll(transactionContext.failedOrders());
+    }
+
     void checkIntegrity() throws IntegrityException {
         for (var transaction : transactions) {
             checkTransactionIntegrity(transaction);
         }
     }
 
-    private void checkTransactionIntegrity(TransactionContextImpl t) throws IntegrityException {
-        var transactionId = t.getTransaction().getTransactionId();
+    private void checkTransactionIntegrity(TransactionContextImpl transactionContext) throws IntegrityException {
+        var transactionId = transactionContext.getTransaction().getTransactionId();
         var transaction = getTransactionById(transactionId);
         if (transaction == null) {
             throw new IntegrityException("Transaction(" + transactionId + ") not found in data source.");
         }
-        if (!Utils.beanEquals(Transaction.class, t.getTransaction(), transaction)) {
+        if (!Utils.beanEquals(Transaction.class, transactionContext.getTransaction(), transaction)) {
             throw new IntegrityException("Transaction(" + transactionId + ") don't match between data source and runtime.");
         }
-        var orders = platirClient.getOrders(t.getTransaction().getTransactionId());
-        for (var orderContext : t.getOrderContexts()) {
+        if (!checkOrders(transactionContext))  {
+            throw new IntegrityException("Transaction(" + transactionId + ") misses some orders.");
+        }
+        var orders = platirClient.getOrders(transactionContext.getTransaction().getTransactionId());
+        for (var orderContext : transactionContext.getOrderContexts()) {
             var found = false;
             var runtimeOrder = orderContext.getOrder();
             for (var order : orders) {

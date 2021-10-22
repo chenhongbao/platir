@@ -25,50 +25,14 @@ class TransactionContextImpl implements TransactionContext {
     private final AtomicReference<Tick> triggerTick = new AtomicReference<>();
     private final Queue<OrderContextImpl> pendingOrder = new ConcurrentLinkedQueue<>();
     private final Set<OrderContextImpl> orders = new ConcurrentSkipListSet<>();
+    private final Set<OrderContextImpl> failedOrders = new ConcurrentSkipListSet<>();
+    private final Set<OrderContextImpl> successOrders = new ConcurrentSkipListSet<>();
     private final Lock completionLock = new ReentrantLock();
     private final Condition conpletionCondition = completionLock.newCondition();
-    private final AtomicBoolean hasFailedOrder = new AtomicBoolean(false);
-    private final AtomicBoolean hasSuccessOrder = new AtomicBoolean(false);
 
     TransactionContextImpl(Transaction transaction, StrategyContextImpl strategyContext) {
         this.transaction = transaction;
         this.strategyContext = strategyContext;
-    }
-
-    void markFailedOrder() {
-        hasFailedOrder.set(true);
-    }
-
-    boolean hasFailedOrder() {
-        return hasFailedOrder.get();
-    }
-
-    void markSuccessOrder() {
-        hasSuccessOrder.set(true);
-    }
-
-    boolean hasSuccessOrder() {
-        return hasSuccessOrder.get();
-    }
-
-    PlatirInfoClientImpl getQueryClient() {
-        return strategyContext.getPlatirClientImpl();
-    }
-
-    Tick getLastTriggerTick() {
-        return triggerTick.get();
-    }
-
-    void setTriggerTick(Tick tick) {
-        triggerTick.set(tick);
-    }
-
-    void addOrderContext(OrderContextImpl order) {
-        orders.add(order);
-    }
-
-    Queue<OrderContextImpl> pendingOrders() {
-        return pendingOrder;
     }
 
     @Override
@@ -95,6 +59,55 @@ class TransactionContextImpl implements TransactionContext {
         }
     }
 
+    @Override
+    public Set<OrderContext> getOrderContexts() {
+        return new HashSet<>(orders);
+    }
+
+    void addFailedOrder(OrderContextImpl orderContext) {
+        failedOrders.add(orderContext);
+    }
+
+    boolean hasFailedOrder() {
+        return !failedOrders.isEmpty();
+    }
+
+    void addSuccessOrder(OrderContextImpl orderContext) {
+        successOrders.add(orderContext);
+    }
+
+    boolean hasSuccessOrder() {
+        return !successOrders.isEmpty();
+    }
+
+    Set<OrderContextImpl> failedOrders() {
+        return new HashSet<>(failedOrders);
+    }
+
+    Set<OrderContextImpl> successOrders() {
+        return new HashSet<>(successOrders);
+    }
+
+    PlatirInfoClientImpl getQueryClient() {
+        return strategyContext.getPlatirClientImpl();
+    }
+
+    Tick getLastTriggerTick() {
+        return triggerTick.get();
+    }
+
+    void setTriggerTick(Tick tick) {
+        triggerTick.set(tick);
+    }
+
+    void addOrderContext(OrderContextImpl order) {
+        orders.add(order);
+    }
+
+    Queue<OrderContextImpl> pendingOrders() {
+        return pendingOrder;
+    }
+
     void awake() {
         if (isAwaken.get()) {
             return;
@@ -106,11 +119,6 @@ class TransactionContextImpl implements TransactionContext {
         } finally {
             completionLock.unlock();
         }
-    }
-
-    @Override
-    public Set<OrderContext> getOrderContexts() {
-        return new HashSet<>(orders);
     }
 
 }
