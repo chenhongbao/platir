@@ -12,7 +12,6 @@ import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
 import io.platir.service.Factory;
-import io.platir.service.Transaction;
 import io.platir.service.api.RiskManager;
 import io.platir.service.api.ApiConstants;
 import io.platir.service.api.TradeAdapter;

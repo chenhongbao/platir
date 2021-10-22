@@ -2,7 +2,6 @@ package io.platir.core.internal;
 
 import io.platir.queries.Utils;
 import io.platir.service.DataQueryException;
-import io.platir.service.Factory;
 import io.platir.service.Queries;
 import io.platir.service.Trade;
 import io.platir.service.api.TradeListener;
@@ -11,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import io.platir.service.api.RiskManager;
 import java.util.concurrent.atomic.AtomicInteger;
-import io.platir.service.TradeUpdate;
 
 /**
  * Error code explaination:
@@ -48,7 +46,7 @@ class TradeListenerContexts implements TradeListener {
         }
         executionContexts.put(orderId, new OrderExecutionContext(orderCtx, ctx, riskManager));
     }
-    
+
     void unregister(String orderId) {
         executionContexts.remove(orderId);
     }

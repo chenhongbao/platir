@@ -106,9 +106,9 @@ class StrategyCallbackQueue implements Runnable {
         });
     }
 
-    private void timedOnNotice(TradeUpdate notice) {
+    private void timedOnNotice(TradeUpdate updateNotice) {
         timedOperation(1, () -> {
-            strategy.onTradeUpdate(notice);
+            strategy.onTradeUpdate(updateNotice);
         });
     }
 
