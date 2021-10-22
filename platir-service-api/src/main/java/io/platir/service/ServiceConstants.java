@@ -13,6 +13,10 @@ public class ServiceConstants {
     public static final int CODE_NO_MONEY = 1003;
     public static final int CODE_NO_POSITION = 1004;
     public static final int CODE_INVALID_OFFSET = 1005;
+    public static final int CODE_TRANSACTION_SEND_OK = 2001;
+    public static final int CODE_TRANSACTION_SEND_PENDING = 2002;
+    public static final int CODE_TRANSACTION_SEND_PART = 2003;
+    public static final int CODE_TRANSACTION_SEND_ABORT = 2004;
     public static final int CODE_RESPONSE_TIMEOUT = 3001;
     public static final int CODE_ORDER_OVER_TRADE = 3002;
     public static final int CODE_NO_LOCK_CONTRACT = 3003;
@@ -35,5 +39,6 @@ public class ServiceConstants {
     public static final String FLAG_TRANSACTION_CHECK_OPEN = "transaction-check-open";
     public static final String FLAG_TRANSACTION_SEND_PENDING = "transaction-send-pending";
     public static final String FLAG_TRANSACTION_SEND_ABORT = "transaction-send-aborted";
+    public static final String FLAG_TRANSACTION_SEND_PART = "transaction-send-part";
     public static final String FLAG_TRANSACTION_SEND_OK = "transaction-send-ok";
 }

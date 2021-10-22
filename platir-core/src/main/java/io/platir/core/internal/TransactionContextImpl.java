@@ -27,10 +27,28 @@ class TransactionContextImpl implements TransactionContext {
     private final Set<OrderContextImpl> orders = new ConcurrentSkipListSet<>();
     private final Lock completionLock = new ReentrantLock();
     private final Condition conpletionCondition = completionLock.newCondition();
+    private final AtomicBoolean hasFailedOrder = new AtomicBoolean(false);
+    private final AtomicBoolean hasSuccessOrder = new AtomicBoolean(false);
 
     TransactionContextImpl(Transaction transaction, StrategyContextImpl strategyContext) {
         this.transaction = transaction;
         this.strategyContext = strategyContext;
+    }
+
+    void markFailedOrder() {
+        hasFailedOrder.set(true);
+    }
+
+    boolean hasFailedOrder() {
+        return hasFailedOrder.get();
+    }
+
+    void markSuccessOrder() {
+        hasSuccessOrder.set(true);
+    }
+
+    boolean hasSuccessOrder() {
+        return hasSuccessOrder.get();
     }
 
     PlatirInfoClientImpl getQueryClient() {
@@ -77,7 +95,7 @@ class TransactionContextImpl implements TransactionContext {
         }
     }
 
-    public void awake() {
+    void awake() {
         if (isAwaken.get()) {
             return;
         }
