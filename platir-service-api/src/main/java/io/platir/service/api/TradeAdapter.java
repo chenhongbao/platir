@@ -2,7 +2,7 @@ package io.platir.service.api;
 
 import java.util.Map;
 
-public interface MarketAdaptor {
+public interface TradeAdapter {
 
     void start() throws AdaptorStartupException;
 
@@ -10,7 +10,7 @@ public interface MarketAdaptor {
 
     void setParameters(Map<String, String> parameters);
 
-    void setListener(MarketListener listener);
+    void setListener(TradeListener listener);
 
-    void subscribe(String instrumentId);
+    void require(String orderId, String instrumentId, String offset, String direction, Double price, Integer volume);
 }

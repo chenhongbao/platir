@@ -5,10 +5,10 @@ import java.util.Set;
 import io.platir.core.internal.PlatirImpl;
 import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
-import io.platir.service.api.MarketAdaptor;
 import io.platir.service.Queries;
-import io.platir.service.api.TradeAdaptor;
 import io.platir.service.api.RiskManager;
+import io.platir.service.api.TradeAdapter;
+import io.platir.service.api.MarketAdapter;
 
 public abstract class Platir {
 
@@ -20,9 +20,9 @@ public abstract class Platir {
 
     public abstract void setRiskAssess(RiskManager assess);
 
-    public abstract void setTradeAdaptor(TradeAdaptor trade);
+    public abstract void setTradeAdaptor(TradeAdapter trade);
 
-    public abstract void setMarketAdaptor(MarketAdaptor market);
+    public abstract void setMarketAdaptor(MarketAdapter market);
 
     public abstract StrategyContext addStrategy(StrategyProfile profile, Object strategy) throws StrategyCreateException, InvalidLoginException;
 

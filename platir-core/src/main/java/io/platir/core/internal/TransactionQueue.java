@@ -13,8 +13,8 @@ import io.platir.service.RiskNotice;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
 import io.platir.service.Factory;
-import io.platir.service.api.TradeAdaptor;
 import io.platir.service.api.RiskManager;
+import io.platir.service.api.TradeAdapter;
 
 /**
  *
@@ -25,13 +25,13 @@ class TransactionQueue implements Runnable {
 
     private final Factory factory;
     private final RiskManager riskManager;
-    private final TradeAdaptor tradeAdaptor;
+    private final TradeAdapter tradeAdaptor;
     private final TradeListenerContexts tradeListener;
 
     private final BlockingQueue<TransactionContextImpl> executingTransactions = new LinkedBlockingQueue<>();
     private final Set<TransactionContextImpl> pendingTransactions = new ConcurrentSkipListSet<>();
 
-    TransactionQueue(TradeAdaptor tradeAdaptor, RiskManager riskManager, Factory factory) {
+    TransactionQueue(TradeAdapter tradeAdaptor, RiskManager riskManager, Factory factory) {
         this.factory = factory;
         this.tradeAdaptor = tradeAdaptor;
         this.riskManager = riskManager;

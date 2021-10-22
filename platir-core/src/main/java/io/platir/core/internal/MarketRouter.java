@@ -13,20 +13,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 import io.platir.service.Tick;
-import io.platir.service.api.MarketAdaptor;
 import io.platir.service.api.MarketListener;
 import java.util.concurrent.atomic.AtomicInteger;
+import io.platir.service.api.MarketAdapter;
 
 class MarketRouter implements MarketListener {
 
     private final Map<String, Set<StrategyContextImpl>> subscribedStrategies = new ConcurrentHashMap<>();
     private final Map<String, Tick> ticks = new ConcurrentHashMap<>();
     private final TransactionQueue transactionQueue;
-    private final MarketAdaptor marketAdaptor;
+    private final MarketAdapter marketAdaptor;
     private final AtomicInteger tradingDayHashCode = new AtomicInteger(0);
     private final Queries queries;
 
-    MarketRouter(MarketAdaptor marketAdaptor, TransactionQueue transactionQueue, Queries queries) {
+    MarketRouter(MarketAdapter marketAdaptor, TransactionQueue transactionQueue, Queries queries) {
         this.marketAdaptor = marketAdaptor;
         this.transactionQueue = transactionQueue;
         this.marketAdaptor.setListener(this);

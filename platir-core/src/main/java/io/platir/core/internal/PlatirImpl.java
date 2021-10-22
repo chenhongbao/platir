@@ -18,15 +18,15 @@ import io.platir.service.StrategyContext;
 import io.platir.service.StrategyProfile;
 import io.platir.service.Tick;
 import io.platir.service.DataQueryException;
-import io.platir.service.api.MarketAdaptor;
 import io.platir.service.Queries;
-import io.platir.service.api.TradeAdaptor;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import io.platir.service.api.RiskManager;
+import io.platir.service.api.TradeAdapter;
+import io.platir.service.api.MarketAdapter;
 
 public class PlatirImpl extends Platir {
 
@@ -35,8 +35,8 @@ public class PlatirImpl extends Platir {
     private RiskManager riskManager;
     private MarketRouter marketRouter;
     private TransactionQueue transactionQueue;
-    private TradeAdaptor tradeAdaptor;
-    private MarketAdaptor marketAdaptor;
+    private TradeAdapter tradeAdaptor;
+    private MarketAdapter marketAdaptor;
     private StrategyContextPool strategyContextPool;
     private FileChannel instanceLock;
 
@@ -114,12 +114,12 @@ public class PlatirImpl extends Platir {
     }
 
     @Override
-    public void setTradeAdaptor(TradeAdaptor adaptor) {
+    public void setTradeAdaptor(TradeAdapter adaptor) {
         tradeAdaptor = adaptor;
     }
 
     @Override
-    public void setMarketAdaptor(MarketAdaptor adaptor) {
+    public void setMarketAdaptor(MarketAdapter adaptor) {
         marketAdaptor = adaptor;
     }
 
