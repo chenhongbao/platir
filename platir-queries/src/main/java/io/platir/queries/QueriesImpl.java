@@ -602,7 +602,6 @@ public class QueriesImpl implements Queries {
                 transaction.setOffset(item.getOffset());
                 transaction.setPrice(item.getPrice());
                 transaction.setState(item.getState());
-                transaction.setStateMessage(item.getStateMessage());
                 transaction.setStrategyId(item.getStrategyId());
                 transaction.setTradingDay(item.getTradingDay());
                 transaction.setTransactionId(item.getTransactionId());

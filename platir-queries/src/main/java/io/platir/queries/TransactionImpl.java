@@ -16,7 +16,6 @@ class TransactionImpl implements Transaction {
     private String offset;
     private String direction;
     private String state;
-    private String stateMessage;
     private String tradingDay;
     private String updateTime;
 
@@ -98,16 +97,6 @@ class TransactionImpl implements Transaction {
     @Override
     public void setState(String state) {
         this.state = state;
-    }
-
-    @Override
-    public String getStateMessage() {
-        return stateMessage;
-    }
-
-    @Override
-    public void setStateMessage(String stateMessage) {
-        this.stateMessage = stateMessage;
     }
 
     @Override

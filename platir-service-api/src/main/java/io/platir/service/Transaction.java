@@ -6,10 +6,6 @@ public interface Transaction {
 
     void setState(String state);
 
-    String getStateMessage();
-
-    void setStateMessage(String stateMessage);
-
     String getTransactionId();
 
     void setTransactionId(String transactionId);

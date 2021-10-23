@@ -66,7 +66,6 @@ class TransactionQueue implements Runnable {
         var transaction = transactionContext.getTransaction();
         /* Update states. */
         transaction.setState(ServiceConstants.FLAG_TRANSACTION_PENDING);
-        transaction.setStateMessage("never enqueued");
         /* Initialize adding transaction to data source */
         transactionContext.getQueryClient().queries().update(transaction);
         pendingTransactions.add(transactionContext);
@@ -76,21 +75,15 @@ class TransactionQueue implements Runnable {
         var instrumentId = tick.getInstrumentId();
         var pendingIterator = pendingTransactions.iterator();
         while (pendingIterator.hasNext()) {
-            var pending = pendingIterator.next();
-            var pendingTransaction = pending.getTransaction();
-            if (pendingTransaction.getInstrumentId().compareTo(instrumentId) == 0) {
+            var transactionContext = pendingIterator.next();
+            var transaction = transactionContext.getTransaction();
+            if (transaction.getInstrumentId().compareTo(instrumentId) == 0) {
                 pendingIterator.remove();
                 /* Change state. */
-                pendingTransaction.setState(ServiceConstants.FLAG_TRANSACTION_EXECUTING);
-                pendingTransaction.setStateMessage("tick triggers executiion");
-                try {
-                    pending.getQueryClient().queries().update(pendingTransaction);
-                } catch (DataQueryException exception) {
-                    Utils.err().write("Can't update transaction(" + pendingTransaction.getTransactionId() + ") state(" + pendingTransaction.getState() + "): " + exception.getMessage(), exception);
-                }
+                updateTransactionState(ServiceConstants.FLAG_TRANSACTION_EXECUTING, transactionContext);
                 /* Set trigger tick. */
-                pending.setTriggerTick(tick);
-                if (!executingTransactions.offer(pending)) {
+                transactionContext.setTriggerTick(tick);
+                if (!executingTransactions.offer(transactionContext)) {
                     /* If it can't offer transaction to be executed, don't check more transaction.*/
                     Utils.err().write("Transaction queueing queue is full.");
                     break;
@@ -109,12 +102,9 @@ class TransactionQueue implements Runnable {
                 /* In-front risk assessment. */
                 var riskNotice = beforeRisk(executingContext.getLastTriggerTick(), executingContext);
                 if (riskNotice.getCode() != ServiceConstants.CODE_OK) {
-                    executingTransaction.setState(ServiceConstants.FLAG_TRANSACTION_RISK_BLOCKED + ";" + riskNotice.getCode());
-                    executingTransaction.setStateMessage(riskNotice.getMessage());
                     executingContext.awake();
-                    /* save risk notice */
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_RISK_BLOCKED + ";" + riskNotice.getCode(), executingContext);
                     TransactionFacilities.saveRiskNotice(riskNotice.getCode(), riskNotice.getMessage(), riskNotice.getLevel(), executingContext);
-                    /* notice callback */
                     TransactionFacilities.processTradeUpdate(riskNotice.getCode(), riskNotice.getMessage(), null, executingContext, throwable);
                 } else {
                     if (!executingContext.pendingOrders().isEmpty()) {
@@ -132,17 +122,9 @@ class TransactionQueue implements Runnable {
                                 close(executingContext);
                                 break;
                             default:
-                                executingTransaction.setState(ServiceConstants.FLAG_TRANSACTION_INVALID);
-                                executingTransaction.setStateMessage("invalid offset(" + executingTransaction.getOffset() + ")");
-                                try {
-                                    executingContext.getQueryClient().queries().update(executingTransaction);
-                                } catch (DataQueryException exception) {
-                                    throwable = exception;
-                                    Utils.err().write("Can't update transaction(" + executingTransaction.getTransactionId() + ") state(" + executingTransaction.getState() + "): " + exception.getMessage(), exception);
-                                }
                                 /* Notify the transaction has failed. */
                                 executingContext.awake();
-                                /* Notice callback. */
+                                updateTransactionState(ServiceConstants.FLAG_TRANSACTION_INVALID, executingContext);
                                 TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_INVALID_OFFSET, "invalid order offset(" + executingTransaction.getOffset() + ")", null, executingContext, throwable);
                                 break;
                         }
@@ -176,7 +158,7 @@ class TransactionQueue implements Runnable {
         var queryClient = transactionContext.getQueryClient();
         var checkReturn = TransactionFacilities.checkClose(transactionContext.getQueryClient(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
         if (checkReturn.getCode() != ServiceConstants.CODE_OK) {
-            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getCode(), checkReturn.getMessage(), transactionContext);
+            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getCode(), transactionContext);
             transactionContext.awake();
             /* Trade update callback. */
             TransactionFacilities.processTradeUpdate(checkReturn.getCode(), checkReturn.getMessage(), null, transactionContext, null);
@@ -197,7 +179,7 @@ class TransactionQueue implements Runnable {
                     transactionContext.pendingOrders().add(todayOrderContext);
                     transactionContext.pendingOrders().add(historyOrderContext);
                     pendingTransactions.add(transactionContext);
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext.pendingOrders().size() + "pending orders", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PENDING, "send pending", null, transactionContext, null);
                     break;
                 case ApiConstants.CODE_OK:
@@ -208,17 +190,17 @@ class TransactionQueue implements Runnable {
                             /* Only history order is pending. */
                             transactionContext.pendingOrders().add(historyOrderContext);
                             pendingTransactions.add(transactionContext);
-                            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext.pendingOrders().size() + "pending orders", transactionContext);
+                            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
                             TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PENDING, "send pending", historyOrderContext, transactionContext, null);
                             break;
                         case ApiConstants.CODE_OK:
                             /* Both today order and history order are sent.*/
-                            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, "send ok", transactionContext);
+                            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, transactionContext);
                             TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_OK, "send ok", null, transactionContext, null);
                             break;
                         default:
                             /* History order fails, so only a part of transaction is sent. */
-                            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_PART, "send part", transactionContext);
+                            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_PART, transactionContext);
                             TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PART, "send part", null, transactionContext, null);
                             break;
                     }
@@ -226,7 +208,7 @@ class TransactionQueue implements Runnable {
                 default:
                     /* Today order fails, also abort the history order. */
                     transactionContext.awake();
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, "send abort", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_ABORT, "send abort", null, transactionContext, null);
                     break;
             }
@@ -240,7 +222,7 @@ class TransactionQueue implements Runnable {
         /* Check resource. */
         var checkReturn = TransactionFacilities.checkOpen(newOrderId, queryClient, transaction);
         if (checkReturn.getCode() != ServiceConstants.CODE_OK) {
-            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getCode(), checkReturn.getMessage(), transactionContext);
+            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getCode(), transactionContext);
             /* notify joiner the transaction fails. */
             transactionContext.awake();
             /* Trade update callback. */
@@ -256,18 +238,18 @@ class TransactionQueue implements Runnable {
                     /* Open order is pending. */
                     transactionContext.pendingOrders().add(orderContext);
                     pendingTransactions.add(transactionContext);
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext.pendingOrders().size() + "pending orders", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PENDING, "send pending", orderContext, transactionContext, null);
                     break;
                 case ApiConstants.CODE_OK:
                     /* Open order is sent OK. */
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, "send ok", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_OK, "send ok", orderContext, transactionContext, null);
                     break;
                 default:
                     /* Open order is aborted. */
                     transactionContext.awake();
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, "send abort", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_ABORT, "send abort", orderContext, transactionContext, null);
                     break;
             }
@@ -290,7 +272,7 @@ class TransactionQueue implements Runnable {
         }
         if (!pendingAgain.isEmpty()) {
             transactionContext.pendingOrders().addAll(pendingAgain);
-            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext.pendingOrders().size() + "pending orders", transactionContext);
+            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
             return false;
         } else {
             /* Pending orders are sent or aborted. */
@@ -298,17 +280,17 @@ class TransactionQueue implements Runnable {
                 /* There are some failed orders. */
                 if (transactionContext.hasSuccessOrder()) {
                     /* Part transaction succeeds. */
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_PART, "send part", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_PART, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PART, "send part", null, transactionContext, null);
                 } else {
                     /* All failed. */
                     transactionContext.awake();
-                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, "send abort", transactionContext);
+                    updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_ABORT, "send abort", null, transactionContext, null);
                 }
             } else {
                 /* No order failed, all succeeded.*/
-                updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, "send ok", transactionContext);
+                updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, transactionContext);
                 TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_OK, "send ok", null, transactionContext, null);
             }
             return true;
@@ -332,10 +314,9 @@ class TransactionQueue implements Runnable {
         return returnCode;
     }
 
-    private void updateTransactionState(String state, String stateMessage, TransactionContextImpl transactionContext) {
+    private void updateTransactionState(String state, TransactionContextImpl transactionContext) {
         var transaction = transactionContext.getTransaction();
         transaction.setState(state);
-        transaction.setStateMessage(stateMessage);
         try {
             transactionContext.getQueryClient().queries().update(transaction);
         } catch (DataQueryException exception) {
