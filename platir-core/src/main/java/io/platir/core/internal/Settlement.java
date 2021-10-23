@@ -69,7 +69,7 @@ public class Settlement {
     private void clearSchema() throws DataQueryException {
         /* Ticks are set before settlement every time. */
         queries.clearTicks();
-        /* Write settled information. */
+        /* Clear for rewriting settled information. */
         queries.clearAccounts();
         queries.clearContracts();
         /* Clear obsolete data. */
