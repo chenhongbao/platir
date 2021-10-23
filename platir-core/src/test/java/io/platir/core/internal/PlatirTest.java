@@ -1,16 +1,10 @@
-package io.platir.core;
+package io.platir.core.internal;
 
-import io.platir.core.internal.PlatirImpl;
-import io.platir.core.internal.Simulators;
+import io.platir.core.Platir;
+import io.platir.core.StartupException;
 import io.platir.queries.QueriesImpl;
 import io.platir.queries.Utils;
 import io.platir.service.Queries;
-import io.platir.service.StrategyContext;
-import io.platir.service.StrategyProfile;
-import io.platir.service.api.MarketAdapter;
-import io.platir.service.api.RiskManager;
-import io.platir.service.api.TradeAdapter;
-import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +40,10 @@ public class PlatirTest {
     @AfterEach
     public void tearDown() throws Exception {
         Utils.delete(Utils.applicationDirectory());
+    }
+    
+    @Test
+    public void testStrategy() throws Exception {
     }
 
     @Test

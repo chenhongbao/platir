@@ -123,7 +123,7 @@ class StrategyContextPool {
             try {
                 /* Restore interrupt state as it can't be removed */
                 strategy.getPlatirClientImpl().interrupt(false);
-            } catch (InterruptionException ex) {
+            } catch (InterruptionException exception) {
                 throw new StrategyRemovalException("Can't restore client interrupt state for strategy(" + strategy.getProfile().getStrategyId() + ") removal.");
             }
             throw new StrategyRemovalException("The strategy(" + strategy.getProfile().getStrategyId() + ") still has " + count + " transaction online.");
@@ -182,8 +182,8 @@ class StrategyContextPool {
             exsistingProfile.setInstrumentIds(newProfile.getInstrumentIds());
             /* Update data source. */
             queries.update(exsistingProfile);
-        } catch (DataQueryException e) {
-            throw new StrategyUpdateException("Can't update strategy(" + exsistingProfile.getStrategyId() + ") profile in data source: " + e.getMessage(), e);
+        } catch (DataQueryException exception) {
+            throw new StrategyUpdateException("Can't update strategy(" + exsistingProfile.getStrategyId() + ") profile in data source: " + exception.getMessage(), exception);
         }
     }
 

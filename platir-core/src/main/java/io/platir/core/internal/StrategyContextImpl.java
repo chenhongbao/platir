@@ -99,8 +99,8 @@ class StrategyContextImpl implements StrategyContext {
     void remove() throws StrategyRemovalException {
         try {
             checkIntegrity();
-        } catch (IntegrityException e) {
-            throw new StrategyRemovalException("Integrity check fails: " + e.getMessage(), e);
+        } catch (IntegrityException exception) {
+            throw new StrategyRemovalException("Integrity check fails: " + exception.getMessage(), exception);
         }
         isShutdown.set(true);
         callbackQueue.timedOnDestroy();
@@ -185,24 +185,27 @@ class StrategyContextImpl implements StrategyContext {
 
     private void checkTransactionIntegrity(TransactionContextImpl transactionContext) throws IntegrityException {
         var transactionId = transactionContext.getTransaction().getTransactionId();
-        var transaction = getTransactionById(transactionId);
-        if (transaction == null) {
+        var qryTransaction = getTransactionById(transactionId);
+        if (qryTransaction == null) {
             throw new IntegrityException("Transaction(" + transactionId + ") not found in data source.");
         }
-        if (!Utils.beanEquals(Transaction.class, transactionContext.getTransaction(), transaction)) {
+        if (!Utils.beanEquals(Transaction.class, transactionContext.getTransaction(), qryTransaction)) {
             throw new IntegrityException("Transaction(" + transactionId + ") don't match between data source and runtime.");
         }
         if (!checkOrders(transactionContext)) {
             throw new IntegrityException("Transaction(" + transactionId + ") misses some orders.");
         }
-        var orders = platirClient.getOrders(transactionContext.getTransaction().getTransactionId());
+        var qryOrders = platirClient.getOrders(transactionContext.getTransaction().getTransactionId());
+        if (qryOrders == null) {
+            throw new IntegrityException("Fail getting transaction(" + transactionId + ") orders.");
+        }
         for (var orderContext : transactionContext.getOrderContexts()) {
             var found = false;
             var runtimeOrder = orderContext.getOrder();
-            for (var order : orders) {
-                if (runtimeOrder.getOrderId().compareTo(order.getOrderId()) == 0) {
+            for (var qryOrder : qryOrders) {
+                if (runtimeOrder.getOrderId().equals(qryOrder.getOrderId())) {
                     found = true;
-                    checkOrderIntegrity(orderContext, order);
+                    checkOrderIntegrity(orderContext, qryOrder);
                     break;
                 }
             }
@@ -221,20 +224,21 @@ class StrategyContextImpl implements StrategyContext {
         return null;
     }
 
-    private void checkOrderIntegrity(OrderContext orderContext, Order order) throws IntegrityException {
+    private void checkOrderIntegrity(OrderContext orderContext, Order qryOrder) throws IntegrityException {
         var runtimeOrder = orderContext.getOrder();
-        if (!Utils.beanEquals(Order.class, runtimeOrder, order)) {
+        if (!Utils.beanEquals(Order.class, runtimeOrder, qryOrder)) {
             throw new IntegrityException("Order(" + runtimeOrder.getOrderId() + ") not match between data source and runtime.");
         }
-        var trades = platirClient.getTrades(runtimeOrder.getOrderId());
+        var qryTrades = platirClient.getTrades(runtimeOrder.getOrderId());
         for (var runtimeTrade : orderContext.getTrades()) {
             var found = false;
-            for (var trade : trades) {
-                if (trade.getTradeId().compareTo(runtimeTrade.getTradeId()) == 0) {
+            for (var qryTrade : qryTrades) {
+                if (qryTrade.getTradeId().equals(runtimeTrade.getTradeId())) {
                     found = true;
-                    if (!Utils.beanEquals(Trade.class, runtimeTrade, trade)) {
-                        throw new IntegrityException("Trade(" + trade.getTradeId() + ") don't match between data source and runtime.");
+                    if (!Utils.beanEquals(Trade.class, runtimeTrade, qryTrade)) {
+                        throw new IntegrityException("Trade(" + qryTrade.getTradeId() + ") don't match between data source and runtime.");
                     }
+                    break;
                 }
             }
             if (!found) {
