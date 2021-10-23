@@ -34,4 +34,7 @@ public interface Order {
 
     void setOffset(String offset);
 
+    String getState();
+
+    void setState(String state);
 }

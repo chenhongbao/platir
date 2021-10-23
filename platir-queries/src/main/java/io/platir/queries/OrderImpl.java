@@ -15,7 +15,18 @@ class OrderImpl implements Order {
     private Integer volume;
     private String direction;
     private String offset;
+    private String state;
     private String tradingDay;
+
+    @Override
+    public String getState() {
+        return state;
+    }
+
+    @Override
+    public void setState(String state) {
+        this.state = state;
+    }
 
     @Override
     public String getOrderId() {

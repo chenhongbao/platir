@@ -149,7 +149,7 @@ class TransactionFacilities {
     }
 
     static void saveRiskNotice(int code, String message, Integer level, TransactionContextImpl transactionContext) {
-        RiskNotice riskNotice = transactionContext.getQueryClient().queries().getFactory().newRiskNotice();
+        RiskNotice riskNotice = transactionContext.getInfoClientImpl().queries().getFactory().newRiskNotice();
         StrategyProfile profile = transactionContext.getStrategyContext().getProfile();
         riskNotice.setCode(code);
         riskNotice.setMessage(message);
@@ -158,14 +158,14 @@ class TransactionFacilities {
         riskNotice.setStrategyId(profile.getStrategyId());
         riskNotice.setUpdateTime(Utils.datetime());
         try {
-            transactionContext.getQueryClient().queries().insert(riskNotice);
+            transactionContext.getInfoClientImpl().queries().insert(riskNotice);
         } catch (DataQueryException exception) {
             Utils.err().write("Can't inert RiskNotice(" + code + ", " + message + "): " + exception.getMessage(), exception);
         }
     }
 
     static void processTradeUpdate(int code, String message, OrderContext orderContext, TransactionContextImpl transactionContext, Throwable throwable) {
-        TradeUpdate tradeUpdate = transactionContext.getQueryClient().queries().getFactory().newTradeUpdate();
+        TradeUpdate tradeUpdate = transactionContext.getInfoClientImpl().queries().getFactory().newTradeUpdate();
         tradeUpdate.setCode(code);
         tradeUpdate.setMessage(message);
         tradeUpdate.setError(throwable);

@@ -39,6 +39,8 @@ public interface Queries {
 
     void update(Contract... contracts) throws DataQueryException;
 
+    void update(Order... orders) throws DataQueryException;
+
     void update(Transaction... transactions) throws DataQueryException;
 
     void update(Instrument... instruments) throws DataQueryException;
@@ -48,6 +50,8 @@ public interface Queries {
     void update(StrategyProfile... profiles) throws DataQueryException;
 
     void update(TradingDay... days) throws DataQueryException;
+
+    void remove(Contract... contracts) throws DataQueryException;
 
     void clearAccounts() throws DataQueryException;
 

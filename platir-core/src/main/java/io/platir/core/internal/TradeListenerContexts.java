@@ -57,7 +57,7 @@ class TradeListenerContexts implements TradeListener {
         if (ctx != null) {
             tradeQueue.push(trade, ctx);
             /* Update trading day if possible. */
-            updateTradingDay(trade.getTradingDay(), ctx.getTransactionContext().getQueryClient().queries());
+            updateTradingDay(trade.getTradingDay(), ctx.getTransactionContext().getInfoClientImpl().queries());
         } else {
             Utils.err().write("Order execution context not found for order(" + trade.getOrderId() + ").");
         }

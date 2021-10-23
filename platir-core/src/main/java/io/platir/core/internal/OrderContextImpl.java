@@ -25,6 +25,10 @@ class OrderContextImpl implements OrderContext {
     void addTrade(Trade trade) {
         tradedRecords.add(trade);
     }
+    
+    TransactionContextImpl getTransactionContextImpl() {
+        return transactionContext;
+    }
 
     @Override
     public Order getOrder() {

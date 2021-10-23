@@ -67,7 +67,7 @@ class TransactionQueue implements Runnable {
         /* Update states. */
         transaction.setState(ServiceConstants.FLAG_TRANSACTION_PENDING);
         /* Initialize adding transaction to data source */
-        transactionContext.getQueryClient().queries().update(transaction);
+        transactionContext.getInfoClientImpl().queries().update(transaction);
         pendingTransactions.add(transactionContext);
     }
 
@@ -155,12 +155,12 @@ class TransactionQueue implements Runnable {
     private void close(TransactionContextImpl transactionContext) throws DuplicatedOrderException {
         var transaction = transactionContext.getTransaction();
         var newOrderId = TransactionFacilities.getOrderId(transaction.getTransactionId());
-        var queryClient = transactionContext.getQueryClient();
-        var checkReturn = TransactionFacilities.checkClose(transactionContext.getQueryClient(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
+        var queryClient = transactionContext.getInfoClientImpl();
+        var checkReturn = TransactionFacilities.checkClose(transactionContext.getInfoClientImpl(), transaction.getInstrumentId(), transaction.getDirection(), transaction.getVolume());
         if (checkReturn.getCode() != ServiceConstants.CODE_OK) {
-            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getCode(), transactionContext);
+            /* Risk check failed. */
             transactionContext.awake();
-            /* Trade update callback. */
+            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_CLOSE + ";" + checkReturn.getCode(), transactionContext);
             TransactionFacilities.processTradeUpdate(checkReturn.getCode(), checkReturn.getMessage(), null, transactionContext, null);
         } else {
             @SuppressWarnings("unchecked")
@@ -179,27 +179,33 @@ class TransactionQueue implements Runnable {
                     transactionContext.pendingOrders().add(todayOrderContext);
                     transactionContext.pendingOrders().add(historyOrderContext);
                     pendingTransactions.add(transactionContext);
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_PENDING, todayOrderContext);
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_PENDING, historyOrderContext);
                     updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PENDING, "send pending", null, transactionContext, null);
                     break;
                 case ApiConstants.CODE_OK:
                     /* Today order is sent, continue processing history order. */
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_OK, todayOrderContext);
                     returnCode = send(historyOrderContext, transactionContext);
                     switch (returnCode) {
                         case ApiConstants.CODE_MARKET_CLOSED:
                             /* Only history order is pending. */
                             transactionContext.pendingOrders().add(historyOrderContext);
                             pendingTransactions.add(transactionContext);
+                            updateOrderState(ServiceConstants.FLAG_ORDER_SEND_PENDING, historyOrderContext);
                             updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
                             TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PENDING, "send pending", historyOrderContext, transactionContext, null);
                             break;
                         case ApiConstants.CODE_OK:
                             /* Both today order and history order are sent.*/
+                            updateOrderState(ServiceConstants.FLAG_ORDER_SEND_OK, historyOrderContext);
                             updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, transactionContext);
                             TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_OK, "send ok", null, transactionContext, null);
                             break;
                         default:
                             /* History order fails, so only a part of transaction is sent. */
+                            updateOrderState(ServiceConstants.FLAG_ORDER_SEND_ABORT, historyOrderContext);
                             updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_PART, transactionContext);
                             TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PART, "send part", null, transactionContext, null);
                             break;
@@ -208,6 +214,8 @@ class TransactionQueue implements Runnable {
                 default:
                     /* Today order fails, also abort the history order. */
                     transactionContext.awake();
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_ABORT, todayOrderContext);
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_ABORT, historyOrderContext);
                     updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_ABORT, "send abort", null, transactionContext, null);
                     break;
@@ -218,14 +226,13 @@ class TransactionQueue implements Runnable {
     private void open(TransactionContextImpl transactionContext) throws DuplicatedOrderException {
         var transaction = transactionContext.getTransaction();
         var newOrderId = TransactionFacilities.getOrderId(transaction.getTransactionId());
-        var queryClient = transactionContext.getQueryClient();
+        var queryClient = transactionContext.getInfoClientImpl();
         /* Check resource. */
         var checkReturn = TransactionFacilities.checkOpen(newOrderId, queryClient, transaction);
         if (checkReturn.getCode() != ServiceConstants.CODE_OK) {
-            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getCode(), transactionContext);
-            /* notify joiner the transaction fails. */
+            /* Notify joiner the transaction fails. */
             transactionContext.awake();
-            /* Trade update callback. */
+            updateTransactionState(ServiceConstants.FLAG_TRANSACTION_CHECK_OPEN + ";" + checkReturn.getCode(), transactionContext);
             TransactionFacilities.processTradeUpdate(checkReturn.getCode(), checkReturn.getMessage(), null, transactionContext, null);
         } else {
             /* Lock resource for opening. */
@@ -238,17 +245,20 @@ class TransactionQueue implements Runnable {
                     /* Open order is pending. */
                     transactionContext.pendingOrders().add(orderContext);
                     pendingTransactions.add(transactionContext);
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_PENDING, orderContext);
                     updateTransactionState(ServiceConstants.FLAG_TRANSACTION_PENDING, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_PENDING, "send pending", orderContext, transactionContext, null);
                     break;
                 case ApiConstants.CODE_OK:
                     /* Open order is sent OK. */
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_OK, orderContext);
                     updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_OK, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_OK, "send ok", orderContext, transactionContext, null);
                     break;
                 default:
                     /* Open order is aborted. */
                     transactionContext.awake();
+                    updateOrderState(ServiceConstants.FLAG_ORDER_SEND_ABORT, orderContext);
                     updateTransactionState(ServiceConstants.FLAG_TRANSACTION_SEND_ABORT, transactionContext);
                     TransactionFacilities.processTradeUpdate(ServiceConstants.CODE_TRANSACTION_SEND_ABORT, "send abort", orderContext, transactionContext, null);
                     break;
@@ -304,7 +314,9 @@ class TransactionQueue implements Runnable {
         if (returnCode != ApiConstants.CODE_OK) {
             tradeListener.unregister(order.getOrderId());
             if (returnCode != ApiConstants.CODE_MARKET_CLOSED) {
+                /* Order failed. */
                 transactionContext.addFailedOrder(orderContext);
+                updateAbortedContracts(orderContext);
             }
         } else {
             transactionContext.addSuccessOrder(orderContext);
@@ -314,11 +326,40 @@ class TransactionQueue implements Runnable {
         return returnCode;
     }
 
+    private void updateAbortedContracts(OrderContextImpl orderContext) {
+        var queries = orderContext.getTransactionContextImpl().getInfoClientImpl().queries();
+        try {
+            /* Unlocked contracts. */
+            for (var lockedContract : orderContext.lockedContracts()) {
+                if (lockedContract.getState().equals(ServiceConstants.FLAG_CONTRACT_OPENING)) {
+                    queries.remove(lockedContract);
+                } else if (lockedContract.getState().equals(ServiceConstants.FLAG_CONTRACT_CLOSING)) {
+                    lockedContract.setState(ServiceConstants.FLAG_CONTRACT_OPEN);
+                    queries.update(lockedContract);
+                }
+            }
+        } catch (DataQueryException exception) {
+            Utils.err().write("Can't update aborted order(" + orderContext.getOrder().getOrderId() + "): " + exception.getMessage(), exception);
+        }
+    }
+
+    private void updateOrderState(String state, OrderContextImpl orderContext) {
+        var queries = orderContext.getTransactionContextImpl().getInfoClientImpl().queries();
+        var order = orderContext.getOrder();
+        order.setState(state);
+        try {
+            queries.update(order);
+        } catch (DataQueryException exception) {
+            Utils.err().write("Can't update order(" + order.getOrderId() + ") state (" + order.getState() + "): " + exception.getMessage(), exception);
+        }
+    }
+
     private void updateTransactionState(String state, TransactionContextImpl transactionContext) {
+        var queries = transactionContext.getInfoClientImpl().queries();
         var transaction = transactionContext.getTransaction();
         transaction.setState(state);
         try {
-            transactionContext.getQueryClient().queries().update(transaction);
+            queries.update(transaction);
         } catch (DataQueryException exception) {
             Utils.err().write("Can't update transaction(" + transaction.getTransactionId() + ") state(" + transaction.getState() + "): " + exception.getMessage(), exception);
         }

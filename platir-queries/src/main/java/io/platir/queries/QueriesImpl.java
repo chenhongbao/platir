@@ -310,6 +310,20 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
+    public void update(Order... orders) throws DataQueryException {
+        synchronized (orderTable) {
+            for (var order : orders) {
+                if (order.getOrderId() == null) {
+                    throw new DataQueryException("Order has a null ID.");
+                }
+                ensureExists(orderTable, order.getOrderId());
+                orderTable.put(order.getOrderId(), order);
+            }
+            writeTable(schemaTablePath(Order.class.getSimpleName()), Order.class, orderTable.values());
+        }
+    }
+
+    @Override
     public void update(Transaction... transactions) throws DataQueryException {
         synchronized (transactionTable) {
             for (var transaction : transactions) {
@@ -537,6 +551,7 @@ public class QueriesImpl implements Queries {
                 order.setTradingDay(item.getTradingDay());
                 order.setTransactionId(item.getTransactionId());
                 order.setVolume(item.getVolume());
+                order.setState(item.getState());
                 return order;
             }).forEachOrdered(order -> {
                 orders.add(order);
@@ -686,6 +701,21 @@ public class QueriesImpl implements Queries {
                 notices.add(notice);
             });
             return notices;
+        }
+    }
+
+    @Override
+    public void remove(Contract... contracts) throws DataQueryException {
+        if (contracts == null || contracts.length == 0) {
+            return;
+        }
+        synchronized (contractTable) {
+            for (var contract : contracts) {
+                if (contractTable.containsKey(contract.getContractId())) {
+                    contractTable.remove(contract.getContractId());
+                }
+            }
+            writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
     }
 

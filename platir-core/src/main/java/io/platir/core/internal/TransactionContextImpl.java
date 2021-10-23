@@ -88,7 +88,7 @@ class TransactionContextImpl implements TransactionContext {
         return new HashSet<>(successOrders);
     }
 
-    PlatirInfoClientImpl getQueryClient() {
+    PlatirInfoClientImpl getInfoClientImpl() {
         return strategyContext.getPlatirClientImpl();
     }
 

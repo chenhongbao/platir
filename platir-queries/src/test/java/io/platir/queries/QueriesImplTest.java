@@ -232,6 +232,20 @@ public class QueriesImplTest {
     public void testUpdateTradingDay() throws Exception {
         testUpdate(TradingDay.class);
     }
+    
+    @Test
+    @Order(118)
+    @DisplayName("Test remove contract.")
+    public void testRemoveContract() throws Exception {
+        var contract = queries.getFactory().newContract();
+        contract.setContractId(UUID.randomUUID().toString());
+        queries.insert(contract);
+        /* Remove the contract. */
+        queries.remove(contract);
+        /* Check selected contracts empty. */
+        var contracts = queries.selectContracts();
+        assertTrue(contracts.isEmpty(), "Contract remove failed.");
+    }
 
     private void checkEmptySchema() throws DataQueryException {
         assertTrue(queries.selectAccounts().isEmpty());

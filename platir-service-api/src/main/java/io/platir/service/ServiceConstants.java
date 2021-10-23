@@ -29,6 +29,9 @@ public class ServiceConstants {
     public static final String FLAG_CONTRACT_OPENING = "contract-opening";
     public static final String FLAG_CONTRACT_CLOSING = "contract-closing";
     public static final String FLAG_CONTRACT_CLOSED = "contract-closed";
+    public static final String FLAG_ORDER_SEND_PENDING = "order-send-pending";
+    public static final String FLAG_ORDER_SEND_ABORT = "order-send-abort";
+    public static final String FLAG_ORDER_SEND_OK = "order-send-ok";
     public static final String FLAG_STRATEGY_REMOVED = "strategy-removed";
     public static final String FLAG_STRATEGY_INTERRUPTED = "strategy-interrupted";
     public static final String FLAG_STRATEGY_RUNNING = "strategy-running";
