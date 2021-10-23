@@ -147,7 +147,7 @@ public final class Utils {
         return path.toFile();
     }
 
-    public static void delete(Path root, boolean deleteRoot) throws IOException {
+    public static void delete(Path root) throws IOException {
         Files.walkFileTree(root, new FileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes bfa) throws IOException {

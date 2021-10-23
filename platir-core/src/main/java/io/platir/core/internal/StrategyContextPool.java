@@ -48,6 +48,8 @@ class StrategyContextPool {
             /* Subscribe instruments. */
             marketRouter.subscribe(strategyContext);
             strategies.add(strategyContext);
+            /* Call onStart() method. */
+            strategyContext.start();
             return strategyContext;
         } catch (AnnotationParsingException exception) {
             throw new StrategyCreateException("Strategy parsing failure: " + exception.getMessage() + ".", exception);
@@ -67,12 +69,6 @@ class StrategyContextPool {
 
     Set<StrategyContextImpl> strategyContexts() {
         return strategies;
-    }
-
-    void start() {
-        strategies.forEach(strategy -> {
-            strategy.start();
-        });
     }
 
     void stop(int reason) {

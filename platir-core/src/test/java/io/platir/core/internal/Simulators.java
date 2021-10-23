@@ -24,9 +24,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Chen Hongbao
  */
-public class Simulaters {
+public class Simulators {
 
-    public static class SimulaterTradeAdapter implements TradeAdapter {
+    public static class SimulatedTradeAdapter implements TradeAdapter {
 
         private final AtomicInteger tradeCounter = new AtomicInteger(0);
         private final Map<String, String> parameters = new HashMap<>();
@@ -35,7 +35,7 @@ public class Simulaters {
         private TradeListener listener;
         private int requireReturnCode = ApiConstants.CODE_OK;
 
-        public SimulaterTradeAdapter(Queries queries) {
+        public SimulatedTradeAdapter(Queries queries) {
             this.queries = queries;
         }
 
@@ -129,7 +129,7 @@ public class Simulaters {
         }
     }
 
-    public static class SimulaterMarketAdapter implements MarketAdapter {
+    public static class SimulatedMarketAdapter implements MarketAdapter {
 
         private final Map<String, String> parameters = new HashMap<>();
         private final Set<String> subscription = new HashSet<>();
@@ -181,7 +181,7 @@ public class Simulaters {
         }
     }
 
-    public static class SimulaterRiskManager implements RiskManager {
+    public static class SimulatedRiskManager implements RiskManager {
 
         private final Map<Tick, TransactionContext> befores = new HashMap<>();
         private final Map<Trade, TransactionContext> afters = new HashMap<>();
@@ -189,7 +189,7 @@ public class Simulaters {
 
         private int code;
 
-        public SimulaterRiskManager(Queries queries) {
+        public SimulatedRiskManager(Queries queries) {
             this.queries = queries;
         }
 

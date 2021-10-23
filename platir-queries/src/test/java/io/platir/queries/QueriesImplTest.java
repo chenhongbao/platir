@@ -42,14 +42,14 @@ public class QueriesImplTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        Utils.delete(Utils.applicationDirectory(), true);
+        Utils.delete(Utils.applicationDirectory());
         queries = new QueriesImpl();
     }
 
     @AfterEach
     public void destroy() throws IOException {
         queries = null;
-        Utils.delete(Utils.applicationDirectory(), true);
+        Utils.delete(Utils.applicationDirectory());
     }
 
     @Test

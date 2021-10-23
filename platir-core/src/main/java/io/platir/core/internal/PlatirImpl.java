@@ -35,13 +35,16 @@ public class PlatirImpl extends Platir {
     private RiskManager riskManager;
     private MarketRouter marketRouter;
     private TransactionQueue transactionQueue;
-    private TradeAdapter tradeAdaptor;
-    private MarketAdapter marketAdaptor;
+    private TradeAdapter tradeAdapter;
+    private MarketAdapter marketAdapter;
     private StrategyContextPool strategyContextPool;
     private FileChannel instanceLock;
 
     @Override
     public StrategyContext addStrategy(StrategyProfile strategyProfile, Object strategyObject) throws InvalidLoginException, StrategyCreateException {
+        if (isShutdown.get()) {
+            throw new StrategyCreateException("Platir sytem doesn't start yet.");
+        }
         return strategyContextPool.add(strategyProfile, strategyObject);
     }
 
@@ -61,7 +64,8 @@ public class PlatirImpl extends Platir {
             if (!isShutdown.get()) {
                 return;
             }
-            /* ensure single instance */
+            checkSetters();
+            /* Ensure single instance. */
             acquireInstance();
             setup();
             queriesInit();
@@ -91,20 +95,20 @@ public class PlatirImpl extends Platir {
 
     private void setup() throws StartupException {
         int code;
-        code = tradeAdaptor.start();
+        code = tradeAdapter.start();
         if (code != ApiConstants.CODE_OK) {
             throw new StartupException("Trader adapter startup failure: " + code + ".");
         }
-        code = marketAdaptor.start();
+        code = marketAdapter.start();
         if (code != ApiConstants.CODE_OK) {
             throw new StartupException("Market adapter startup failure: " + code + ".");
         }
         if (transactionQueue == null) {
-            transactionQueue = new TransactionQueue(tradeAdaptor, riskManager, queries.getFactory());
+            transactionQueue = new TransactionQueue(tradeAdapter, riskManager, queries.getFactory());
             Utils.threads().submit(transactionQueue);
         }
         if (marketRouter == null) {
-            marketRouter = new MarketRouter(marketAdaptor, transactionQueue, queries);
+            marketRouter = new MarketRouter(marketAdapter, transactionQueue, queries);
         } else {
             /* Need subscribe again after re-login. */
             marketRouter.refreshAllSubscriptions();
@@ -112,18 +116,16 @@ public class PlatirImpl extends Platir {
         if (strategyContextPool == null) {
             strategyContextPool = new StrategyContextPool(transactionQueue, marketRouter, queries);
         }
-        /* Finally initialize strategies when all are ready. */
-        strategyContextPool.start();
     }
 
     @Override
     public void setTradeAdaptor(TradeAdapter adaptor) {
-        tradeAdaptor = adaptor;
+        tradeAdapter = adaptor;
     }
 
     @Override
     public void setMarketAdaptor(MarketAdapter adaptor) {
-        marketAdaptor = adaptor;
+        marketAdapter = adaptor;
     }
 
     @Override
@@ -165,6 +167,12 @@ public class PlatirImpl extends Platir {
     @Override
     public void removeStrategy(StrategyProfile profile) throws StrategyRemovalException, InvalidLoginException {
         strategyContextPool.remove(profile);
+    }
+
+    private void checkSetters() throws StartupException {
+        if (queries == null || riskManager == null || tradeAdapter == null || marketAdapter == null) {
+            throw new StartupException("Queries, risk manager, trader adapter and market adapter must be set before starting system.");
+        }
     }
 
 }

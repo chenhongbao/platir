@@ -886,7 +886,7 @@ public class QueriesImpl implements Queries {
     }
 
     private void copySchema(Path backupDirectory) throws IOException {
-        Utils.delete(Utils.schemaDirectory(), false);
+        Utils.delete(Utils.schemaDirectory());
         Utils.copyEntries(backupDirectory, Utils.schemaDirectory());
     }
 

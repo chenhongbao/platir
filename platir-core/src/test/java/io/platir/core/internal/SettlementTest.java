@@ -26,7 +26,7 @@ public class SettlementTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        Utils.delete(Utils.applicationDirectory(), true);
+        Utils.delete(Utils.applicationDirectory());
         queries = new QueriesImpl();
         prepareSchema();
     }
@@ -34,7 +34,7 @@ public class SettlementTest {
     @AfterEach
     public void tearDown() throws Exception {
         queries = null;
-        Utils.delete(Utils.applicationDirectory(), true);
+        Utils.delete(Utils.applicationDirectory());
     }
 
     @Test
