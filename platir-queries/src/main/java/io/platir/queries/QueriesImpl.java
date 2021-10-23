@@ -155,7 +155,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Account has a null ID.");
                 }
                 ensureNotExists(accountTable, account.getAccountId());
-                accountTable.put(account.getAccountId(), account);
+                accountTable.put(account.getAccountId(), copyOf(account));
             }
             /* persist account table */
             writeTable(schemaTablePath(Account.class.getSimpleName()), Account.class, accountTable.values());
@@ -170,7 +170,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Tick has a null instrument ID.");
                 }
                 ensureNotExists(tickTable, tick.getInstrumentId());
-                tickTable.put(tick.getInstrumentId(), tick);
+                tickTable.put(tick.getInstrumentId(), copyOf(tick));
             }
             writeTable(schemaTablePath(Tick.class.getSimpleName()), Tick.class, tickTable.values());
         }
@@ -184,7 +184,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Transaction has a null ID.");
                 }
                 ensureNotExists(transactionTable, transaction.getTransactionId());
-                transactionTable.put(transaction.getTransactionId(), transaction);
+                transactionTable.put(transaction.getTransactionId(), copyOf(transaction));
             }
             writeTable(schemaTablePath(Transaction.class.getSimpleName()), Transaction.class, transactionTable.values());
         }
@@ -198,7 +198,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Order has a null ID.");
                 }
                 ensureNotExists(orderTable, order.getOrderId());
-                orderTable.put(order.getOrderId(), order);
+                orderTable.put(order.getOrderId(), copyOf(order));
             }
             writeTable(schemaTablePath(Order.class.getSimpleName()), Order.class, orderTable.values());
         }
@@ -212,7 +212,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Trade has a null ID.");
                 }
                 ensureNotExists(tradeTable, trade.getTradeId());
-                tradeTable.put(trade.getTradeId(), trade);
+                tradeTable.put(trade.getTradeId(), copyOf(trade));
             }
             writeTable(schemaTablePath(Trade.class.getSimpleName()), Trade.class, tradeTable.values());
         }
@@ -226,7 +226,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Contract has a null ID.");
                 }
                 ensureNotExists(contractTable, contract.getInstrumentId());
-                contractTable.put(contract.getContractId(), contract);
+                contractTable.put(contract.getContractId(), copyOf(contract));
             }
             writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
@@ -240,7 +240,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("User has a null ID.");
                 }
                 ensureNotExists(userTable, user.getUserId());
-                userTable.put(user.getUserId(), user);
+                userTable.put(user.getUserId(), copyOf(user));
             }
             writeTable(schemaTablePath(User.class.getSimpleName()), User.class, userTable.values());
         }
@@ -254,7 +254,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Strategy has a null ID.");
                 }
                 ensureNotExists(profileTable, profile.getStrategyId());
-                profileTable.put(profile.getStrategyId(), profile);
+                profileTable.put(profile.getStrategyId(), copyOf(profile));
             }
             writeTable(schemaTablePath(StrategyProfile.class.getSimpleName()), StrategyProfile.class, profileTable.values());
         }
@@ -268,7 +268,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Instrument has a null ID.");
                 }
                 ensureNotExists(instrumentTable, instrument.getInstrumentId());
-                instrumentTable.put(instrument.getInstrumentId(), instrument);
+                instrumentTable.put(instrument.getInstrumentId(), copyOf(instrument));
             }
             writeTable(schemaTablePath(Instrument.class.getSimpleName()), Instrument.class, instrumentTable.values());
         }
@@ -289,7 +289,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Account has a null ID.");
                 }
                 ensureExists(accountTable, account.getAccountId());
-                accountTable.put(account.getAccountId(), account);
+                accountTable.put(account.getAccountId(), copyOf(account));
             }
             writeTable(schemaTablePath(Account.class.getSimpleName()), Account.class, accountTable.values());
         }
@@ -303,7 +303,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Contract has a null ID.");
                 }
                 ensureExists(contractTable, contract);
-                contractTable.put(contract.getContractId(), contract);
+                contractTable.put(contract.getContractId(), copyOf(contract));
             }
             writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
@@ -317,7 +317,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Order has a null ID.");
                 }
                 ensureExists(orderTable, order.getOrderId());
-                orderTable.put(order.getOrderId(), order);
+                orderTable.put(order.getOrderId(), copyOf(order));
             }
             writeTable(schemaTablePath(Order.class.getSimpleName()), Order.class, orderTable.values());
         }
@@ -331,7 +331,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Transaction has a null ID.");
                 }
                 ensureExists(transactionTable, transaction.getTransactionId());
-                transactionTable.put(transaction.getTransactionId(), transaction);
+                transactionTable.put(transaction.getTransactionId(), copyOf(transaction));
             }
             writeTable(schemaTablePath(Transaction.class.getSimpleName()), Transaction.class, transactionTable.values());
         }
@@ -345,7 +345,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Instrument has a null ID.");
                 }
                 ensureExists(instrumentTable, instrument.getInstrumentId());
-                instrumentTable.put(instrument.getInstrumentId(), instrument);
+                instrumentTable.put(instrument.getInstrumentId(), copyOf(instrument));
             }
             writeTable(schemaTablePath(Instrument.class.getSimpleName()), Instrument.class, instrumentTable.values());
         }
@@ -359,7 +359,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("User has a null ID.");
                 }
                 ensureExists(userTable, user.getUserId());
-                userTable.put(user.getUserId(), user);
+                userTable.put(user.getUserId(), copyOf(user));
             }
             writeTable(schemaTablePath(User.class.getSimpleName()), User.class, userTable.values());
         }
@@ -373,7 +373,7 @@ public class QueriesImpl implements Queries {
                     throw new DataQueryException("Strategy profile has a null ID.");
                 }
                 ensureExists(profileTable, profile.getStrategyId());
-                profileTable.put(profile.getStrategyId(), profile);
+                profileTable.put(profile.getStrategyId(), copyOf(profile));
             }
             writeTable(schemaTablePath(StrategyProfile.class.getSimpleName()), StrategyProfile.class, profileTable.values());
         }
@@ -468,22 +468,7 @@ public class QueriesImpl implements Queries {
         synchronized (accountTable) {
             var accounts = new HashSet<Account>();
             accountTable.values().stream().map(item -> {
-                var account = factory.newAccount();
-                account.setAccountId(item.getAccountId());
-                account.setAvailable(item.getAvailable());
-                account.setBalance(item.getBalance());
-                account.setCloseProfit(item.getCloseProfit());
-                account.setClosingCommission(item.getClosingCommission());
-                account.setCommission(item.getCommission());
-                account.setMargin(item.getMargin());
-                account.setOpeningCommission(item.getOpeningCommission());
-                account.setOpeningMargin(item.getOpeningMargin());
-                account.setPositionProfit(item.getPositionProfit());
-                account.setSettleTime(item.getSettleTime());
-                account.setTradingDay(item.getTradingDay());
-                account.setUserId(item.getUserId());
-                account.setYdBalance(item.getYdBalance());
-                return account;
+                return copyOf(item);
             }).forEachOrdered(account -> {
                 accounts.add(account);
             });
@@ -496,18 +481,7 @@ public class QueriesImpl implements Queries {
         synchronized (contractTable) {
             var contracts = new HashSet<Contract>();
             contractTable.values().stream().map(item -> {
-                var contract = factory.newContract();
-                contract.setClosePrice(item.getClosePrice());
-                contract.setContractId(item.getContractId());
-                contract.setDirection(item.getDirection());
-                contract.setInstrumentId(item.getInstrumentId());
-                contract.setOpenTime(item.getOpenTime());
-                contract.setOpenTradingDay(item.getOpenTradingDay());
-                contract.setPrice(item.getPrice());
-                contract.setState(item.getState());
-                contract.setUserId(item.getUserId());
-                contract.setSettlementTradingDay(item.getSettlementTradingDay());
-                return contract;
+                return copyOf(item);
             }).forEachOrdered(contract -> {
                 contracts.add(contract);
             });
@@ -520,16 +494,7 @@ public class QueriesImpl implements Queries {
         synchronized (instrumentTable) {
             var instruments = new HashSet<Instrument>();
             instrumentTable.values().stream().map(item -> {
-                var instrument = factory.newInstrument();
-                instrument.setAmountCommission(item.getAmountCommission());
-                instrument.setAmountMargin(item.getAmountMargin());
-                instrument.setExchangeId(item.getExchangeId());
-                instrument.setInstrumentId(item.getInstrumentId());
-                instrument.setMultiple(item.getMultiple());
-                instrument.setUpdateTime(item.getUpdateTime());
-                instrument.setVolumeCommission(item.getVolumeCommission());
-                instrument.setVolumeMargin(item.getVolumeMargin());
-                return instrument;
+                return copyOf(item);
             }).forEachOrdered(instrument -> {
                 instruments.add(instrument);
             });
@@ -542,17 +507,7 @@ public class QueriesImpl implements Queries {
         synchronized (orderTable) {
             var orders = new HashSet<Order>();
             orderTable.values().stream().map(item -> {
-                var order = factory.newOrder();
-                order.setDirection(item.getDirection());
-                order.setInstrumentId(item.getInstrumentId());
-                order.setOffset(item.getOffset());
-                order.setOrderId(item.getOrderId());
-                order.setPrice(item.getPrice());
-                order.setTradingDay(item.getTradingDay());
-                order.setTransactionId(item.getTransactionId());
-                order.setVolume(item.getVolume());
-                order.setState(item.getState());
-                return order;
+                return copyOf(item);
             }).forEachOrdered(order -> {
                 orders.add(order);
             });
@@ -565,17 +520,7 @@ public class QueriesImpl implements Queries {
         synchronized (profileTable) {
             var profiles = new HashSet<StrategyProfile>();
             profileTable.values().stream().map(item -> {
-                var profile = factory.newStrategyProfile();
-                profile.setArgs(item.getArgs());
-                profile.setCreateDate(item.getCreateDate());
-                profile.setInstrumentIds(item.getInstrumentIds());
-                profile.setPassword(item.getPassword());
-                profile.setRemoveDate(item.getRemoveDate());
-                profile.setState(item.getState());
-                profile.setStrategyId(item.getStrategyId());
-                profile.setUserId(item.getUserId());
-                profile.setStrategyProfileId(item.getStrategyProfileId());
-                return profile;
+                return copyOf(item);
             }).forEachOrdered(profile -> {
                 profiles.add(profile);
             });
@@ -588,17 +533,7 @@ public class QueriesImpl implements Queries {
         synchronized (tradeTable) {
             var trades = new HashSet<Trade>();
             tradeTable.values().stream().map(item -> {
-                var trade = factory.newTrade();
-                trade.setDirection(item.getDirection());
-                trade.setInstrumentId(item.getInstrumentId());
-                trade.setOffset(item.getOffset());
-                trade.setOrderId(item.getOrderId());
-                trade.setPrice(item.getPrice());
-                trade.setTradeId(item.getTradeId());
-                trade.setTradingDay(item.getTradingDay());
-                trade.setUpdateTime(item.getUpdateTime());
-                trade.setVolume(item.getVolume());
-                return trade;
+                return copyOf(item);
             }).forEachOrdered(trade -> {
                 trades.add(trade);
             });
@@ -611,18 +546,7 @@ public class QueriesImpl implements Queries {
         synchronized (transactionTable) {
             var transactions = new HashSet<Transaction>();
             transactionTable.values().stream().map(item -> {
-                var transaction = factory.newTransaction();
-                transaction.setDirection(item.getDirection());
-                transaction.setInstrumentId(item.getInstrumentId());
-                transaction.setOffset(item.getOffset());
-                transaction.setPrice(item.getPrice());
-                transaction.setState(item.getState());
-                transaction.setStrategyId(item.getStrategyId());
-                transaction.setTradingDay(item.getTradingDay());
-                transaction.setTransactionId(item.getTransactionId());
-                transaction.setUpdateTime(item.getUpdateTime());
-                transaction.setVolume(item.getVolume());
-                return transaction;
+                return copyOf(item);
             }).forEachOrdered(transaction -> {
                 transactions.add(transaction);
             });
@@ -635,12 +559,7 @@ public class QueriesImpl implements Queries {
         synchronized (userTable) {
             var users = new HashSet<User>();
             userTable.values().stream().map(item -> {
-                var user = factory.newUser();
-                user.setCreateTime(item.getCreateTime());
-                user.setLastLoginTime(item.getLastLoginTime());
-                user.setPassword(item.getPassword());
-                user.setUserId(item.getUserId());
-                return user;
+                return copyOf(item);
             }).forEachOrdered(user -> {
                 users.add(user);
             });
@@ -653,24 +572,7 @@ public class QueriesImpl implements Queries {
         synchronized (tickTable) {
             var ticks = new HashSet<Tick>();
             tickTable.values().stream().map(item -> {
-                var tick = factory.newTick();
-                tick.setAskPrice(item.getAskPrice());
-                tick.setAskVolume(item.getAskVolume());
-                tick.setBidPrice(item.getBidPrice());
-                tick.setBidVolume(item.getBidVolume());
-                tick.setClosePrice(item.getClosePrice());
-                tick.setInstrumentId(item.getInstrumentId());
-                tick.setLastPrice(item.getLastPrice());
-                tick.setOpenInterest(item.getOpenInterest());
-                tick.setOpenPrice(item.getOpenPrice());
-                tick.setSettlementPrice(item.getSettlementPrice());
-                tick.setTickId(item.getTickId());
-                tick.setTodayVolume(item.getTodayVolume());
-                tick.setUpdateTime(item.getUpdateTime());
-                tick.setTradingDay(item.getTradingDay());
-                tick.setHighPrice(item.getHighPrice());
-                tick.setLowPrice(item.getLowPrice());
-                return tick;
+                return copyOf(item);
             }).forEach(tick -> {
                 ticks.add(tick);
             });
@@ -679,29 +581,21 @@ public class QueriesImpl implements Queries {
     }
 
     @Override
-    public Factory getFactory() {
-        return factory;
-    }
-
-    @Override
     public Set<RiskNotice> selectRiskNotices() throws DataQueryException {
         synchronized (riskNoticeTable) {
             var notices = new HashSet<RiskNotice>();
             riskNoticeTable.stream().map(item -> {
-                var notice = factory.newRiskNotice();
-                notice.setCode(item.getCode());
-                notice.setLevel(notice.getLevel());
-                notice.setMessage(notice.getMessage());
-                notice.setStrategyId(notice.getStrategyId());
-                notice.setUpdateTime(notice.getUpdateTime());
-                notice.setUserId(notice.getUserId());
-                notice.setRiskNoticeId(item.getRiskNoticeId());
-                return notice;
+                return copyOf(item);
             }).forEachOrdered(notice -> {
                 notices.add(notice);
             });
             return notices;
         }
+    }
+
+    @Override
+    public Factory getFactory() {
+        return factory;
     }
 
     @Override
@@ -717,6 +611,152 @@ public class QueriesImpl implements Queries {
             }
             writeTable(schemaTablePath(Contract.class.getSimpleName()), Contract.class, contractTable.values());
         }
+    }
+
+    private Account copyOf(Account item) {
+        var account = factory.newAccount();
+        account.setAccountId(item.getAccountId());
+        account.setAvailable(item.getAvailable());
+        account.setBalance(item.getBalance());
+        account.setCloseProfit(item.getCloseProfit());
+        account.setClosingCommission(item.getClosingCommission());
+        account.setCommission(item.getCommission());
+        account.setMargin(item.getMargin());
+        account.setOpeningCommission(item.getOpeningCommission());
+        account.setOpeningMargin(item.getOpeningMargin());
+        account.setPositionProfit(item.getPositionProfit());
+        account.setSettleTime(item.getSettleTime());
+        account.setTradingDay(item.getTradingDay());
+        account.setUserId(item.getUserId());
+        account.setYdBalance(item.getYdBalance());
+        return account;
+    }
+
+    private Contract copyOf(Contract item) {
+        var contract = factory.newContract();
+        contract.setClosePrice(item.getClosePrice());
+        contract.setContractId(item.getContractId());
+        contract.setDirection(item.getDirection());
+        contract.setInstrumentId(item.getInstrumentId());
+        contract.setOpenTime(item.getOpenTime());
+        contract.setOpenTradingDay(item.getOpenTradingDay());
+        contract.setPrice(item.getPrice());
+        contract.setState(item.getState());
+        contract.setUserId(item.getUserId());
+        contract.setSettlementTradingDay(item.getSettlementTradingDay());
+        return contract;
+    }
+
+    private Instrument copyOf(Instrument item) {
+        var instrument = factory.newInstrument();
+        instrument.setAmountCommission(item.getAmountCommission());
+        instrument.setAmountMargin(item.getAmountMargin());
+        instrument.setExchangeId(item.getExchangeId());
+        instrument.setInstrumentId(item.getInstrumentId());
+        instrument.setMultiple(item.getMultiple());
+        instrument.setUpdateTime(item.getUpdateTime());
+        instrument.setVolumeCommission(item.getVolumeCommission());
+        instrument.setVolumeMargin(item.getVolumeMargin());
+        return instrument;
+    }
+
+    private Order copyOf(Order item) {
+        var order = factory.newOrder();
+        order.setDirection(item.getDirection());
+        order.setInstrumentId(item.getInstrumentId());
+        order.setOffset(item.getOffset());
+        order.setOrderId(item.getOrderId());
+        order.setPrice(item.getPrice());
+        order.setTradingDay(item.getTradingDay());
+        order.setTransactionId(item.getTransactionId());
+        order.setVolume(item.getVolume());
+        order.setState(item.getState());
+        return order;
+    }
+
+    private StrategyProfile copyOf(StrategyProfile item) {
+        var profile = factory.newStrategyProfile();
+        profile.setArgs(item.getArgs());
+        profile.setCreateDate(item.getCreateDate());
+        profile.setInstrumentIds(item.getInstrumentIds());
+        profile.setPassword(item.getPassword());
+        profile.setRemoveDate(item.getRemoveDate());
+        profile.setState(item.getState());
+        profile.setStrategyId(item.getStrategyId());
+        profile.setUserId(item.getUserId());
+        profile.setStrategyProfileId(item.getStrategyProfileId());
+        return profile;
+    }
+
+    private Trade copyOf(Trade item) {
+        var trade = factory.newTrade();
+        trade.setDirection(item.getDirection());
+        trade.setInstrumentId(item.getInstrumentId());
+        trade.setOffset(item.getOffset());
+        trade.setOrderId(item.getOrderId());
+        trade.setPrice(item.getPrice());
+        trade.setTradeId(item.getTradeId());
+        trade.setTradingDay(item.getTradingDay());
+        trade.setUpdateTime(item.getUpdateTime());
+        trade.setVolume(item.getVolume());
+        return trade;
+    }
+
+    private Transaction copyOf(Transaction item) {
+        var transaction = factory.newTransaction();
+        transaction.setDirection(item.getDirection());
+        transaction.setInstrumentId(item.getInstrumentId());
+        transaction.setOffset(item.getOffset());
+        transaction.setPrice(item.getPrice());
+        transaction.setState(item.getState());
+        transaction.setStrategyId(item.getStrategyId());
+        transaction.setTradingDay(item.getTradingDay());
+        transaction.setTransactionId(item.getTransactionId());
+        transaction.setUpdateTime(item.getUpdateTime());
+        transaction.setVolume(item.getVolume());
+        return transaction;
+    }
+
+    private User copyOf(User item) {
+        var user = factory.newUser();
+        user.setCreateTime(item.getCreateTime());
+        user.setLastLoginTime(item.getLastLoginTime());
+        user.setPassword(item.getPassword());
+        user.setUserId(item.getUserId());
+        return user;
+    }
+
+    private Tick copyOf(Tick item) {
+        var tick = factory.newTick();
+        tick.setAskPrice(item.getAskPrice());
+        tick.setAskVolume(item.getAskVolume());
+        tick.setBidPrice(item.getBidPrice());
+        tick.setBidVolume(item.getBidVolume());
+        tick.setClosePrice(item.getClosePrice());
+        tick.setInstrumentId(item.getInstrumentId());
+        tick.setLastPrice(item.getLastPrice());
+        tick.setOpenInterest(item.getOpenInterest());
+        tick.setOpenPrice(item.getOpenPrice());
+        tick.setSettlementPrice(item.getSettlementPrice());
+        tick.setTickId(item.getTickId());
+        tick.setTodayVolume(item.getTodayVolume());
+        tick.setUpdateTime(item.getUpdateTime());
+        tick.setTradingDay(item.getTradingDay());
+        tick.setHighPrice(item.getHighPrice());
+        tick.setLowPrice(item.getLowPrice());
+        return tick;
+    }
+
+    private RiskNotice copyOf(RiskNotice item) {
+        var notice = factory.newRiskNotice();
+        notice.setCode(item.getCode());
+        notice.setLevel(notice.getLevel());
+        notice.setMessage(notice.getMessage());
+        notice.setStrategyId(notice.getStrategyId());
+        notice.setUpdateTime(notice.getUpdateTime());
+        notice.setUserId(notice.getUserId());
+        notice.setRiskNoticeId(item.getRiskNoticeId());
+        return notice;
     }
 
     private void clearRuntime() {
