@@ -1,7 +1,6 @@
 package io.platir;
 
 import java.util.Collection;
-import java.util.Map;
 
 public interface Strategy {
 
