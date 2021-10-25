@@ -11,42 +11,36 @@ public interface Order {
     final static String CANCELED = "CANCELED";
 
     final static String RJECTED = "REJECTED";
+    
+    final static String BUY = "BUY";
+    
+    final static String SELL = "SELL";
+    
+    final static String OPEN = "OPEN";
+    
+    final static String CLOSE = "CLOSE";
+    
+    final static String CLOSE_TODAY = "CLOSE_TODAY";
+    
+    final static String CLOSE_YESTERDAY = "CLOSE_YESTERDAY";
 
     String getOrderId();
 
-    void setOrderId(String orderId);
-
     String getInstrumentId();
-
-    void setInstrumentId(String instrumentId);
 
     Double getPrice();
 
-    void setPrice(Double price);
-
     Integer getQuantity();
-
-    void setQuantity(Integer volume);
 
     String getDirection();
 
-    void setDirection(String direction);
-
     String getTradingDay();
-
-    void setTradingDay(String tradingDay);
 
     String getOffset();
 
-    void setOffset(String offset);
-
     String getState();
 
-    void setState(String state);
-
     Collection<Trade> getTrades();
-
-    void addTrade(Trade trade);
 
     Transaction getTransaction();
 }

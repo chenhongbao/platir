@@ -12,17 +12,5 @@ public interface User {
 
     String getLastLoginTime();
 
-    void setUserId(String userId);
-
-    void setPassword(String password);
-
-    void setCreateTime(String createTime);
-
-    void setLastLoginTime(String lastLoginTime);
-
     Collection<Account> getAccounts();
-    
-    void addAccount(Account account);
-    
-    void removeAccount(String accountId);
 }

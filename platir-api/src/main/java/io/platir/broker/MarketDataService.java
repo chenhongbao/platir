@@ -1,13 +1,10 @@
 package io.platir.broker;
 
-import io.platir.Order;
 import java.util.Map;
 
-public interface TradingService {
+public interface MarketDataService {
 
-    void newOrderSingle(ExecutionListener executionListener, Order order);
-
-    void orderCancelRequest(Order order);
+    void marketDataRequest(MarketDataListener listener, String... instrumentIds);
 
     void initialize(Map<String, String> parameters);
 

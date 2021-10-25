@@ -14,43 +14,23 @@ public interface Transaction {
 
     String getState();
 
-    void setState(String state);
-
     String getTransactionId();
-
-    void setTransactionId(String transactionId);
 
     String getInstrumentId();
 
-    void setInstrumentId(String instrumentId);
-
     Double getPrice();
-
-    void setPrice(Double price);
 
     Integer getQuantity();
 
-    void setQuantity(Integer volume);
-
     String getDirection();
-
-    void setDirection(String direction);
 
     String getTradingDay();
 
-    void setTradingDay(String tradingDay);
-
     String getUpdateTime();
-
-    void setUpdateTime(String updateTime);
 
     String getOffset();
 
-    void setOffset(String offset);
-
     Collection<Order> getOrders();
-
-    void addOrder(Order order);
 
     Strategy getStrategy();
 }

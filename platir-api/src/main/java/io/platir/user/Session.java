@@ -6,13 +6,13 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public interface Session {
-    Transaction buyOpen(String instrumentId, String exchangeId, Double price, Integer quantity);
+    Transaction buyOpen(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException;
     
-    Transaction sellOpen(String instrumentId, String exchangeId, Double price, Integer quantity);
+    Transaction sellOpen(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException;
     
-    Transaction buyClose(String instrumentId, String exchangeId, Double price, Integer quantity);
+    Transaction buyClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException;
     
-    Transaction sellClose(String instrumentId, String exchangeId, Double price, Integer quantity);
+    Transaction sellClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException;
     
     Account getAccount();
     
