@@ -1,7 +1,8 @@
-package io.platir.core;
+package io.platir.engine.core;
 
 import io.platir.Account;
 import io.platir.Order;
+import io.platir.Strategy;
 import io.platir.Transaction;
 import io.platir.broker.TradingService;
 import io.platir.user.NewOrderException;
@@ -18,21 +19,21 @@ class TransactionAdapter {
         this.executionUpdater = executionUpdater;
     }
 
-    Transaction newOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction, String offset) throws NewOrderException {
-        synchronized (account) {
+    Transaction newOrderSingle(Strategy strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction, String offset) throws NewOrderException {
+        synchronized (strategy.getAccount()) {
             TransactionCore transaction;
             switch (offset) {
                 case Order.OPEN:
-                    transaction = newOpenOrderSingle(account, instrumentId, exchangeId, price, quantity, direction);
+                    transaction = newOpenOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE:
-                    transaction =  newAutoCloseOrderSingle(account, instrumentId, exchangeId, price, quantity, direction);
+                    transaction =  newAutoCloseOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE_TODAY:
-                    transaction =  newCloseTodayOrderSingle(account, instrumentId, exchangeId, price, quantity, direction);
+                    transaction =  newCloseTodayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE_YESTERDAY:
-                    transaction =  newCloseYesterdayOrderSingle(account, instrumentId, exchangeId, price, quantity, direction);
+                    transaction =  newCloseYesterdayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 default:
                     throw new NewOrderException("Invalid offset(" + offset + ").");

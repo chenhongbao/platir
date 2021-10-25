@@ -1,4 +1,4 @@
-package io.platir.core;
+package io.platir.engine.core;
 
 import io.platir.Account;
 import io.platir.User;

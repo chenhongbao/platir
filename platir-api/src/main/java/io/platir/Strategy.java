@@ -9,8 +9,6 @@ public interface Strategy {
 
     String getRemoveDate();
 
-    String getPassword();
-
     String getStrategyId();
 
     String getState();

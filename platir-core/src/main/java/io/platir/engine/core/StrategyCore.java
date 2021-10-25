@@ -1,4 +1,4 @@
-package io.platir.core;
+package io.platir.engine.core;
 
 import io.platir.Strategy;
 import io.platir.Transaction;
@@ -34,15 +34,6 @@ class StrategyCore implements Strategy {
 
     void setRemoveDate(String removeDate) {
         this.removeDate = removeDate;
-    }
-
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    void setPassword(String password) {
-        this.password = password;
     }
 
     @Override
