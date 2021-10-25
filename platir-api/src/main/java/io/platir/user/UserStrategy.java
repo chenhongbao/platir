@@ -11,7 +11,11 @@ public interface UserStrategy {
     
     void onTransaction(Transaction transaction);
     
-    void onStart(Session session);
+    void onLoad(Session session);
     
-    void onStop();
+    void onConfiguredOpen();
+    
+    void onConfiguredClose();
+    
+    void onAlarm();
 }

@@ -2,7 +2,7 @@ package io.platir.engine.core;
 
 import io.platir.Strategy;
 import io.platir.Transaction;
-import io.platir.engine.StrategyRule;
+import io.platir.engine.rule.StrategyRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;

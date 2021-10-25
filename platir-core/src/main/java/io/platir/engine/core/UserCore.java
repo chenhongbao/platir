@@ -2,7 +2,7 @@ package io.platir.engine.core;
 
 import io.platir.Account;
 import io.platir.User;
-import io.platir.engine.UserRule;
+import io.platir.engine.rule.UserRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;

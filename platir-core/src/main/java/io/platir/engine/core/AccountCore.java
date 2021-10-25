@@ -4,7 +4,7 @@ import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
 import io.platir.User;
-import io.platir.engine.AccountRule;
+import io.platir.engine.rule.AccountRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
