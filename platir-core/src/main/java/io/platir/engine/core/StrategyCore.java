@@ -2,6 +2,7 @@ package io.platir.engine.core;
 
 import io.platir.Strategy;
 import io.platir.Transaction;
+import io.platir.engine.StrategyRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,12 +12,19 @@ class StrategyCore implements Strategy {
 
     private String createDate;
     private String removeDate;
-    private String password;
     private String strategyId;
     private String state;
-    private final Map<String, String> parameters = new HashMap<>();
     private final Map<String, TransactionCore> transactionMap = new HashMap<>();
+    private StrategyRule strategyRule;
     private AccountCore account;
+
+    StrategyRule getStrategyRule() {
+        return strategyRule;
+    }
+
+    void setStrategyRule(StrategyRule strategyRule) {
+        this.strategyRule = new StrategyRule(strategyRule);
+    }
 
     @Override
     public String getCreateDate() {
@@ -57,15 +65,6 @@ class StrategyCore implements Strategy {
     @Override
     public AccountCore getAccount() {
         return account;
-    }
-
-    @Override
-    public Map<String, String> getParameters() {
-        return new HashMap<>(parameters);
-    }
-
-    void setParameters(Map<String, String> parameters) {
-        this.parameters.putAll(parameters);
     }
 
     @Override

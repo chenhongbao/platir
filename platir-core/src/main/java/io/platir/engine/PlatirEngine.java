@@ -25,23 +25,19 @@ public abstract class PlatirEngine {
 
     public abstract void setUseService(MarketDataService marketDataService);
     
-    public abstract Set<LocalDateTime> getSettlementTimes();
-    
-    public abstract void setSettlementTimes(Set<LocalDateTime> settlementTimes);
-    
     public abstract void initialize() throws InitializeEngineException;
     
     public abstract Set<User> getUsers();
     
-    public abstract User addUser(String userId, String password) throws AddUserException;
+    public abstract User addUser(String userId, String password, UserRule userRule) throws AddUserException;
     
     public abstract void removeUser(String userId) throws RemoveUserException;
     
-    public abstract Account addAccount(Double initialBalance, User user) throws AddAcountException;
+    public abstract Account addAccount(Double initialBalance, User user, AccountRule accountRule) throws AddAcountException;
     
     public abstract void removeAccount(String accountId, User user) throws RemoveAcountException;
     
-    public abstract Strategy addStrategy(UserStrategy userStrategy, Account account, Map<String, String> parameters) throws AddStrategyException;
+    public abstract Strategy addStrategy(UserStrategy userStrategy, Account account, StrategyRule strategyRule) throws AddStrategyException;
     
     public abstract void runStrategy(Strategy strategy) throws RunStrategyException;
     

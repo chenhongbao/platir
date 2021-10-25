@@ -2,6 +2,7 @@ package io.platir.engine.core;
 
 import io.platir.Account;
 import io.platir.User;
+import io.platir.engine.UserRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +14,16 @@ class UserCore implements User {
     private String password;
     private String createTime;
     private String lastLoginTime;
+    private UserRule userRule;
     private final Map<String, AccountCore> accountMap = new HashMap<>();
+
+    UserRule getUserRule() {
+        return userRule;
+    }
+
+    void setUserRule(UserRule userRule) {
+        this.userRule = new UserRule(userRule);
+    }
 
     @Override
     public String getUserId() {

@@ -4,6 +4,7 @@ import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
 import io.platir.User;
+import io.platir.engine.AccountRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,17 @@ class AccountCore implements Account {
     private final Map<String, StrategyCore> strategyMap = new HashMap<>();
     private final Map<String, ContractCore> contractMap = new HashMap<>();
     private UserCore user;
+    private AccountRule accountRule;
+
+    AccountRule getAccountRule() {
+        return accountRule;
+    }
+
+    void setAccountRule(AccountRule accountRule) {
+        this.accountRule = new AccountRule(accountRule);
+    }
+    
+    
 
     @Override
     public String getAccountId() {

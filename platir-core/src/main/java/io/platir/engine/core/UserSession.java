@@ -2,7 +2,6 @@ package io.platir.engine.core;
 
 import io.platir.Account;
 import io.platir.Order;
-import io.platir.Strategy;
 import io.platir.Transaction;
 import io.platir.user.MarketDataRequestException;
 import io.platir.user.NewOrderException;
@@ -13,12 +12,12 @@ import java.util.logging.Logger;
 
 class UserSession implements Session {
 
-    private final Strategy strategy;
+    private final StrategyCore strategy;
     private final Logger logger;
     private final TransactionAdapter transactionAdapter;
     private final MarketDataAdapter marketDataAdapter;
 
-    UserSession(Strategy strategy, TransactionAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, Handler loggingHandler) {
+    UserSession(StrategyCore strategy, TransactionAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, Handler loggingHandler) {
         this.strategy = strategy;
         this.transactionAdapter = transactionAdapter;
         this.marketDataAdapter = marketDataAdapter;
@@ -59,7 +58,7 @@ class UserSession implements Session {
 
     @Override
     public Map<String, String> getParameters() {
-        return strategy.getParameters();
+        return strategy.getStrategyRule().getParameters();
     }
 
     @Override

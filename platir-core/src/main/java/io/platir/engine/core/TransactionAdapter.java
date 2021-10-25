@@ -4,19 +4,24 @@ import io.platir.Account;
 import io.platir.Order;
 import io.platir.Strategy;
 import io.platir.Transaction;
+import io.platir.broker.ExecutionListener;
+import io.platir.broker.ExecutionReport;
 import io.platir.broker.TradingService;
 import io.platir.user.NewOrderException;
 
-class TransactionAdapter {
+class TransactionAdapter implements ExecutionListener {
 
     private final InfoHelper infoHelper;
     private final TradingService tradingService;
-    private final ExecutionUpdater executionUpdater;
 
-    TransactionAdapter(InfoHelper infoHelper, TradingService tradingService, ExecutionUpdater executionUpdater) {
+    TransactionAdapter(InfoHelper infoHelper, TradingService tradingService) {
         this.infoHelper = infoHelper;
         this.tradingService = tradingService;
-        this.executionUpdater = executionUpdater;
+    }
+
+    @Override
+    public void onExecutionReport(ExecutionReport executionReport) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     Transaction newOrderSingle(Strategy strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction, String offset) throws NewOrderException {
@@ -27,18 +32,18 @@ class TransactionAdapter {
                     transaction = newOpenOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE:
-                    transaction =  newAutoCloseOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = newAutoCloseOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE_TODAY:
-                    transaction =  newCloseTodayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = newCloseTodayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE_YESTERDAY:
-                    transaction =  newCloseYesterdayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = newCloseYesterdayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 default:
                     throw new NewOrderException("Invalid offset(" + offset + ").");
             }
-            executionUpdater.registerTransaction(transaction);
+            registerTransaction(transaction);
             return transaction;
         }
     }
@@ -56,6 +61,10 @@ class TransactionAdapter {
     }
 
     private TransactionCore newCloseYesterdayOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void registerTransaction(TransactionCore transaction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
