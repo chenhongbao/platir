@@ -13,8 +13,6 @@ public interface Strategy {
 
     String getState();
 
-    Map<String, String> getParameters();
-
     Collection<Transaction> getTransactions();
 
     Account getAccount();
