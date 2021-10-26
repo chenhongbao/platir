@@ -143,7 +143,7 @@ class TradingAdapter implements ExecutionListener {
         }
     }
 
-    private void updateContracts(AccountCore account, ExecutionReport report) throws IllegalAccountStateException {
+    private void updateContracts(AccountCore account, ExecutionReport report) throws IllegalAccountStateException, IllegalServiceStateException {
         synchronized (account) {
             int updatedCount = updateContractStates(findUpdatedContracts(account, report), report.getLastTradedQuantity());
             if (updatedCount < report.getLastTradedQuantity()) {
@@ -152,18 +152,27 @@ class TradingAdapter implements ExecutionListener {
         }
     }
 
-    private Collection<ContractCore> findUpdatedContracts(AccountCore account, ExecutionReport report) {
-        return account.contractMap().values().stream()
-                .filter(contract -> {
-                    return contract.getInstrumentId().equals(report.getInstrumentId()) && contract.getExchangeId().equals(report.getExchangeId());
-                })
-                .filter(contract -> {
-                    if (report.getOffset().equals(Order.OPEN)) {
-                        return contract.getDirection().equals(report.getDirection()) && contract.getState().equals(Contract.OPENING);
-                    } else {
-                        return !contract.getDirection().equals(report.getDirection()) && contract.getState().equals(Contract.CLOSING);
-                    }
-                }).collect(Collectors.toSet());
+    private Collection<ContractCore> findUpdatedContracts(AccountCore account, ExecutionReport report) throws IllegalServiceStateException {
+        try {
+            return account.contractMap().values().stream()
+                    .filter(contract -> {
+                        return contract.getInstrumentId().equals(report.getInstrumentId()) && contract.getExchangeId().equals(report.getExchangeId());
+                    })
+                    .filter(contract -> {
+                        switch (report.getOffset()) {
+                            case Order.OPEN:
+                                return contract.getDirection().equals(report.getDirection()) && contract.getState().equals(Contract.OPENING);
+                            case Order.CLOSE:
+                            case Order.CLOSE_TODAY:
+                            case Order.CLOSE_YESTERDAY:
+                                return !contract.getDirection().equals(report.getDirection()) && contract.getState().equals(Contract.CLOSING);
+                            default:
+                                throw new RuntimeException("Invalid execution report offset(" + report.getOffset() + ").");
+                        }
+                    }).collect(Collectors.toSet());
+        } catch (RuntimeException exception) {
+            throw new IllegalServiceStateException(exception.getMessage(), exception);
+        }
     }
 
     private int updateContractStates(Collection<ContractCore> contracts, int quantity) {
@@ -215,7 +224,7 @@ class TradingAdapter implements ExecutionListener {
         }
     }
 
-    private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalAccountStateException {
+    private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalAccountStateException, IllegalServiceStateException {
         var order = findUpdatedOrder(transaction, report);
         synchronized (order) {
             order.setState(report.getState());
