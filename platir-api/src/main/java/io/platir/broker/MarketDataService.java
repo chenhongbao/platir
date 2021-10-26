@@ -16,6 +16,11 @@ public interface MarketDataService {
      * rejects the requests, the method return error code and no feedback or
      * market data updates for {@linkplain MarketDataListener}.
      * <p>
+     * Usually the market data for the specified instrument is updated via the
+     * specified listener and different instrument can hvae different listeners.
+     * But there can be multiple instruments' market data updated via one single
+     * listener, and it must handle that multi-threading issue.
+     * <p>
      * If the broker returns request feedback via an asynchronzed callback, the
      * implementation shall block until it has information about acceptence of
      * the request by broker. And then return error codes or <b>zero</b> from

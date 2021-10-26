@@ -7,6 +7,7 @@ class ContractCore implements Contract {
     private String contractId;
     private String accountId;
     private String instrumentId;
+    private String exchangeId;
     private String direction;
     private Double price;
     private String state;
@@ -40,6 +41,15 @@ class ContractCore implements Contract {
 
     void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
+    }
+
+    @Override
+    public String getExchangeId() {
+        return exchangeId;
+    }
+
+    void setExchangeId(String exchangeId) {
+        this.exchangeId = exchangeId;
     }
 
     @Override

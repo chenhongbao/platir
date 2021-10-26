@@ -27,6 +27,8 @@ public interface Order {
     String getOrderId();
 
     String getInstrumentId();
+    
+    String getExchangeId();
 
     Double getPrice();
 

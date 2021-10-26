@@ -12,7 +12,7 @@ public interface TradingService {
      * The method call the specified {@linkplain ExecutionListener} for
      * execution report updated until the order is totally filled, canceled or
      * rejected. There can be a single {@linkplain ExecutionListener} for
-     * multiple orders, but it does not ganrantee a sequential callback. So the
+     * multiple orders, but it does not ganrantee sequential callbacks. So the
      * specified {@linkplain ExecutionListener} must handle the possible
      * multi-threading issue.
      * <p>

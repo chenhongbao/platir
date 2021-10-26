@@ -17,6 +17,8 @@ public interface Contract {
     String getAccountId();
 
     String getInstrumentId();
+    
+    String getExchangeId();
 
     String getDirection();
 

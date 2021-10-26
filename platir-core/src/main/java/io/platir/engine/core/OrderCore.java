@@ -11,6 +11,7 @@ class OrderCore implements Order {
 
     private String orderId;
     private String instrumentId;
+    private String exchangeId;
     private Double price;
     private Integer quantity;
     private String direction;
@@ -36,6 +37,15 @@ class OrderCore implements Order {
 
     void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
+    }
+
+    @Override
+    public String getExchangeId() {
+        return exchangeId;
+    }
+
+    void setExchangeId(String exchangeId) {
+        this.exchangeId = exchangeId;
     }
 
     @Override

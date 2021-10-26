@@ -17,6 +17,8 @@ public interface Transaction {
     String getTransactionId();
 
     String getInstrumentId();
+    
+    String getExchangeId();
 
     Double getPrice();
 

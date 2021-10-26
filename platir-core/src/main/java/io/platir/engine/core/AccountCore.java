@@ -158,7 +158,7 @@ class AccountCore implements Account {
     }
 
     @Override
-    public User getUser() {
+    public UserCore getUser() {
         return user;
     }
 

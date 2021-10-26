@@ -14,6 +14,8 @@ public interface Session {
     
     Transaction sellClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException;
     
+    void cancel(Transaction transaction) throws CancelOrderException;
+    
     String marketDataRequest(String instrumentId) throws MarketDataRequestException;
     
     Account getAccount();

@@ -12,6 +12,7 @@ class TransactionCore implements Transaction {
     private String state;
     private String transactionId;
     private String instrumentId;
+    private String exchangeId;
     private Double price;
     private Integer quantity;
     private String direction;
@@ -53,6 +54,15 @@ class TransactionCore implements Transaction {
 
     void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
+    }
+
+    @Override
+    public String getExchangeId() {
+        return exchangeId;
+    }
+
+    void setExchangeId(String exchangeId) {
+        this.exchangeId = exchangeId;
     }
 
     @Override
@@ -113,7 +123,7 @@ class TransactionCore implements Transaction {
     public StrategyCore getStrategy() {
         return strategy;
     }
-    
+
     Map<String, OrderCore> orderMap() {
         return orderMap;
     }

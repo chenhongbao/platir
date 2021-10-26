@@ -3,6 +3,7 @@ package io.platir.engine.core;
 import io.platir.Account;
 import io.platir.Order;
 import io.platir.Transaction;
+import io.platir.user.CancelOrderException;
 import io.platir.user.MarketDataRequestException;
 import io.platir.user.NewOrderException;
 import io.platir.user.Session;
@@ -15,12 +16,12 @@ class UserSession implements Session {
 
     private final StrategyCore strategy;
     private final Logger logger;
-    private final TradingAdapter transactionAdapter;
+    private final TradingAdapter tradingAdapter;
     private final MarketDataAdapter marketDataAdapter;
 
     UserSession(StrategyCore strategy, TradingAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, Handler loggingHandler) {
         this.strategy = strategy;
-        this.transactionAdapter = transactionAdapter;
+        this.tradingAdapter = transactionAdapter;
         this.marketDataAdapter = marketDataAdapter;
         this.logger = Logger.getLogger(strategy.getStrategyId());
         this.logger.addHandler(loggingHandler);
@@ -29,22 +30,27 @@ class UserSession implements Session {
 
     @Override
     public Transaction buyOpen(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
-        return transactionAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.OPEN);
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.OPEN);
     }
 
     @Override
     public Transaction sellOpen(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
-        return transactionAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.OPEN);
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.OPEN);
     }
 
     @Override
     public Transaction buyClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
-        return transactionAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.CLOSE);
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.CLOSE);
     }
 
     @Override
     public Transaction sellClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
-        return transactionAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.CLOSE);
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.CLOSE);
+    }
+
+    @Override
+    public void cancel(Transaction transaction) throws CancelOrderException {
+        tradingAdapter.cancelOrderSingle((TransactionCore) transaction);
     }
 
     @Override
