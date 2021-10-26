@@ -9,6 +9,7 @@ import io.platir.User;
 import io.platir.broker.MarketDataService;
 import io.platir.broker.TradingService;
 import io.platir.engine.core.PlatirEngineCore;
+import io.platir.engine.rule.GlobalRule;
 import io.platir.user.UserStrategy;
 import java.util.Set;
 
@@ -22,7 +23,7 @@ public abstract class PlatirEngine {
 
     public abstract void setUseService(MarketDataService marketDataService);
 
-    public abstract void initialize() throws InitializeEngineException;
+    public abstract void initialize(GlobalRule globalRule) throws InitializeEngineException;
 
     public abstract Set<User> getUsers();
 

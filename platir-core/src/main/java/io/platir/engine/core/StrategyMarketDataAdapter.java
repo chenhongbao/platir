@@ -3,6 +3,7 @@ package io.platir.engine.core;
 import io.platir.Strategy;
 import io.platir.broker.Bar;
 import io.platir.broker.MarketDataSnapshot;
+import io.platir.util.Utils;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,7 +21,9 @@ class StrategyMarketDataAdapter {
     }
 
     void add(Strategy strategy) {
-        strategies.put(strategy.getStrategyId(), new StrategyMarketDataQueue(strategy.getStrategyId(), this, userStrategyLookup));
+        var queue = new StrategyMarketDataQueue(strategy.getStrategyId(), this, userStrategyLookup);
+        Utils.threads().submit(queue);
+        strategies.put(strategy.getStrategyId(), queue);
     }
 
     void broadcast(MarketDataSnapshot marketDataSnapshot) {

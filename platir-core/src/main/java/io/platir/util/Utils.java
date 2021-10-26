@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class Utils {
@@ -19,9 +21,15 @@ public class Utils {
     public static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyyMMdd");
     public static final DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
     public static final DateTimeFormatter datetimeFormat = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss");
+    
+    private static final ExecutorService threads = Executors.newCachedThreadPool();
 
     public static Logger logger() {
         return null;
+    }
+    
+    public static ExecutorService threads() {
+        return threads;
     }
 
     public static String date() {

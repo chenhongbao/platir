@@ -26,14 +26,16 @@ class TradingAdapter implements ExecutionListener {
 
     private final InfoCenter infoCenter;
     private final TradingService tradingService;
+    private final UserStrategyLookup userStrategyLookup;
     private final AtomicInteger contractIdCounter = new AtomicInteger(0);
     private final AtomicInteger orderIdCounter = new AtomicInteger(0);
     private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
     private final Map<String /* OrderId */, TransactionCore> executingTransactions = new ConcurrentHashMap<>();
 
-    TradingAdapter(TradingService tradingService, InfoCenter infoCenter) {
+    TradingAdapter(TradingService tradingService, InfoCenter infoCenter, UserStrategyLookup userStrategyLookup) {
         this.infoCenter = infoCenter;
         this.tradingService = tradingService;
+        this.userStrategyLookup = userStrategyLookup;
     }
 
     @Override
@@ -198,12 +200,13 @@ class TradingAdapter implements ExecutionListener {
                 .collect(Collectors.toSet());
     }
 
-    private void setClosingContracts(Set<ContractCore> contracts, Integer quantity) throws IllegalAccountStateException {
+    private void setClosingContracts(Set<ContractCore> contracts, Double price, Integer quantity) throws IllegalAccountStateException {
         var count = 0;
         var iterator = contracts.iterator();
         while (count++ < quantity && iterator.hasNext()) {
             var contract = iterator.next();
             contract.setState(Contract.CLOSING);
+            contract.setClosePrice(price);
         }
         if (count < quantity) {
             throw new IllegalAccountStateException("Need " + quantity + " contracts to close but have " + count + ".");
@@ -215,7 +218,7 @@ class TradingAdapter implements ExecutionListener {
             if (contracts.size() < quantity) {
                 throw new NewOrderException("Insufficient position need " + quantity + " but have " + contracts.size() + ".");
             }
-            setClosingContracts(contracts, quantity);
+            setClosingContracts(contracts, price, quantity);
             return computeTransaction(strategy, instrumentId, exchangeId, price, quantity, direction, Order.CLOSE_TODAY, computeOrder(instrumentId, exchangeId, price, quantity, direction, Order.CLOSE_TODAY));
         } catch (IllegalAccountStateException exception) {
             throw new NewOrderException("Account data illegal for close. " + exception.getMessage(), exception);
@@ -224,8 +227,10 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateCloseTodayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
-            return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
+            synchronized (strategy.getAccount()) {
+                Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
+                return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
+            }
         } catch (InsufficientInfoException exception) {
             throw new NewOrderException("Insufficient information for close. " + exception.getMessage(), exception);
         }
@@ -233,8 +238,10 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateCloseYesterdayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
-            return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
+            synchronized (strategy.getAccount()) {
+                Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
+                return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
+            }
         } catch (InsufficientInfoException exception) {
             throw new NewOrderException("Insufficient information for close. " + exception.getMessage(), exception);
         }
@@ -400,6 +407,23 @@ class TradingAdapter implements ExecutionListener {
                 transaction.setState(Transaction.REJECTED);
             }
         }
+        /* ********************************************************************
+         * Execution update changes the account state then the following update
+         * changes the account before preceeding update returns, leading to
+         * account state inconsistence. Here calls user callback as soon as 
+         * update arrives and the synchronization is left to user.
+         * ********************************************************************/
+        Utils.threads().submit(() -> {
+            String strategyId = null;
+            try {
+                strategyId = transaction.getStrategy().getStrategyId();
+                userStrategyLookup.find(strategyId).onTransaction(transaction);
+            } catch (NoSuchUserStrategyException exception) {
+                Utils.logger().log(Level.SEVERE, "Strategy({0}) isn't found for transaction update. {1}", new Object[]{strategyId, exception.getMessage()});
+            } catch (Throwable throwable) {
+                Utils.logger().log(Level.SEVERE, "Strategy({0}) callback throws exception. {1}", new Object[]{strategyId, throwable.getMessage()});
+            }
+        });
     }
 
     private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalAccountStateException, IllegalServiceStateException {

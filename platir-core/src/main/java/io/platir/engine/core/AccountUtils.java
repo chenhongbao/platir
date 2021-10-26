@@ -68,11 +68,7 @@ public class AccountUtils {
                         commission += computeCommission(instrument, contract.getPrice(), 1);
                     }
                     margin += computeMargin(instrument, contract.getPrice(), 1);
-                    /* *********************************************************
-                     * To save the effort to remember closing price for the 
-                     * closing contract, use latest price instead.
-                     * *********************************************************/
-                    closingCommission += computeCommission(instrument, price, 1);
+                    closingCommission += computeCommission(instrument, contract.getClosePrice(), 1);
                     positionProfit += computeProfit(instrument, contract, price);
                 case Contract.CLOSED:
                     if (contract.getOpenTradingDay().equals(tradingDay)) {
