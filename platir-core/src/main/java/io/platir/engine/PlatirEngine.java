@@ -18,10 +18,6 @@ public abstract class PlatirEngine {
         return new PlatirEngineCore();
     }
 
-    public abstract Set<TradingService> getTradingServices();
-
-    public abstract Set<MarketDataService> getMarketDataServices();
-
     public abstract void setUseService(TradingService tradingService);
 
     public abstract void setUseService(MarketDataService marketDataService);

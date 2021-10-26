@@ -11,10 +11,8 @@ public class StrategyRule {
     private final EveryTimeSetter configuredCloseTime;
     private final EveryTimeSetter alarmEveryTime;
     private final PointTimeSetter alarmPointTime;
-    private final MaxNumberRule maxTransactionOnline = new MaxNumberRule(Integer.MAX_VALUE);
-    private final MaxNumberRule maxOrderQuantity = new MaxNumberRule(Integer.MAX_VALUE);
     private final Map<String, String> parameters = new HashMap<>();
-    
+
     public StrategyRule() {
         loadTime = null;
         configuredOpenTime = new EveryTimeSetter();
@@ -53,14 +51,6 @@ public class StrategyRule {
 
     public PointTimeSetter alarmPointTime() {
         return alarmPointTime;
-    }
-
-    public MaxNumberRule maxOnlineTransactionCount() {
-        return maxTransactionOnline;
-    }
-
-    public MaxNumberRule maxOrderQuantity() {
-        return maxOrderQuantity;
     }
 
     public Map<String, String> parameters() {

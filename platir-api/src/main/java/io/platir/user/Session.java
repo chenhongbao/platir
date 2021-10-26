@@ -22,7 +22,7 @@ public interface Session {
 
     void cancel(Transaction transaction) throws CancelOrderException;
 
-    String marketDataRequest(String instrumentId) throws MarketDataRequestException;
+    void marketDataRequest(String instrumentId) throws MarketDataRequestException;
 
     Instrument getInstrument(String instrumentId);
 

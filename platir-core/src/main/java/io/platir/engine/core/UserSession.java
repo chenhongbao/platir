@@ -82,8 +82,8 @@ class UserSession implements Session {
     }
 
     @Override
-    public String marketDataRequest(String instrumentId) throws MarketDataRequestException {
-        return marketDataAdapter.marketDataRequest(strategy, instrumentId);
+    public void marketDataRequest(String instrumentId) throws MarketDataRequestException {
+        marketDataAdapter.marketDataRequest(strategy, instrumentId);
     }
 
     @Override
