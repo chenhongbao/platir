@@ -6,6 +6,7 @@ import io.platir.Transaction;
 import io.platir.user.MarketDataRequestException;
 import io.platir.user.NewOrderException;
 import io.platir.user.Session;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
@@ -58,7 +59,7 @@ class UserSession implements Session {
 
     @Override
     public Map<String, String> getParameters() {
-        return strategy.getStrategyRule().getParameters();
+        return new HashMap<>(strategy.getStrategyRule().parameters());
     }
 
     @Override

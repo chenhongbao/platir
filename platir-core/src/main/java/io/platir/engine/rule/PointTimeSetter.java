@@ -11,6 +11,13 @@ public class PointTimeSetter extends TimeSetter {
 
     private final List<LocalDateTime> times = new LinkedList<>();
 
+    public PointTimeSetter() {
+    }
+
+    public PointTimeSetter(PointTimeSetter pointTimeSetter) {
+        times.addAll(pointTimeSetter.getRemainTimes());
+    }
+
     public PointTimeSetter at(LocalDateTime... times) {
         return at(Arrays.asList(times));
     }
@@ -22,7 +29,7 @@ public class PointTimeSetter extends TimeSetter {
         this.times.sort((LocalDateTime time1, LocalDateTime time2) -> time1.compareTo(time2));
         return this;
     }
-    
+
     public List<LocalDateTime> getRemainTimes() {
         return new LinkedList<>(times);
     }

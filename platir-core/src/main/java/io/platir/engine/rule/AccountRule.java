@@ -1,7 +1,5 @@
 package io.platir.engine.rule;
 
-import java.time.DayOfWeek;
-
 public class AccountRule {
 
     private final MaxNumberRule maxMarginBalanceRatio = new MaxNumberRule(1.0D);
@@ -9,7 +7,11 @@ public class AccountRule {
     private final MaxNumberRule maxCommission = new MaxNumberRule(Double.MAX_VALUE);
     private final MaxNumberRule maxPositionLoss = new MaxNumberRule(Double.MAX_VALUE);
     private final MaxNumberRule maxStrategyCount = new MaxNumberRule(1);
-    private final EveryTimeSetter settlementTime = new EveryTimeSetter();
+    private final EveryTimeSetter settlementTime;
+    
+    public AccountRule() {
+        settlementTime = new EveryTimeSetter();
+    }
 
     public AccountRule(AccountRule accountRule) {
         maxMarginBalanceRatio.set(accountRule.maxMarginBalanceRatio().get());
@@ -17,9 +19,7 @@ public class AccountRule {
         maxCommission.set(accountRule.maxCommission().get());
         maxPositionLoss.set(accountRule.maxPositionLoss().get());
         maxStrategyCount.set(accountRule.maxStrategyCount().get());
-        settlementTime.every(accountRule.settlementTime().getEveryTimes());
-        settlementTime.except(accountRule.settlementTime().getExceptDates());
-        settlementTime.except(accountRule.settlementTime().getExceptDaysOfWeek().toArray(new DayOfWeek[0]));
+        settlementTime = new EveryTimeSetter(accountRule.settlementTime());
     }
 
     public MaxNumberRule maxMarginBalanceRatio() {

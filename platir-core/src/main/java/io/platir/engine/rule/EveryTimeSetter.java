@@ -16,23 +16,32 @@ public class EveryTimeSetter extends TimeSetter {
     private final Set<LocalDate> exceptDates = new HashSet<>();
     private final Set<DayOfWeek> exceptDaysOfWeek = new HashSet<>();
 
+    public EveryTimeSetter() {
+    }
+
+    public EveryTimeSetter(EveryTimeSetter everyTimeSetter) {
+        everyTimes.addAll(everyTimeSetter.getEveryTimes());
+        exceptDates.addAll(everyTimeSetter.getExceptDates());
+        exceptDaysOfWeek.addAll(everyTimeSetter.getExceptDaysOfWeek());
+    }
+
     @Override
     public boolean check(LocalDateTime time) {
         var alignTime = LocalTime.of(time.getHour(), time.getMinute());
         var today = LocalDate.now();
         return everyTimes.contains(alignTime)
-                && !exceptDates.contains(today) 
+                && !exceptDates.contains(today)
                 && !exceptDaysOfWeek.contains(today.getDayOfWeek());
     }
-    
+
     public Set<LocalTime> getEveryTimes() {
         return new HashSet<>(everyTimes);
     }
-    
+
     public Set<LocalDate> getExceptDates() {
         return new HashSet<>(exceptDates);
     }
-    
+
     public Set<DayOfWeek> getExceptDaysOfWeek() {
         return new HashSet<>(exceptDaysOfWeek);
     }
