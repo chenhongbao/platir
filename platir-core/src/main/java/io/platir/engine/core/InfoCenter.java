@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-class InfoHelper {
+class InfoCenter {
 
     private final AtomicReference<String> tradingDay = new AtomicReference<>();
     private final Map<String, SettlementPrice> settlementPrices = new ConcurrentHashMap<>();

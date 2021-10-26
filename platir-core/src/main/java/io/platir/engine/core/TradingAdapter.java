@@ -2,6 +2,7 @@ package io.platir.engine.core;
 
 import io.platir.Account;
 import io.platir.Contract;
+import io.platir.Instrument;
 import io.platir.Order;
 import io.platir.Strategy;
 import io.platir.Transaction;
@@ -23,15 +24,15 @@ import java.util.stream.Collectors;
 
 class TradingAdapter implements ExecutionListener {
 
-    private final InfoHelper infoHelper;
+    private final InfoCenter infoCenter;
     private final TradingService tradingService;
     private final AtomicInteger contractIdCounter = new AtomicInteger(0);
     private final AtomicInteger orderIdCounter = new AtomicInteger(0);
     private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
     private final Map<String /* OrderId */, TransactionCore> executingTransactions = new ConcurrentHashMap<>();
 
-    TradingAdapter(TradingService tradingService, InfoHelper infoHelper) {
-        this.infoHelper = infoHelper;
+    TradingAdapter(TradingService tradingService, InfoCenter infoCenter) {
+        this.infoCenter = infoCenter;
         this.tradingService = tradingService;
     }
 
@@ -75,18 +76,42 @@ class TradingAdapter implements ExecutionListener {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private Map<String, Double> findLatestPrices(Account account) {
+    private Map<String, Double> findLatestPrices(Account account) throws InsufficientInfoException {
         final Map<String, Double> prices = new HashMap<>();
-        account.getContracts().stream()
-                .map(contract -> contract.getInstrumentId())
-                .collect(Collectors.toSet())
-                .forEach(instrumentId -> {
-                    try {
-                        prices.put(instrumentId, infoHelper.getLatestPrice(instrumentId));
-                    } catch (InsufficientInfoException ignored) {
-                    }
-                });
-        return prices;
+        try {
+            account.getContracts().stream()
+                    .map(contract -> contract.getInstrumentId())
+                    .collect(Collectors.toSet())
+                    .forEach(instrumentId -> {
+                        try {
+                            prices.put(instrumentId, infoCenter.getLatestPrice(instrumentId));
+                        } catch (InsufficientInfoException exception) {
+                            throw new RuntimeException("No latest price for " + instrumentId + ".");
+                        }
+                    });
+            return prices;
+        } catch (RuntimeException exception) {
+            throw new InsufficientInfoException(exception.getMessage());
+        }
+    }
+
+    private Map<String, Instrument> findInstruments(Account account) throws InsufficientInfoException {
+        final Map<String, Instrument> instruments = new HashMap<>();
+        try {
+            account.getContracts().stream()
+                    .map(contract -> contract.getInstrumentId())
+                    .collect(Collectors.toSet())
+                    .forEach(instrumentId -> {
+                        try {
+                            instruments.put(instrumentId, infoCenter.getInstrument(instrumentId));
+                        } catch (InsufficientInfoException exception) {
+                            throw new RuntimeException("No instrument " + instrumentId + ".");
+                        }
+                    });
+            return instruments;
+        } catch (RuntimeException exception) {
+            throw new InsufficientInfoException(exception.getMessage());
+        }
     }
 
     private void setOpeningContracts(AccountCore account, String instrumentId, String exchangeId, Integer quantity, String direction) {
@@ -137,9 +162,9 @@ class TradingAdapter implements ExecutionListener {
     private TransactionCore allocateOpenOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
             synchronized (strategy.getAccount()) {
-                var instrument = infoHelper.getInstrument(instrumentId);
+                var instrument = infoCenter.getInstrument(instrumentId);
                 var needMoney = AccountUtils.computeCommission(instrument, price, quantity) + AccountUtils.computeMargin(instrument, price, quantity);
-                var available = AccountUtils.computeAvailable(strategy.getAccount(), findLatestPrices(strategy.getAccount()), infoHelper.getTradingDay());
+                var available = AccountUtils.computeAvailable(strategy.getAccount(), findInstruments(strategy.getAccount()), findLatestPrices(strategy.getAccount()), infoCenter.getTradingDay());
                 if (available < needMoney) {
                     throw new NewOrderException("Insufficient money need " + needMoney + " but have " + available + ".");
                 }
@@ -199,7 +224,7 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateCloseTodayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoHelper.getTradingDay());
+            Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
             return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
         } catch (InsufficientInfoException exception) {
             throw new NewOrderException("Insufficient information for close. " + exception.getMessage(), exception);
@@ -208,7 +233,7 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateCloseYesterdayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoHelper.getTradingDay());
+            Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
             return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
         } catch (InsufficientInfoException exception) {
             throw new NewOrderException("Insufficient information for close. " + exception.getMessage(), exception);

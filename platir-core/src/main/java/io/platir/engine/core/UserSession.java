@@ -19,13 +19,13 @@ class UserSession implements Session {
     private final Logger logger;
     private final TradingAdapter tradingAdapter;
     private final MarketDataAdapter marketDataAdapter;
-    private final InfoHelper infoHelper;
+    private final InfoCenter infoCenter;
 
-    UserSession(StrategyCore strategy, TradingAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, InfoHelper infoHelper, Handler loggingHandler) {
+    UserSession(StrategyCore strategy, TradingAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, InfoCenter infoCenter, Handler loggingHandler) {
         this.strategy = strategy;
         this.tradingAdapter = transactionAdapter;
         this.marketDataAdapter = marketDataAdapter;
-        this.infoHelper = infoHelper;
+        this.infoCenter = infoCenter;
         this.logger = Logger.getLogger(strategy.getStrategyId());
         this.logger.addHandler(loggingHandler);
         this.logger.setUseParentHandlers(false);
@@ -89,7 +89,7 @@ class UserSession implements Session {
     @Override
     public Instrument getInstrument(String instrumentId) {
         try {
-            return infoHelper.getInstrument(instrumentId);
+            return infoCenter.getInstrument(instrumentId);
         } catch (InsufficientInfoException ex) {
             return null;
         }
