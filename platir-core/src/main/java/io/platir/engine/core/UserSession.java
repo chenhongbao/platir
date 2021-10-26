@@ -15,10 +15,10 @@ class UserSession implements Session {
 
     private final StrategyCore strategy;
     private final Logger logger;
-    private final TransactionAdapter transactionAdapter;
+    private final TradingAdapter transactionAdapter;
     private final MarketDataAdapter marketDataAdapter;
 
-    UserSession(StrategyCore strategy, TransactionAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, Handler loggingHandler) {
+    UserSession(StrategyCore strategy, TradingAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, Handler loggingHandler) {
         this.strategy = strategy;
         this.transactionAdapter = transactionAdapter;
         this.marketDataAdapter = marketDataAdapter;

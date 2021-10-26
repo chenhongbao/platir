@@ -9,12 +9,12 @@ import io.platir.broker.ExecutionReport;
 import io.platir.broker.TradingService;
 import io.platir.user.NewOrderException;
 
-class TransactionAdapter implements ExecutionListener {
+class TradingAdapter implements ExecutionListener {
 
     private final InfoHelper infoHelper;
     private final TradingService tradingService;
 
-    TransactionAdapter(InfoHelper infoHelper, TradingService tradingService) {
+    TradingAdapter(TradingService tradingService, InfoHelper infoHelper) {
         this.infoHelper = infoHelper;
         this.tradingService = tradingService;
     }
@@ -29,42 +29,42 @@ class TransactionAdapter implements ExecutionListener {
             TransactionCore transaction;
             switch (offset) {
                 case Order.OPEN:
-                    transaction = newOpenOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = allocateOpenOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE:
-                    transaction = newAutoCloseOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = allocateAutoCloseOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE_TODAY:
-                    transaction = newCloseTodayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = allocateCloseTodayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 case Order.CLOSE_YESTERDAY:
-                    transaction = newCloseYesterdayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
+                    transaction = allocateCloseYesterdayOrderSingle(strategy.getAccount(), instrumentId, exchangeId, price, quantity, direction);
                     break;
                 default:
                     throw new NewOrderException("Invalid offset(" + offset + ").");
             }
-            registerTransaction(transaction);
+            executeTransaction(transaction);
             return transaction;
         }
     }
 
-    private TransactionCore newOpenOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
+    private TransactionCore allocateOpenOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private TransactionCore newAutoCloseOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
+    private TransactionCore allocateAutoCloseOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private TransactionCore newCloseTodayOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
+    private TransactionCore allocateCloseTodayOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private TransactionCore newCloseYesterdayOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
+    private TransactionCore allocateCloseYesterdayOrderSingle(Account account, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    private void registerTransaction(TransactionCore transaction) {
+    private void executeTransaction(TransactionCore transaction) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

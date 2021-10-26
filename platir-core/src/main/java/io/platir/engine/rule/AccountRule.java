@@ -4,11 +4,10 @@ public class AccountRule {
 
     private final MaxNumberRule maxMarginBalanceRatio = new MaxNumberRule(1.0D);
     private final MaxNumberRule maxMargin = new MaxNumberRule(Double.MAX_VALUE);
-    private final MaxNumberRule maxCommission = new MaxNumberRule(Double.MAX_VALUE);
     private final MaxNumberRule maxPositionLoss = new MaxNumberRule(Double.MAX_VALUE);
     private final MaxNumberRule maxStrategyCount = new MaxNumberRule(1);
     private final EveryTimeSetter settlementTime;
-    
+
     public AccountRule() {
         settlementTime = new EveryTimeSetter();
     }
@@ -16,7 +15,6 @@ public class AccountRule {
     public AccountRule(AccountRule accountRule) {
         maxMarginBalanceRatio.set(accountRule.maxMarginBalanceRatio().get());
         maxMargin.set(accountRule.maxMargin().get());
-        maxCommission.set(accountRule.maxCommission().get());
         maxPositionLoss.set(accountRule.maxPositionLoss().get());
         maxStrategyCount.set(accountRule.maxStrategyCount().get());
         settlementTime = new EveryTimeSetter(accountRule.settlementTime());
@@ -28,10 +26,6 @@ public class AccountRule {
 
     public MaxNumberRule maxMargin() {
         return maxMargin;
-    }
-
-    public MaxNumberRule maxCommission() {
-        return maxCommission;
     }
 
     public MaxNumberRule maxPositionLoss() {
