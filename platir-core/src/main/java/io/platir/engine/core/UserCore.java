@@ -4,8 +4,8 @@ import io.platir.Account;
 import io.platir.User;
 import io.platir.engine.rule.UserRule;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 class UserCore implements User {
@@ -15,7 +15,7 @@ class UserCore implements User {
     private String createTime;
     private String lastLoginTime;
     private UserRule userRule;
-    private final Map<String, AccountCore> accountMap = new HashMap<>();
+    private final Map<String, AccountCore> accountMap = new ConcurrentHashMap<>();
 
     UserRule getUserRule() {
         return userRule;

@@ -4,34 +4,17 @@ public interface Instrument {
 
     String getInstrumentId();
 
-    void setInstrumentId(String instrumentId);
-
     String getExchangeId();
-
-    void setExchangeId(String exchangeId);
 
     Double getMultiple();
 
-    void setMultiple(Double multiple);
+    Double getMarginByAmount();
 
-    Double getAmountMargin();
+    Double getMarginByQuantity();
 
-    void setAmountMargin(Double amountMargin);
+    Double getCommissionByAmount();
 
-    Double getVolumeMargin();
-
-    void setVolumeMargin(Double volumeMargin);
-
-    Double getAmountCommission();
-
-    void setAmountCommission(Double amountCommission);
-
-    Double getVolumeCommission();
-
-    void setVolumeCommission(Double volumeCommission);
+    Double getCommissionByQuantity();
 
     String getUpdateTime();
-
-    void setUpdateTime(String updateTime);
-
 }

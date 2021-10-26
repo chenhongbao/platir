@@ -1,6 +1,7 @@
 package io.platir.engine.core;
 
 import io.platir.Account;
+import io.platir.Instrument;
 import io.platir.Order;
 import io.platir.Transaction;
 import io.platir.user.CancelOrderException;
@@ -18,11 +19,13 @@ class UserSession implements Session {
     private final Logger logger;
     private final TradingAdapter tradingAdapter;
     private final MarketDataAdapter marketDataAdapter;
+    private final InfoHelper infoHelper;
 
-    UserSession(StrategyCore strategy, TradingAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, Handler loggingHandler) {
+    UserSession(StrategyCore strategy, TradingAdapter transactionAdapter, MarketDataAdapter marketDataAdapter, InfoHelper infoHelper, Handler loggingHandler) {
         this.strategy = strategy;
         this.tradingAdapter = transactionAdapter;
         this.marketDataAdapter = marketDataAdapter;
+        this.infoHelper = infoHelper;
         this.logger = Logger.getLogger(strategy.getStrategyId());
         this.logger.addHandler(loggingHandler);
         this.logger.setUseParentHandlers(false);
@@ -39,13 +42,23 @@ class UserSession implements Session {
     }
 
     @Override
-    public Transaction buyClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
-        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.CLOSE);
+    public Transaction buyCloseToday(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.CLOSE_TODAY);
     }
 
     @Override
-    public Transaction sellClose(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
-        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.CLOSE);
+    public Transaction buyCloseYesterday(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.BUY, Order.CLOSE_YESTERDAY);
+    }
+
+    @Override
+    public Transaction sellCloseToday(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.CLOSE_TODAY);
+    }
+
+    @Override
+    public Transaction sellCloseYesterday(String instrumentId, String exchangeId, Double price, Integer quantity) throws NewOrderException {
+        return tradingAdapter.newOrderSingle(strategy, instrumentId, exchangeId, price, quantity, Order.SELL, Order.CLOSE_YESTERDAY);
     }
 
     @Override
@@ -71,6 +84,15 @@ class UserSession implements Session {
     @Override
     public String marketDataRequest(String instrumentId) throws MarketDataRequestException {
         return marketDataAdapter.marketDataRequest(strategy, instrumentId);
+    }
+
+    @Override
+    public Instrument getInstrument(String instrumentId) {
+        try {
+            return infoHelper.getInstrument(instrumentId);
+        } catch (InsufficientInfoException ex) {
+            return null;
+        }
     }
 
 }

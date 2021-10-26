@@ -3,11 +3,10 @@ package io.platir.engine.core;
 import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
-import io.platir.User;
 import io.platir.engine.rule.AccountRule;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 class AccountCore implements Account {
@@ -25,8 +24,8 @@ class AccountCore implements Account {
     private Double ydBalance;
     private String tradingDay;
     private String settleTime;
-    private final Map<String, StrategyCore> strategyMap = new HashMap<>();
-    private final Map<String, ContractCore> contractMap = new HashMap<>();
+    private final Map<String, StrategyCore> strategyMap = new ConcurrentHashMap<>();
+    private final Map<String, ContractCore> contractMap = new ConcurrentHashMap<>();
     private UserCore user;
     private AccountRule accountRule;
 
@@ -37,8 +36,6 @@ class AccountCore implements Account {
     void setAccountRule(AccountRule accountRule) {
         this.accountRule = new AccountRule(accountRule);
     }
-    
-    
 
     @Override
     public String getAccountId() {

@@ -7,14 +7,33 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.logging.Logger;
 
-public class Basics {
+public class Utils {
 
     public static final String STDOUT_FILE = "stdout.txt";
+    public static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyyMMdd");
+    public static final DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
+    public static final DateTimeFormatter datetimeFormat = DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss");
 
     public static Logger logger() {
         return null;
+    }
+
+    public static String date() {
+        return LocalDate.now().format(dateFormat);
+    }
+
+    public static String time() {
+        return LocalTime.now().format(timeFormat);
+    }
+
+    public static String datetime() {
+        return LocalDateTime.now().format(datetimeFormat);
     }
 
     public static PrintStream stdout() {

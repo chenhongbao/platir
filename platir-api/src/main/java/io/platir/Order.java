@@ -18,8 +18,6 @@ public interface Order {
     
     final static String OPEN = "OPEN";
     
-    final static String CLOSE = "CLOSE";
-    
     final static String CLOSE_TODAY = "CLOSE_TODAY";
     
     final static String CLOSE_YESTERDAY = "CLOSE_YESTERDAY";

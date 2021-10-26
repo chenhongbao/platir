@@ -3,8 +3,8 @@ package io.platir.engine.core;
 import io.platir.Order;
 import io.platir.Transaction;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 class TransactionCore implements Transaction {
@@ -17,9 +17,9 @@ class TransactionCore implements Transaction {
     private Integer quantity;
     private String direction;
     private String tradingDay;
-    private String updateTime;
+    private String updateDateTime;
     private String offset;
-    private final Map<String, OrderCore> orderMap = new HashMap<>();
+    private final Map<String, OrderCore> orderMap = new ConcurrentHashMap<>();
     private StrategyCore strategy;
 
     @Override
@@ -102,12 +102,12 @@ class TransactionCore implements Transaction {
     }
 
     @Override
-    public String getUpdateTime() {
-        return updateTime;
+    public String getUpdateDateTime() {
+        return updateDateTime;
     }
 
-    void setUpdateTime(String updateTime) {
-        this.updateTime = updateTime;
+    void setUpdateDateTime(String updateTime) {
+        this.updateDateTime = updateTime;
     }
 
     @Override

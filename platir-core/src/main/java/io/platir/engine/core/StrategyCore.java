@@ -4,8 +4,8 @@ import io.platir.Strategy;
 import io.platir.Transaction;
 import io.platir.engine.rule.StrategyRule;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 class StrategyCore implements Strategy {
@@ -14,7 +14,7 @@ class StrategyCore implements Strategy {
     private String removeDate;
     private String strategyId;
     private String state;
-    private final Map<String, TransactionCore> transactionMap = new HashMap<>();
+    private final Map<String, TransactionCore> transactionMap = new ConcurrentHashMap<>();
     private StrategyRule strategyRule;
     private AccountCore account;
 
