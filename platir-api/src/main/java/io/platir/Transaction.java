@@ -8,9 +8,9 @@ public interface Transaction {
 
     final static String EXECUTING = "EXECUTING";
     
-    final static String QUEUEING = "PENDING";
+    final static String PENDING = "PENDING";
 
-    final static String RJECTED = "REJECTED";
+    final static String REJECTED = "REJECTED";
 
     String getState();
 

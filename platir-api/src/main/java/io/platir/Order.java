@@ -10,7 +10,7 @@ public interface Order {
 
     final static String CANCELED = "CANCELED";
 
-    final static String RJECTED = "REJECTED";
+    final static String REJECTED = "REJECTED";
     
     final static String BUY = "BUY";
     
