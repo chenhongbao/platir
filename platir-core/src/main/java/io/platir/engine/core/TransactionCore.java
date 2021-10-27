@@ -21,6 +21,11 @@ class TransactionCore implements Transaction {
     private String offset;
     private final Map<String, OrderCore> orderMap = new ConcurrentHashMap<>();
     private StrategyCore strategy;
+    private final Object syncObject = new Object();
+
+    Object syncObject() {
+        return syncObject;
+    }
 
     @Override
     public String getState() {

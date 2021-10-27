@@ -20,6 +20,11 @@ class OrderCore implements Order {
     private String state;
     private final Map<String, TradeCore> tradeMap = new ConcurrentHashMap<>();
     private TransactionCore transaction;
+    private final Object syncObject = new Object();
+
+    Object syncObject() {
+        return syncObject;
+    }
 
     @Override
     public String getOrderId() {

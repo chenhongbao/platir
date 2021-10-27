@@ -23,6 +23,9 @@ import io.platir.user.UserStrategy;
 import java.util.Set;
 
 public class PlatirEngineCore extends PlatirEngine {
+    
+    private final UserManager userManager = new UserManager();
+    private final UserStrategyManager userStrategyManager = new UserStrategyManager();
 
     @Override
     public void setUseService(TradingService tradingService) {

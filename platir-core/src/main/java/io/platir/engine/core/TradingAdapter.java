@@ -161,10 +161,11 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateOpenOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            synchronized (strategy.getAccount()) {
+            var account = strategy.getAccount();
+            synchronized (account.syncObject()) {
                 var instrument = InfoCenter.getInstrument(instrumentId);
                 var needMoney = AccountUtils.computeCommission(instrument, price, quantity) + AccountUtils.computeMargin(instrument, price, quantity);
-                var available = AccountUtils.computeAvailable(strategy.getAccount(), findInstruments(strategy.getAccount()), findLatestPrices(strategy.getAccount()), InfoCenter.getTradingDay());
+                var available = AccountUtils.computeAvailable(account, findInstruments(account), findLatestPrices(account), InfoCenter.getTradingDay());
                 if (available < needMoney) {
                     throw new NewOrderException("Insufficient money need " + needMoney + " but have " + available + ".");
                 }
@@ -225,8 +226,9 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateCloseTodayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            synchronized (strategy.getAccount()) {
-                Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, InfoCenter.getTradingDay());
+            var account = strategy.getAccount();
+            synchronized (account.syncObject()) {
+                Set<ContractCore> contracts = findCloseTodayContracts(account, instrumentId, exchangeId, direction, InfoCenter.getTradingDay());
                 return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
             }
         } catch (InsufficientInfoException exception) {
@@ -236,8 +238,9 @@ class TradingAdapter implements ExecutionListener {
 
     private TransactionCore allocateCloseYesterdayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
-            synchronized (strategy.getAccount()) {
-                Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, InfoCenter.getTradingDay());
+            var account = strategy.getAccount();
+            synchronized (account.syncObject()) {
+                Set<ContractCore> contracts = findCloseYesterdayContracts(account, instrumentId, exchangeId, direction, InfoCenter.getTradingDay());
                 return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
             }
         } catch (InsufficientInfoException exception) {
@@ -301,7 +304,7 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private OrderCore findUpdatedOrder(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException {
-        synchronized (transaction) {
+        synchronized (transaction.syncObject()) {
             for (var order : transaction.orderMap().values()) {
                 if (order.getInstrumentId().equals(report.getInstrumentId()) && order.getExchangeId().equals(report.getExchangeId()) && order.getDirection().equals(report.getDirection()) && order.getOffset().equals(report.getOffset())) {
                     return order;
@@ -312,7 +315,7 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private void updateOrderState(OrderCore order, ExecutionReport report) throws IllegalServiceStateException {
-        synchronized (order) {
+        synchronized (order.syncObject()) {
             if (report.getTradedQuantity().equals(report.getQuantity())) {
                 order.setState(Order.ALL_TRADED);
             } else if (report.getTradedQuantity() > report.getQuantity()) {
@@ -324,7 +327,7 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private void updateContracts(AccountCore account, ExecutionReport report) throws IllegalAccountStateException, IllegalServiceStateException {
-        synchronized (account) {
+        synchronized (account.syncObject()) {
             int updatedCount = updateTradedContracts(findUpdatedContracts(account, report), report);
             if (updatedCount < report.getLastTradedQuantity()) {
                 throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to update but got " + updatedCount + ".");
@@ -378,7 +381,7 @@ class TradingAdapter implements ExecutionListener {
         int queueingCount = 0;
         int canceledCount = 0;
         int rejectedCount = 0;
-        synchronized (transaction) {
+        synchronized (transaction.syncObject()) {
             for (var order : transaction.getOrders()) {
                 switch (order.getState()) {
                     case Order.ALL_TRADED:
@@ -426,17 +429,17 @@ class TradingAdapter implements ExecutionListener {
 
     private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalAccountStateException, IllegalServiceStateException {
         var order = findUpdatedOrder(transaction, report);
-        synchronized (order) {
+        synchronized (order.syncObject()) {
             order.setState(report.getState());
         }
         var account = transaction.getStrategy().getAccount();
-        synchronized (account) {
+        synchronized (account.syncObject()) {
             int canceledCount = cancelContractStates(findUpdatedContracts(account, report), report.getQuantity() - report.getTradedQuantity());
             if (canceledCount < report.getLastTradedQuantity()) {
                 throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to cancel but got " + canceledCount + ".");
             }
         }
-        synchronized (transaction) {
+        synchronized (transaction.syncObject()) {
             updateTransactionState(transaction);
         }
     }

@@ -62,5 +62,13 @@ public interface MarketDataService {
      *
      * @return version string.
      */
-    String getVersion();
+    String getServiceVersion();
+
+    /**
+     * Get service name providing information about the underlying
+     * implementation.
+     *
+     * @return name string
+     */
+    String getServiceName();
 }

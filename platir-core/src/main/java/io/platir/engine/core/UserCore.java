@@ -16,6 +16,11 @@ class UserCore implements User {
     private String lastLoginTime;
     private UserRule userRule;
     private final Map<String, AccountCore> accountMap = new ConcurrentHashMap<>();
+    private final Object syncObject = new Object();
+
+    Object syncObject() {
+        return syncObject;
+    }
 
     UserRule getUserRule() {
         return userRule;

@@ -17,6 +17,11 @@ class StrategyCore implements Strategy {
     private final Map<String, TransactionCore> transactionMap = new ConcurrentHashMap<>();
     private StrategyRule strategyRule;
     private AccountCore account;
+    private final Object syncObject = new Object();
+
+    Object syncObject() {
+        return syncObject;
+    }
 
     StrategyRule getStrategyRule() {
         return strategyRule;

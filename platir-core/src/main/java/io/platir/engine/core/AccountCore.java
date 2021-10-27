@@ -28,6 +28,11 @@ class AccountCore implements Account {
     private final Map<String, ContractCore> contractMap = new ConcurrentHashMap<>();
     private UserCore user;
     private AccountRule accountRule;
+    private final Object syncObject = new Object();
+    
+    Object syncObject() {
+        return syncObject;
+    }
 
     AccountRule getAccountRule() {
         return accountRule;
