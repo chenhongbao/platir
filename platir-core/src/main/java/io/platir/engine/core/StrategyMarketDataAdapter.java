@@ -9,10 +9,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class StrategyMarketDataAdapter {
 
+    private final Boolean isParallel;
     private final UserStrategyLookup userStrategyLookup;
     private final Map<String, StrategyMarketDataQueue> strategies = new ConcurrentHashMap<>();
 
-    StrategyMarketDataAdapter(UserStrategyLookup userStrategyLookup) {
+    StrategyMarketDataAdapter(UserStrategyLookup userStrategyLookup, Boolean parallel) {
+        this.isParallel = parallel;
         this.userStrategyLookup = userStrategyLookup;
     }
 
@@ -22,16 +24,19 @@ class StrategyMarketDataAdapter {
 
     void add(Strategy strategy) {
         var queue = new StrategyMarketDataQueue(strategy.getStrategyId(), this, userStrategyLookup);
-        Utils.threads().submit(queue);
+        if (isParallel) {
+            Utils.threads().submit(queue);
+        }
         strategies.put(strategy.getStrategyId(), queue);
     }
 
-    void broadcast(MarketDataSnapshot marketDataSnapshot) {
-        strategies.values().parallelStream().forEach(queue -> queue.push(marketDataSnapshot));
+    void broadcast(Object marketData) {
+        strategies.values().forEach(queue -> {
+            if (isParallel) {
+                queue.push(marketData);
+            } else {
+                queue.pushSync(marketData);
+            }
+        });
     }
-
-    void broadcast(Bar bar) {
-        strategies.values().parallelStream().forEach(queue -> queue.push(bar));
-    }
-
 }

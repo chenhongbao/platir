@@ -14,11 +14,13 @@ class MarketDataAdapter implements MarketDataListener {
 
     private final MarketDataService marketDataService;
     private final UserStrategyLookup userStrategyManager;
+    private final Boolean isParallel;
     private final Map<String, StrategyMarketDataAdapter> strategies = new ConcurrentHashMap<>();
 
-    MarketDataAdapter(MarketDataService marketDataService, UserStrategyLookup userStrategyManager) {
+    MarketDataAdapter(MarketDataService marketDataService, UserStrategyLookup userStrategyManager, Boolean parallel) {
         this.marketDataService = marketDataService;
         this.userStrategyManager = userStrategyManager;
+        this.isParallel = parallel;
     }
 
     @Override
@@ -49,6 +51,6 @@ class MarketDataAdapter implements MarketDataListener {
                 throw new MarketDataRequestException("Market data request returns " + code + ".");
             }
         }
-        strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager)).add(strategy);
+        strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager, isParallel)).add(strategy);
     }
 }
