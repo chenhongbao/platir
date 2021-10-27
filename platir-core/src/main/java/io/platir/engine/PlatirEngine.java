@@ -29,8 +29,6 @@ public abstract class PlatirEngine {
 
     public abstract User addUser(String userId, String password, UserSetting userRule) throws AddUserException;
 
-    public abstract User removeUser(String userId) throws RemoveUserException;
-
     public abstract Account addAccount(Double initialBalance, User user, AccountSetting accountRule) throws AddAccountException;
 
     public abstract void removeAccount(String accountId, User user) throws RemoveAccountException;

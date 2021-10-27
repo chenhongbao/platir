@@ -10,7 +10,6 @@ import io.platir.engine.AddStrategyException;
 import io.platir.engine.AddUserException;
 import io.platir.engine.RemoveAccountException;
 import io.platir.engine.RemoveStrategyException;
-import io.platir.engine.RemoveUserException;
 import io.platir.engine.rule.AccountSetting;
 import io.platir.engine.rule.StrategySetting;
 import io.platir.engine.rule.UserSetting;
@@ -49,29 +48,6 @@ class UserManager {
         return computeUser(userId, password, userRule);
     }
 
-    private void checkUserRemovable(UserCore userCore) throws RemoveUserException {
-        var unremovables = userCore.accounts().values().stream()
-                .filter(account -> !isAccountRemovable(account))
-                .collect(Collectors.toSet());
-        if (!unremovables.isEmpty()) {
-            var iterator = unremovables.iterator();
-            String message = iterator.next().getAccountId();
-            while (iterator.hasNext()) {
-                message += ", " + iterator.next().getAccountId();
-            }
-            throw new RemoveUserException("Accounts(" + message + ") can't be removed due to alive strategies or contracts.");
-        }
-    }
-
-    UserCore removeUser(String userId) throws RemoveUserException {
-        var userCore = users.get(userId);
-        if (userCore == null) {
-            throw new RemoveUserException("No such user(" + userId + ").");
-        }
-        checkUserRemovable(userCore);
-        return users.remove(userId);
-    }
-
     private AccountCore computeAccount(Double initialBalance, UserCore userCore, AccountSetting accountRule) {
         var accountCore = new AccountCore();
         accountCore.setAccountId(userCore.getUserId() + "-" + accountIdCounter.incrementAndGet());
@@ -104,18 +80,13 @@ class UserManager {
     }
 
     private boolean isAccountRemovable(AccountCore accountCore) {
-        var strategyDone = accountCore.strategies().values().stream()
+        Boolean strategyDone = accountCore.strategies().values().stream()
                 .filter(strategy -> {
-                    synchronized (strategy.syncObject()) {
-                        return !strategy.getState().equals(Strategy.REMOVED);
-                    }
+                    return !strategy.getState().equals(Strategy.REMOVED);
                 }).count() == 0;
-        Boolean contractDone;
-        synchronized (accountCore.syncObject()) {
-            contractDone = accountCore.contracts().values().stream()
-                    .filter(contract -> !contract.getState().equals(Contract.CLOSED) && !contract.getState().equals(Contract.ABANDONED))
-                    .count() == 0;
-        }
+        Boolean contractDone = accountCore.contracts().values().stream()
+                .filter(contract -> !contract.getState().equals(Contract.CLOSED) && !contract.getState().equals(Contract.ABANDONED))
+                .count() == 0;
         return strategyDone && contractDone;
     }
 
@@ -125,8 +96,10 @@ class UserManager {
         if (accountCore == null) {
             throw new RemoveAccountException("No such account(" + accountId + ") under user(" + user.getUserId() + ").");
         }
-        if (!isAccountRemovable(accountCore)) {
-            throw new RemoveAccountException("Account(" + accountId + ") can't be removed due to incompleted strategies or contracts.");
+        synchronized (accountCore.syncObject()) {
+            if (!isAccountRemovable(accountCore)) {
+                throw new RemoveAccountException("Account(" + accountId + ") can't be removed due to incompleted strategies or contracts.");
+            }
         }
         return userCore.accounts().remove(accountId);
     }
@@ -138,7 +111,9 @@ class UserManager {
         strategyCore.setState(Strategy.NORMAL);
         strategyCore.setStrategySetting(strategyRule);
         strategyCore.setStrategyId(Utils.date() + "-" + strategyIdCounter.incrementAndGet());
-        accountCore.strategies().put(strategyCore.getStrategyId(), strategyCore);
+        synchronized (accountCore.syncObject()) {
+            accountCore.strategies().put(strategyCore.getStrategyId(), strategyCore);
+        }
         return strategyCore;
     }
 
@@ -152,14 +127,12 @@ class UserManager {
     }
 
     private void checkStrategyRemovable(StrategyCore strategyCore) throws RemoveStrategyException {
-        var incompleted = strategyCore.transactions().values().stream()
+        Set<Transaction> aliveTransactions = strategyCore.transactions().values().stream()
                 .filter(transaction -> {
-                    synchronized (transaction.syncObject()) {
-                        return transaction.getState().equals(Transaction.EXECUTING) || transaction.getState().equals(Transaction.PENDING);
-                    }
+                    return transaction.getState().equals(Transaction.EXECUTING) || transaction.getState().equals(Transaction.PENDING);
                 }).collect(Collectors.toSet());
-        if (incompleted.size() > 0) {
-            var iterator = incompleted.iterator();
+        if (aliveTransactions.size() > 0) {
+            var iterator = aliveTransactions.iterator();
             String message = iterator.next().getTransactionId();
             while (iterator.hasNext()) {
                 message += ", " + iterator.next().getTransactionId();
@@ -174,9 +147,11 @@ class UserManager {
         if (strategyCore == null) {
             throw new RemoveStrategyException("No such strategy(" + strategyId + ") under account(" + account.getAccountId() + ").");
         }
-        checkStrategyRemovable(strategyCore);
-        strategyCore.setState(Strategy.REMOVED);
-        return accountCore.strategies().remove(strategyId);
+        synchronized (accountCore.syncObject()) {
+            checkStrategyRemovable(strategyCore);
+            strategyCore.setState(Strategy.REMOVED);
+            return accountCore.strategies().remove(strategyId);
+        }
     }
 
 }

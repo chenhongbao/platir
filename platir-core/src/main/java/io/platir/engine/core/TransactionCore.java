@@ -22,13 +22,6 @@ class TransactionCore implements Transaction {
     private String offset;
     private final Map<String, OrderCore> orders = new ConcurrentHashMap<>();
     private StrategyCore strategy;
-    
-    @Expose(serialize = false, deserialize = false)
-    private final Object syncObject = new Object();
-
-    Object syncObject() {
-        return syncObject;
-    }
 
     @Override
     public String getState() {

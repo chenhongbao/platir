@@ -12,7 +12,6 @@ import io.platir.engine.InitializeEngineException;
 import io.platir.engine.PlatirEngine;
 import io.platir.engine.RemoveAccountException;
 import io.platir.engine.RemoveStrategyException;
-import io.platir.engine.RemoveUserException;
 import io.platir.engine.RunStrategyException;
 import io.platir.engine.StopStrategyException;
 import io.platir.engine.rule.AccountSetting;
@@ -75,11 +74,6 @@ public class PlatirEngineCore extends PlatirEngine {
     @Override
     public User addUser(String userId, String password, UserSetting userRule) throws AddUserException {
         return userManager.addUser(userId, password, userRule);
-    }
-
-    @Override
-    public User removeUser(String userId) throws RemoveUserException {
-        return userManager.removeUser(userId);
     }
 
     @Override

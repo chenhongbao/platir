@@ -269,17 +269,22 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private void updateExecutionReport(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalServiceStateException, IllegalAccountStateException {
+        var accountCore = transaction.getStrategy().getAccount();
         switch (report.getState()) {
             case Order.ALL_TRADED:
                 executingTransactions.remove(report.getOrderId());
             case Order.QUEUEING:
-                updateContracts(transaction.getStrategy().getAccount(), report);
-                updateOrderState(findUpdatedOrder(transaction, report), report);
-                updateTransactionState(transaction);
+                synchronized (accountCore.syncObject()) {
+                    updateContracts(transaction.getStrategy().getAccount(), report);
+                    updateOrderState(findUpdatedOrder(transaction, report), report);
+                    updateTransactionState(transaction);
+                }
                 break;
             case Order.CANCELED:
             case Order.REJECTED:
-                cancelTransaction(transaction, report);
+                synchronized (accountCore.syncObject()) {
+                    cancelTransaction(transaction, report);
+                }
                 break;
             default:
                 throw new IllegalServiceStateException("Illegal execution state(" + report.getState() + ").");
@@ -289,10 +294,8 @@ class TradingAdapter implements ExecutionListener {
 
     private OrderCore findUpdatedOrder(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException {
         for (var order : transaction.orders().values()) {
-            synchronized (order) {
-                if (order.getInstrumentId().equals(report.getInstrumentId()) && order.getExchangeId().equals(report.getExchangeId()) && order.getDirection().equals(report.getDirection()) && order.getOffset().equals(report.getOffset())) {
-                    return order;
-                }
+            if (order.getInstrumentId().equals(report.getInstrumentId()) && order.getExchangeId().equals(report.getExchangeId()) && order.getDirection().equals(report.getDirection()) && order.getOffset().equals(report.getOffset())) {
+                return order;
             }
         }
         throw new NoSuchOrderException("Order(" + report.getInstrumentId() + ", " + report.getExchangeId() + ", " + report.getDirection() + ", " + report.getOffset() + ").");
@@ -315,25 +318,21 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private void updateOrderState(OrderCore order, ExecutionReport report) throws IllegalServiceStateException {
-        synchronized (order.syncObject()) {
-            TradeCore trade = computeTrade(order, report);
-            order.trades().put(trade.getTradeId(), trade);
-            if (report.getTradedQuantity().equals(report.getQuantity())) {
-                order.setState(Order.ALL_TRADED);
-            } else if (report.getTradedQuantity() > report.getQuantity()) {
-                throw new IllegalServiceStateException("Traded quantity(" + report.getTradedQuantity() + ") exceeds quantity(" + report.getQuantity() + ").");
-            } else {
-                order.setState(Order.QUEUEING);
-            }
+        TradeCore trade = computeTrade(order, report);
+        order.trades().put(trade.getTradeId(), trade);
+        if (report.getTradedQuantity().equals(report.getQuantity())) {
+            order.setState(Order.ALL_TRADED);
+        } else if (report.getTradedQuantity() > report.getQuantity()) {
+            throw new IllegalServiceStateException("Traded quantity(" + report.getTradedQuantity() + ") exceeds quantity(" + report.getQuantity() + ").");
+        } else {
+            order.setState(Order.QUEUEING);
         }
     }
 
     private void updateContracts(AccountCore account, ExecutionReport report) throws IllegalAccountStateException, IllegalServiceStateException {
-        synchronized (account.syncObject()) {
-            int updatedCount = updateTradedContracts(findUpdatedContracts(account, report), report);
-            if (updatedCount < report.getLastTradedQuantity()) {
-                throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to update but got " + updatedCount + ".");
-            }
+        int updatedCount = updateTradedContracts(findUpdatedContracts(account, report), report);
+        if (updatedCount < report.getLastTradedQuantity()) {
+            throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to update but got " + updatedCount + ".");
         }
     }
 
@@ -385,35 +384,31 @@ class TradingAdapter implements ExecutionListener {
         int rejectedCount = 0;
 
         for (var order : transaction.orders().values()) {
-            synchronized (order.syncObject()) {
-                switch (order.getState()) {
-                    case Order.ALL_TRADED:
-                        ++allTradedCount;
-                        break;
-                    case Order.QUEUEING:
-                        ++queueingCount;
-                        break;
-                    case Order.CANCELED:
-                        ++canceledCount;
-                        break;
-                    case Order.REJECTED:
-                        ++rejectedCount;
-                        break;
-                    default:
-                        throw new IllegalAccountStateException("Illegal order state(" + order.getState() + ").");
-                }
+            switch (order.getState()) {
+                case Order.ALL_TRADED:
+                    ++allTradedCount;
+                    break;
+                case Order.QUEUEING:
+                    ++queueingCount;
+                    break;
+                case Order.CANCELED:
+                    ++canceledCount;
+                    break;
+                case Order.REJECTED:
+                    ++rejectedCount;
+                    break;
+                default:
+                    throw new IllegalAccountStateException("Illegal order state(" + order.getState() + ").");
             }
         }
-        synchronized (transaction.syncObject()) {
-            if (queueingCount > 0) {
-                transaction.setState(Transaction.EXECUTING);
-            } else if (allTradedCount == 0) {
-                transaction.setState(Transaction.REJECTED);
-            } else {
-                transaction.setState(Transaction.REJECTED);
-            }
-            transaction.setUpdateDatetime(Utils.datetime());
+        if (queueingCount > 0) {
+            transaction.setState(Transaction.EXECUTING);
+        } else if (allTradedCount == 0) {
+            transaction.setState(Transaction.REJECTED);
+        } else {
+            transaction.setState(Transaction.REJECTED);
         }
+        transaction.setUpdateDatetime(Utils.datetime());
         /*
          * Execution update changes the account state, so the following update
          * could change the account before preceeding call returns, leading to
@@ -433,15 +428,11 @@ class TradingAdapter implements ExecutionListener {
 
     private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalAccountStateException, IllegalServiceStateException {
         var order = findUpdatedOrder(transaction, report);
-        synchronized (order.syncObject()) {
-            order.setState(report.getState());
-        }
+        order.setState(report.getState());
         var account = transaction.getStrategy().getAccount();
-        synchronized (account.syncObject()) {
-            int canceledCount = cancelContractStates(findUpdatedContracts(account, report), report.getQuantity() - report.getTradedQuantity());
-            if (canceledCount < report.getLastTradedQuantity()) {
-                throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to cancel but got " + canceledCount + ".");
-            }
+        int canceledCount = cancelContractStates(findUpdatedContracts(account, report), report.getQuantity() - report.getTradedQuantity());
+        if (canceledCount < report.getLastTradedQuantity()) {
+            throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to cancel but got " + canceledCount + ".");
         }
         updateTransactionState(transaction);
     }

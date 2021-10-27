@@ -21,13 +21,6 @@ class OrderCore implements Order {
     private String state;
     private final Map<String, TradeCore> trades = new ConcurrentHashMap<>();
     private TransactionCore transaction;
-    
-    @Expose(serialize = false, deserialize = false)
-    private final Object syncObject = new Object();
-
-    Object syncObject() {
-        return syncObject;
-    }
 
     @Override
     public String getOrderId() {
