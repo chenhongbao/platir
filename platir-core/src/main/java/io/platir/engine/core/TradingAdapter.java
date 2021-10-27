@@ -384,32 +384,36 @@ class TradingAdapter implements ExecutionListener {
         int canceledCount = 0;
         int rejectedCount = 0;
 
-        for (var order : transaction.getOrders()) {
-            switch (order.getState()) {
-                case Order.ALL_TRADED:
-                    ++allTradedCount;
-                    break;
-                case Order.QUEUEING:
-                    ++queueingCount;
-                    break;
-                case Order.CANCELED:
-                    ++canceledCount;
-                    break;
-                case Order.REJECTED:
-                    ++rejectedCount;
-                    break;
-                default:
-                    throw new IllegalAccountStateException("Illegal order state(" + order.getState() + ").");
+        for (var order : transaction.orders().values()) {
+            synchronized (order.syncObject()) {
+                switch (order.getState()) {
+                    case Order.ALL_TRADED:
+                        ++allTradedCount;
+                        break;
+                    case Order.QUEUEING:
+                        ++queueingCount;
+                        break;
+                    case Order.CANCELED:
+                        ++canceledCount;
+                        break;
+                    case Order.REJECTED:
+                        ++rejectedCount;
+                        break;
+                    default:
+                        throw new IllegalAccountStateException("Illegal order state(" + order.getState() + ").");
+                }
             }
         }
-        if (queueingCount > 0) {
-            transaction.setState(Transaction.EXECUTING);
-        } else if (allTradedCount == 0) {
-            transaction.setState(Transaction.REJECTED);
-        } else {
-            transaction.setState(Transaction.REJECTED);
+        synchronized (transaction.syncObject()) {
+            if (queueingCount > 0) {
+                transaction.setState(Transaction.EXECUTING);
+            } else if (allTradedCount == 0) {
+                transaction.setState(Transaction.REJECTED);
+            } else {
+                transaction.setState(Transaction.REJECTED);
+            }
+            transaction.setUpdateDatetime(Utils.datetime());
         }
-        transaction.setUpdateDatetime(Utils.datetime());
         /*
          * Execution update changes the account state, so the following update
          * could change the account before preceeding call returns, leading to
@@ -439,9 +443,7 @@ class TradingAdapter implements ExecutionListener {
                 throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to cancel but got " + canceledCount + ".");
             }
         }
-        synchronized (transaction.syncObject()) {
-            updateTransactionState(transaction);
-        }
+        updateTransactionState(transaction);
     }
 
     private int cancelContractStates(Collection<ContractCore> contracts, int quantity) {
