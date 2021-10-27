@@ -9,6 +9,7 @@ import io.platir.broker.MarketDataSnapshot;
 import io.platir.user.MarketDataRequestException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class MarketDataAdapter implements MarketDataListener {
 
@@ -16,6 +17,7 @@ class MarketDataAdapter implements MarketDataListener {
     private final UserStrategyLookup userStrategyManager;
     private final Boolean isParallel;
     private final Map<String, StrategyMarketDataAdapter> strategies = new ConcurrentHashMap<>();
+    private final AtomicInteger currentTradingDayHashCode = new AtomicInteger(0);
 
     MarketDataAdapter(MarketDataService marketDataService, UserStrategyLookup userStrategyManager, Boolean parallel) {
         this.marketDataService = marketDataService;
@@ -34,6 +36,7 @@ class MarketDataAdapter implements MarketDataListener {
         if (adapter != null) {
             adapter.broadcast(marketDataSnapshot);
         }
+        tryUpdateTradingDay(marketDataSnapshot.getTradingDay());
     }
 
     @Override
@@ -42,6 +45,7 @@ class MarketDataAdapter implements MarketDataListener {
         if (adapter != null) {
             adapter.broadcast(bar);
         }
+        tryUpdateTradingDay(bar.getTradingDay());
     }
 
     void marketDataRequest(Strategy strategy, String instrumentId) throws MarketDataRequestException {
@@ -52,5 +56,13 @@ class MarketDataAdapter implements MarketDataListener {
             }
         }
         strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager, isParallel)).add(strategy);
+    }
+
+    private void tryUpdateTradingDay(String tradingDay) {
+        var newHashCode = tradingDay.hashCode();
+        if (currentTradingDayHashCode.get() != newHashCode) {
+            InfoCenter.setTradingDay(tradingDay);
+            currentTradingDayHashCode.set(newHashCode);
+        }
     }
 }

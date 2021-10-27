@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 class TradingAdapter implements ExecutionListener {
 
-    private final InfoCenter infoCenter;
     private final TradingService tradingService;
     private final UserStrategyLookup userStrategyLookup;
     private final AtomicInteger contractIdCounter = new AtomicInteger(0);
@@ -32,8 +31,7 @@ class TradingAdapter implements ExecutionListener {
     private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
     private final Map<String /* OrderId */, TransactionCore> executingTransactions = new ConcurrentHashMap<>();
 
-    TradingAdapter(TradingService tradingService, InfoCenter infoCenter, UserStrategyLookup userStrategyLookup) {
-        this.infoCenter = infoCenter;
+    TradingAdapter(TradingService tradingService, UserStrategyLookup userStrategyLookup) {
         this.tradingService = tradingService;
         this.userStrategyLookup = userStrategyLookup;
     }
@@ -86,7 +84,7 @@ class TradingAdapter implements ExecutionListener {
                     .collect(Collectors.toSet())
                     .forEach(instrumentId -> {
                         try {
-                            prices.put(instrumentId, infoCenter.getLatestPrice(instrumentId));
+                            prices.put(instrumentId, InfoCenter.getLatestPrice(instrumentId));
                         } catch (InsufficientInfoException exception) {
                             throw new RuntimeException("No latest price for " + instrumentId + ".");
                         }
@@ -105,7 +103,7 @@ class TradingAdapter implements ExecutionListener {
                     .collect(Collectors.toSet())
                     .forEach(instrumentId -> {
                         try {
-                            instruments.put(instrumentId, infoCenter.getInstrument(instrumentId));
+                            instruments.put(instrumentId, InfoCenter.getInstrument(instrumentId));
                         } catch (InsufficientInfoException exception) {
                             throw new RuntimeException("No instrument " + instrumentId + ".");
                         }
@@ -164,9 +162,9 @@ class TradingAdapter implements ExecutionListener {
     private TransactionCore allocateOpenOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
             synchronized (strategy.getAccount()) {
-                var instrument = infoCenter.getInstrument(instrumentId);
+                var instrument = InfoCenter.getInstrument(instrumentId);
                 var needMoney = AccountUtils.computeCommission(instrument, price, quantity) + AccountUtils.computeMargin(instrument, price, quantity);
-                var available = AccountUtils.computeAvailable(strategy.getAccount(), findInstruments(strategy.getAccount()), findLatestPrices(strategy.getAccount()), infoCenter.getTradingDay());
+                var available = AccountUtils.computeAvailable(strategy.getAccount(), findInstruments(strategy.getAccount()), findLatestPrices(strategy.getAccount()), InfoCenter.getTradingDay());
                 if (available < needMoney) {
                     throw new NewOrderException("Insufficient money need " + needMoney + " but have " + available + ".");
                 }
@@ -228,7 +226,7 @@ class TradingAdapter implements ExecutionListener {
     private TransactionCore allocateCloseTodayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
             synchronized (strategy.getAccount()) {
-                Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
+                Set<ContractCore> contracts = findCloseTodayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, InfoCenter.getTradingDay());
                 return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
             }
         } catch (InsufficientInfoException exception) {
@@ -239,7 +237,7 @@ class TradingAdapter implements ExecutionListener {
     private TransactionCore allocateCloseYesterdayOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction) throws NewOrderException {
         try {
             synchronized (strategy.getAccount()) {
-                Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, infoCenter.getTradingDay());
+                Set<ContractCore> contracts = findCloseYesterdayContracts(strategy.getAccount(), instrumentId, exchangeId, direction, InfoCenter.getTradingDay());
                 return allocateCloseOrderSingle(contracts, strategy, instrumentId, exchangeId, price, quantity, direction);
             }
         } catch (InsufficientInfoException exception) {

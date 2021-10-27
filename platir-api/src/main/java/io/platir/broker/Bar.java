@@ -8,7 +8,7 @@ public interface Bar {
 
     Double getOpenPrice();
 
-    ;
+    String getTradingDay();
 
     Double getHighPrice();
 

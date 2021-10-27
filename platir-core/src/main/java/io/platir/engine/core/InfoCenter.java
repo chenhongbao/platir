@@ -7,64 +7,80 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class InfoCenter {
 
-    private final AtomicReference<String> tradingDay = new AtomicReference<>();
-    private final Map<String, SettlementPrice> settlementPrices = new ConcurrentHashMap<>();
-    private final Map<String, LatestPrice> latestPrices = new ConcurrentHashMap<>();
-    private final Map<String, InstrumentCore> instruments = new ConcurrentHashMap<>();
+    private static final AtomicReference<String> tradingDay = new AtomicReference<>();
+    private static final Map<String, SettlementPrice> settlementPrices = new ConcurrentHashMap<>();
+    private static final Map<String, LatestPrice> latestPrices = new ConcurrentHashMap<>();
+    private static final Map<String, InstrumentCore> instruments = new ConcurrentHashMap<>();
 
-    String getTradingDay() throws InsufficientInfoException {
-        if (tradingDay.get() == null || tradingDay.get().compareTo(Utils.date()) < 0) {
-            throw new InsufficientInfoException("No trading day.");
-        }
-        return tradingDay.get();
-    }
-
-    InstrumentCore getInstrument(String instrumentId) throws InsufficientInfoException {
-        if (!instruments.containsKey(instrumentId)) {
-            throw new InsufficientInfoException("No instrument for " + instrumentId + ".");
-        }
-        return instruments.get(instrumentId);
-    }
-
-    Double getSettlementPriceOr(String instrumentId, Double orValue) {
-        var settlementPrice = settlementPrices.get(instrumentId);
-        if (settlementPrice == null || settlementPrice.getTradingDay().compareTo(Utils.date()) < 0) {
-            return orValue;
-        } else {
-            return settlementPrice.getPrice();
+    static String getTradingDay() throws InsufficientInfoException {
+        synchronized (tradingDay) {
+            if (tradingDay.get() == null || tradingDay.get().compareTo(Utils.date()) < 0) {
+                throw new InsufficientInfoException("No trading day.");
+            }
+            return tradingDay.get();
         }
     }
 
-    Double getLatestPrice(String instrumentId) throws InsufficientInfoException {
-        if (!latestPrices.containsKey(instrumentId)) {
-            throw new InsufficientInfoException("No latest price for " + instrumentId + ".");
-        }
-        return latestPrices.get(instrumentId).getPrice();
-    }
-
-    void setSettlementPrice(String instrumentId, Double price, String tradingDay) {
-        var settlementPrice = settlementPrices.computeIfAbsent(instrumentId, key -> new SettlementPrice());
-        settlementPrice.setPrice(price);
-        settlementPrice.setTradingDay(tradingDay);
-    }
-
-    void setLatestPrice(String instrumentId, Double price) {
-        var latestPrice = latestPrices.computeIfAbsent(instrumentId, key -> new LatestPrice());
-        latestPrice.setPrice(price);
-        latestPrice.setUpdateDateTime(Utils.datetime());
-    }
-
-    void setInstrument(InstrumentCore instrument) {
-        if (instrument != null) {
-            instruments.put(instrument.getInstrumentId(), instrument);
+    static InstrumentCore getInstrument(String instrumentId) throws InsufficientInfoException {
+        synchronized (instruments) {
+            if (!instruments.containsKey(instrumentId)) {
+                throw new InsufficientInfoException("No instrument for " + instrumentId + ".");
+            }
+            return instruments.get(instrumentId);
         }
     }
 
-    void setTradingDay(String tradingDay) {
-        this.tradingDay.set(tradingDay);
+    static Double getSettlementPriceOr(String instrumentId, Double orValue) {
+        synchronized (settlementPrices) {
+            var settlementPrice = settlementPrices.get(instrumentId);
+            if (settlementPrice == null || settlementPrice.getTradingDay().compareTo(Utils.date()) < 0) {
+                return orValue;
+            } else {
+                return settlementPrice.getPrice();
+            }
+        }
     }
 
-    private class SettlementPrice {
+    static Double getLatestPrice(String instrumentId) throws InsufficientInfoException {
+        synchronized (latestPrices) {
+            if (!latestPrices.containsKey(instrumentId)) {
+                throw new InsufficientInfoException("No latest price for " + instrumentId + ".");
+            }
+            return latestPrices.get(instrumentId).getPrice();
+        }
+    }
+
+    static void setSettlementPrice(String instrumentId, Double price, String tradingDay) {
+        synchronized (settlementPrices) {
+            var settlementPrice = settlementPrices.computeIfAbsent(instrumentId, key -> new SettlementPrice());
+            settlementPrice.setPrice(price);
+            settlementPrice.setTradingDay(tradingDay);
+        }
+    }
+
+    static void setLatestPrice(String instrumentId, Double price) {
+        synchronized (latestPrices) {
+            var latestPrice = latestPrices.computeIfAbsent(instrumentId, key -> new LatestPrice());
+            latestPrice.setPrice(price);
+            latestPrice.setUpdateDateTime(Utils.datetime());
+        }
+    }
+
+    static void setInstrument(InstrumentCore instrument) {
+        synchronized (instruments) {
+            if (instrument != null) {
+                instruments.put(instrument.getInstrumentId(), instrument);
+            }
+        }
+    }
+
+    static void setTradingDay(String day) {
+        synchronized (tradingDay) {
+            tradingDay.set(day);
+        }
+    }
+
+    private static class SettlementPrice {
 
         private Double price;
         private String tradingDay;
@@ -87,7 +103,7 @@ class InfoCenter {
 
     }
 
-    private class LatestPrice {
+    private static class LatestPrice {
 
         private Double price;
         private String updateDateTime;
