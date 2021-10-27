@@ -8,11 +8,18 @@ class UserStrategyLookup {
 
     private final Map<StrategyCore, UserStrategy> userStrategies = new ConcurrentHashMap<>();
 
-    UserStrategy find(StrategyCore strategy) throws NoSuchUserStrategyException {
+    UserStrategy findStrategy(StrategyCore strategy) throws NoSuchUserStrategyException {
         if (!userStrategies.containsKey(strategy)) {
             throw new NoSuchUserStrategyException("No user strategy found for " + strategy.getStrategyId() + ".");
         }
         return userStrategies.get(strategy);
     }
 
+    void putStrategy(StrategyCore strategy, UserStrategy userStrategy) {
+        userStrategies.put(strategy, userStrategy);
+    }
+
+    UserStrategy removeStrategy(StrategyCore strategy) {
+        return userStrategies.remove(strategy);
+    }
 }

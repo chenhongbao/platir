@@ -19,7 +19,7 @@ class OrderCore implements Order {
     private String tradingDay;
     private String offset;
     private String state;
-    private final Map<String, TradeCore> tradeMap = new ConcurrentHashMap<>();
+    private final Map<String, TradeCore> trades = new ConcurrentHashMap<>();
     private TransactionCore transaction;
     
     @Expose(serialize = false, deserialize = false)
@@ -117,13 +117,13 @@ class OrderCore implements Order {
 
     @Override
     public Collection<Trade> getTrades() {
-        return tradeMap.values().stream().map(core -> {
+        return trades.values().stream().map(core -> {
             return (Trade) core;
         }).collect(Collectors.toSet());
     }
 
-    Map<String, TradeCore> tradeMap() {
-        return tradeMap;
+    Map<String, TradeCore> trades() {
+        return trades;
     }
 
     void setTransaction(TransactionCore transaction) {

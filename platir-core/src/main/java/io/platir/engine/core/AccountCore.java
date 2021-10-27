@@ -4,7 +4,7 @@ import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
-import io.platir.engine.rule.AccountRule;
+import io.platir.engine.rule.AccountSetting;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,11 +24,11 @@ class AccountCore implements Account {
     private Double closeProfit;
     private Double ydBalance;
     private String tradingDay;
-    private String settleTime;
-    private final Map<String, StrategyCore> strategyMap = new ConcurrentHashMap<>();
-    private final Map<String, ContractCore> contractMap = new ConcurrentHashMap<>();
+    private String settleDatetime;
     private UserCore user;
-    private AccountRule accountRule;
+    private AccountSetting accountSetting;
+    private final Map<String, StrategyCore> strategies = new ConcurrentHashMap<>();
+    private final Map<String, ContractCore> contracts = new ConcurrentHashMap<>();
 
     @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
@@ -37,12 +37,12 @@ class AccountCore implements Account {
         return syncObject;
     }
 
-    AccountRule getAccountRule() {
-        return accountRule;
+    AccountSetting getAccountSetting() {
+        return accountSetting;
     }
 
-    void setAccountRule(AccountRule accountRule) {
-        this.accountRule = new AccountRule(accountRule);
+    void setAccountRule(AccountSetting accountSetting) {
+        this.accountSetting = new AccountSetting(accountSetting);
     }
 
     @Override
@@ -154,12 +154,12 @@ class AccountCore implements Account {
     }
 
     @Override
-    public String getSettleTime() {
-        return settleTime;
+    public String getSettleDatetime() {
+        return settleDatetime;
     }
 
-    void setSettleTime(String settleTime) {
-        this.settleTime = settleTime;
+    void setSettleDatetime(String datetime) {
+        this.settleDatetime = datetime;
     }
 
     @Override
@@ -169,24 +169,24 @@ class AccountCore implements Account {
 
     @Override
     public Collection<Strategy> getStrategies() {
-        return strategyMap.values().stream().map(core -> {
+        return strategies.values().stream().map(core -> {
             return (Strategy) core;
         }).collect(Collectors.toSet());
     }
 
     @Override
     public Collection<Contract> getContracts() {
-        return contractMap.values().stream().map(core -> {
+        return contracts.values().stream().map(core -> {
             return (Contract) core;
         }).collect(Collectors.toSet());
     }
 
-    Map<String, StrategyCore> strategyMap() {
-        return strategyMap;
+    Map<String, StrategyCore> strategies() {
+        return strategies;
     }
 
-    Map<String, ContractCore> contractMap() {
-        return contractMap;
+    Map<String, ContractCore> contracts() {
+        return contracts;
     }
 
     void setUser(UserCore user) {

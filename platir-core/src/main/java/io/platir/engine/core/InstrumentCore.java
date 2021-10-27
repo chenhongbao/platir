@@ -11,7 +11,7 @@ class InstrumentCore implements Instrument {
     private Double commissionByAmount;
     private Double marginByQuantity;
     private Double marginByAmount;
-    private String updateTime;
+    private String updateDatetime;
 
     @Override
     public String getInstrumentId() {
@@ -77,12 +77,12 @@ class InstrumentCore implements Instrument {
     }
 
     @Override
-    public String getUpdateTime() {
-        return updateTime;
+    public String getUpdateDatetime() {
+        return updateDatetime;
     }
 
-    void setUpdateTime(String updateTime) {
-        this.updateTime = updateTime;
+    void setUpdateDatetime(String datetime) {
+        this.updateDatetime = datetime;
     }
 
 }

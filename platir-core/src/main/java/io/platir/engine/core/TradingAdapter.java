@@ -44,13 +44,12 @@ class TradingAdapter implements ExecutionListener {
             transaction = findTransactionForOrder(executionReport.getOrderId());
             updateExecutionReport(transaction, executionReport);
         } catch (NoSuchOrderException exception) {
-            Utils.logger().log(Level.SEVERE, "No order found for execution report. {0}", exception.getMessage());
+            PlatirEngineCore.logger().log(Level.SEVERE, "No order found for execution report. {0}", exception.getMessage());
         } catch (IllegalServiceStateException exception) {
-            Utils.logger().log(Level.SEVERE, "Illegal trading service report. {0}", exception.getMessage());
+            PlatirEngineCore.logger().log(Level.SEVERE, "Illegal trading service report. {0}", exception.getMessage());
         } catch (IllegalAccountStateException exception) {
-            /* Transaction must not be null here. */
             var accountId = transaction.getStrategy().getAccount().getAccountId();
-            Utils.logger().log(Level.SEVERE, "Illegal account {0} state. {1}", new Object[]{accountId, exception.getMessage()});
+            PlatirEngineCore.logger().log(Level.SEVERE, "Illegal account {0} state. {1}", new Object[]{accountId, exception.getMessage()});
         }
     }
 
@@ -144,12 +143,12 @@ class TradingAdapter implements ExecutionListener {
         while (count++ < quantity) {
             var contract = new ContractCore();
             contract.setAccountId(account.getAccountId());
-            contract.setContractId(account.getAccountId() + "." + contractIdCounter.incrementAndGet());
+            contract.setContractId(account.getAccountId() + "-" + contractIdCounter.incrementAndGet());
             contract.setDirection(direction);
             contract.setExchangeId(exchangeId);
             contract.setInstrumentId(instrumentId);
             contract.setState(Contract.OPENING);
-            account.contractMap().put(contract.getContractId(), contract);
+            account.contracts().put(contract.getContractId(), contract);
         }
     }
 
@@ -174,12 +173,12 @@ class TradingAdapter implements ExecutionListener {
         transaction.setQuantity(quantity);
         transaction.setState(Transaction.PENDING);
         transaction.setStrategy(strategy);
-        transaction.setTransactionId(strategy.getStrategyId() + "." + transactionIdCounter.incrementAndGet());
-        transaction.setUpdateDateTime(Utils.datetime());
+        transaction.setTransactionId(strategy.getStrategyId() + "-" + transactionIdCounter.incrementAndGet());
+        transaction.setUpdateDatetime(Utils.datetime());
         for (var order : orders) {
-            order.setOrderId(transaction.getTransactionId() + "." + orderIdCounter.incrementAndGet());
+            order.setOrderId(transaction.getTransactionId() + "-" + orderIdCounter.incrementAndGet());
             order.setTransaction(transaction);
-            transaction.orderMap().put(order.getOrderId(), order);
+            transaction.orders().put(order.getOrderId(), order);
         }
         return transaction;
     }
@@ -204,7 +203,7 @@ class TradingAdapter implements ExecutionListener {
 
     private Set<ContractCore> findCloseContracts(AccountCore account, String instrumentId, String exchangeId, String direction) {
         var targetDirection = direction.equals(Order.BUY) ? Order.SELL : Order.BUY;
-        return account.contractMap().values().stream()
+        return account.contracts().values().stream()
                 .filter(contract -> contract.getInstrumentId().equals(instrumentId)
                 && contract.getExchangeId().equals(exchangeId)
                 && contract.getDirection().equals(targetDirection)
@@ -287,7 +286,7 @@ class TradingAdapter implements ExecutionListener {
                     int code = tradingService.orderCancelRequest(sentOrder);
                     if (code != 0) {
                         /* Ignore the cancel request failure because this situation needs manual intervention. */
-                        Utils.logger().log(Level.SEVERE, "Cancel request returns {0}.", code);
+                        PlatirEngineCore.logger().log(Level.SEVERE, "Cancel request returns {0}.", code);
                     }
                     iterator.remove();
                 }
@@ -330,7 +329,7 @@ class TradingAdapter implements ExecutionListener {
 
     private OrderCore findUpdatedOrder(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException {
         synchronized (transaction.syncObject()) {
-            for (var order : transaction.orderMap().values()) {
+            for (var order : transaction.orders().values()) {
                 if (order.getInstrumentId().equals(report.getInstrumentId()) && order.getExchangeId().equals(report.getExchangeId()) && order.getDirection().equals(report.getDirection()) && order.getOffset().equals(report.getOffset())) {
                     return order;
                 }
@@ -342,7 +341,7 @@ class TradingAdapter implements ExecutionListener {
     private TradeCore computeTrade(OrderCore order, ExecutionReport report) {
         /* Sometimes execution report doesn't provide some fields. They are taken from order. */
         var trade = new TradeCore();
-        trade.setTradeId(order.getOrderId() + "." + tradeIdCounter.incrementAndGet());
+        trade.setTradeId(order.getOrderId() + "-" + tradeIdCounter.incrementAndGet());
         trade.setDirection(order.getDirection());
         trade.setInstrumentId(order.getInstrumentId());
         trade.setExchangeId(order.getExchangeId());
@@ -351,14 +350,14 @@ class TradingAdapter implements ExecutionListener {
         trade.setPrice(report.getLastTradedPirce());
         trade.setQuantity(report.getLastTradedQuantity());
         trade.setTradingDay(report.getTradingDay());
-        trade.setUpdateTime(report.getUpdateTime());
+        trade.setUpdateDatetime(report.getUpdateTime());
         return trade;
     }
 
     private void updateOrderState(OrderCore order, ExecutionReport report) throws IllegalServiceStateException {
         synchronized (order.syncObject()) {
             TradeCore trade = computeTrade(order, report);
-            order.tradeMap().put(trade.getTradeId(), trade);
+            order.trades().put(trade.getTradeId(), trade);
             if (report.getTradedQuantity().equals(report.getQuantity())) {
                 order.setState(Order.ALL_TRADED);
             } else if (report.getTradedQuantity() > report.getQuantity()) {
@@ -380,7 +379,7 @@ class TradingAdapter implements ExecutionListener {
 
     private Collection<ContractCore> findUpdatedContracts(AccountCore account, ExecutionReport report) throws IllegalServiceStateException {
         try {
-            return account.contractMap().values().stream()
+            return account.contracts().values().stream()
                     .filter(contract -> {
                         return contract.getInstrumentId().equals(report.getInstrumentId()) && contract.getExchangeId().equals(report.getExchangeId());
                     })
@@ -409,7 +408,7 @@ class TradingAdapter implements ExecutionListener {
                 contract.setState(Contract.OPEN);
                 contract.setPrice(report.getLastTradedPirce());
                 contract.setOpenTradingDay(report.getTradingDay());
-                contract.setOpenTime(Utils.datetime());
+                contract.setOpenDatetime(Utils.datetime());
             } else {
                 contract.setState(Contract.CLOSED);
                 contract.setClosePrice(report.getLastTradedPirce());
@@ -450,6 +449,7 @@ class TradingAdapter implements ExecutionListener {
             } else {
                 transaction.setState(Transaction.REJECTED);
             }
+            transaction.setUpdateDatetime(Utils.datetime());
         }
         /*
          * Execution update changes the account state, so the following update
@@ -457,13 +457,13 @@ class TradingAdapter implements ExecutionListener {
          * account state inconsistence. Here invokes user callback as soon as 
          * update arrives and the synchronization is left to user.
          */
-        Utils.threads().submit(() -> {
+        PlatirEngineCore.threads().submit(() -> {
             StrategyCore strategy = null;
             try {
                 strategy = transaction.getStrategy();
-                userStrategyLookup.find(strategy).onTransaction(transaction);
+                userStrategyLookup.findStrategy(strategy).onTransaction(transaction);
             } catch (Throwable throwable) {
-                Utils.logger().log(Level.SEVERE, "Strategy({0}) callback throws exception. {1}", new Object[]{strategy.getStrategyId(), throwable.getMessage()});
+                PlatirEngineCore.logger().log(Level.SEVERE, "Strategy({0}) callback throws exception. {1}", new Object[]{strategy.getStrategyId(), throwable.getMessage()});
             }
         });
     }

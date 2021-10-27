@@ -1,19 +1,21 @@
 package io.platir.engine.rule;
 
+import io.platir.LoggingListener;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StrategyRule {
+public class StrategySetting {
 
     private LocalDateTime loadTime;
+    private LoggingListener loggingListener;
     private final EveryTimeSetter configuredOpenTime;
     private final EveryTimeSetter configuredCloseTime;
     private final EveryTimeSetter alarmEveryTime;
     private final PointTimeSetter alarmPointTime;
     private final Map<String, String> parameters = new HashMap<>();
 
-    public StrategyRule() {
+    public StrategySetting() {
         loadTime = null;
         configuredOpenTime = new EveryTimeSetter();
         configuredCloseTime = new EveryTimeSetter();
@@ -21,12 +23,21 @@ public class StrategyRule {
         alarmPointTime = new PointTimeSetter();
     }
 
-    public StrategyRule(StrategyRule strategyRule) {
+    public StrategySetting(StrategySetting strategyRule) {
         loadTime = strategyRule.getLoadTime();
+        loggingListener = strategyRule.getLoggingListener();
         configuredOpenTime = new EveryTimeSetter(strategyRule.configuredOpenTime());
         configuredCloseTime = new EveryTimeSetter(strategyRule.configuredCloseTime());
         alarmEveryTime = new EveryTimeSetter(strategyRule.alarmEveryTime());
         alarmPointTime = new PointTimeSetter(strategyRule.alarmPointTime());
+    }
+
+    public void setLoggingListener(LoggingListener logginglistener) {
+        this.loggingListener = logginglistener;
+    }
+
+    public LoggingListener getLoggingListener() {
+        return loggingListener;
     }
 
     public LocalDateTime getLoadTime() {

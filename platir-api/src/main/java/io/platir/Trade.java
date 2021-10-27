@@ -18,7 +18,7 @@ public interface Trade {
 
     String getTradingDay();
 
-    String getUpdateTime();
+    String getUpdateDatetime();
     
     Order getOrder();
 }

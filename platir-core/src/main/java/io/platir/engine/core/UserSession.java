@@ -76,7 +76,7 @@ class UserSession implements Session {
 
     @Override
     public Map<String, String> getParameters() {
-        return new HashMap<>(strategy.getStrategyRule().parameters());
+        return new HashMap<>(strategy.getStrategySetting().parameters());
     }
 
     @Override

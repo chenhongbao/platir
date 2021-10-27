@@ -3,7 +3,7 @@ package io.platir.engine.core;
 import com.google.gson.annotations.Expose;
 import io.platir.Strategy;
 import io.platir.Transaction;
-import io.platir.engine.rule.StrategyRule;
+import io.platir.engine.rule.StrategySetting;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,14 +11,14 @@ import java.util.stream.Collectors;
 
 class StrategyCore implements Strategy {
 
-    private String createDate;
-    private String removeDate;
+    private String createDatetime;
+    private String removeDatetime;
     private String strategyId;
     private String state;
-    private final Map<String, TransactionCore> transactionMap = new ConcurrentHashMap<>();
-    private StrategyRule strategyRule;
+    private final Map<String, TransactionCore> transactions = new ConcurrentHashMap<>();
+    private StrategySetting strategySetting;
     private AccountCore account;
-    
+
     @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
 
@@ -26,30 +26,30 @@ class StrategyCore implements Strategy {
         return syncObject;
     }
 
-    StrategyRule getStrategyRule() {
-        return strategyRule;
+    StrategySetting getStrategySetting() {
+        return strategySetting;
     }
 
-    void setStrategyRule(StrategyRule strategyRule) {
-        this.strategyRule = new StrategyRule(strategyRule);
-    }
-
-    @Override
-    public String getCreateDate() {
-        return createDate;
-    }
-
-    void setCreateDate(String createDate) {
-        this.createDate = createDate;
+    void setStrategySetting(StrategySetting strategySetting) {
+        this.strategySetting = new StrategySetting(strategySetting);
     }
 
     @Override
-    public String getRemoveDate() {
-        return removeDate;
+    public String getCreateDatetime() {
+        return createDatetime;
     }
 
-    void setRemoveDate(String removeDate) {
-        this.removeDate = removeDate;
+    void setCreateDatetime(String datetime) {
+        this.createDatetime = datetime;
+    }
+
+    @Override
+    public String getRemoveDatetime() {
+        return removeDatetime;
+    }
+
+    void setRemoveDatetime(String dateTime) {
+        this.removeDatetime = dateTime;
     }
 
     @Override
@@ -77,13 +77,13 @@ class StrategyCore implements Strategy {
 
     @Override
     public Collection<Transaction> getTransactions() {
-        return transactionMap.values().stream().map(core -> {
+        return transactions.values().stream().map(core -> {
             return (Transaction) core;
         }).collect(Collectors.toSet());
     }
 
-    Map<String, TransactionCore> transactionMap() {
-        return transactionMap;
+    Map<String, TransactionCore> transactions() {
+        return transactions;
     }
 
     void setAccount(AccountCore account) {

@@ -1,6 +1,5 @@
 package io.platir.engine.core;
 
-import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Instrument;
 import io.platir.Order;
@@ -35,7 +34,7 @@ public class AccountUtils {
             case Order.SELL:
                 return instrument.getMultiple() * (contract.getPrice() - price);
             default:
-                Utils.logger().log(Level.SEVERE, "Invalid contract direction {0}.", contract.getDirection());
+                PlatirEngineCore.logger().log(Level.SEVERE, "Invalid contract direction {0}.", contract.getDirection());
                 return 0D;
         }
     }
@@ -78,7 +77,7 @@ public class AccountUtils {
                     commission += computeCommission(instrument, contract.getClosePrice(), 1);
                     closeProfit = computeProfit(instrument, contract, contract.getClosePrice());
                 default:
-                    Utils.logger().log(Level.SEVERE, "Invalid contract state {0}.", contract.getState());
+                    PlatirEngineCore.logger().log(Level.SEVERE, "Invalid contract state {0}.", contract.getState());
                     break;
             }
         }
@@ -95,7 +94,7 @@ public class AccountUtils {
         account.setOpeningCommission(openingCommission);
         account.setOpeningMargin(openingMargin);
         account.setPositionProfit(positionProfit);
-        account.setSettleTime(Utils.datetime());
+        account.setSettleDatetime(Utils.datetime());
         account.setTradingDay(tradingDay);
     }
 }

@@ -32,7 +32,7 @@ class StrategyMarketDataQueue implements Runnable {
                 /* User strategy not found, so it is unavailable. */
                 break;
             } catch (Throwable exception) {
-                Utils.logger().log(Level.SEVERE, "Strategy({0}) market data callback throws exception. {1}", new Object[]{strategy.getStrategyId(), exception.getMessage()});
+                PlatirEngineCore.logger().log(Level.SEVERE, "Strategy({0}) market data callback throws exception. {1}", new Object[]{strategy.getStrategyId(), exception.getMessage()});
             }
         }
         /* Remove itself out of adapter. */
@@ -42,7 +42,7 @@ class StrategyMarketDataQueue implements Runnable {
 
     void push(Object marketData) {
         if (!queue.offer(marketData)) {
-            Utils.logger().log(Level.SEVERE, "Strategy({0}) market data queue is full.", strategy.getStrategyId());
+            PlatirEngineCore.logger().log(Level.SEVERE, "Strategy({0}) market data queue is full.", strategy.getStrategyId());
         }
     }
 
@@ -52,7 +52,7 @@ class StrategyMarketDataQueue implements Runnable {
         } catch (NoSuchUserStrategyException exception) {
             strategyMarketDataAdapter.remove(strategy);
         } catch (Throwable exception) {
-            Utils.logger().log(Level.SEVERE, "Strategy({0}) market data callback throws exception. {1}", new Object[]{strategy.getStrategyId(), exception.getMessage()});
+            PlatirEngineCore.logger().log(Level.SEVERE, "Strategy({0}) market data callback throws exception. {1}", new Object[]{strategy.getStrategyId(), exception.getMessage()});
         }
     }
 
@@ -62,13 +62,13 @@ class StrategyMarketDataQueue implements Runnable {
                 return;
             }
         }
-        UserStrategy userStrategy = userStrategyLookup.find(strategy);
+        UserStrategy userStrategy = userStrategyLookup.findStrategy(strategy);
         if (marketData instanceof Bar) {
             userStrategy.onBar((Bar) marketData);
         } else if (marketData instanceof MarketDataSnapshot) {
             userStrategy.onMarketDataSnapshot((MarketDataSnapshot) marketData);
         } else {
-            Utils.logger().log(Level.SEVERE, "Strategy({0}) receives wrong market data. ", strategy.getStrategyId());
+            PlatirEngineCore.logger().log(Level.SEVERE, "Strategy({0}) receives wrong market data. ", strategy.getStrategyId());
         }
     }
 }

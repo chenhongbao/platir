@@ -1,20 +1,28 @@
 package io.platir.engine.core;
 
-import io.platir.Strategy;
+import io.platir.engine.AddStrategyException;
 import io.platir.user.UserStrategy;
 
 class UserStrategyManager {
 
-    void addUserStrategy(Strategy newStrategy, UserStrategy userStrategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    private final UserStrategyLookup lookup = new UserStrategyLookup();
+    private final LoggingManager logging = new LoggingManager();
+
+    void addUserStrategy(StrategyCore strategy, UserStrategy userStrategy) throws AddStrategyException {
+        lookup.putStrategy(strategy, userStrategy);
     }
 
-    void removeUserStrategy(Strategy removed) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    UserStrategy removeUserStrategy(StrategyCore removed) {
+        logging.removeStrategy(removed);
+        return lookup.removeStrategy(removed);
     }
 
     UserStrategyLookup getLookup() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return lookup;
     }
     
+    LoggingManager getLoggingManager() {
+        return logging;
+    }
+
 }

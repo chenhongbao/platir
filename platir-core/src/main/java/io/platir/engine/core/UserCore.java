@@ -3,7 +3,7 @@ package io.platir.engine.core;
 import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.User;
-import io.platir.engine.rule.UserRule;
+import io.platir.engine.rule.UserSetting;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,10 +13,10 @@ class UserCore implements User {
 
     private String userId;
     private String password;
-    private String createTime;
-    private String lastLoginTime;
-    private UserRule userRule;
-    private final Map<String, AccountCore> accountMap = new ConcurrentHashMap<>();
+    private String createDatetime;
+    private String lastLoginDatetime;
+    private UserSetting userSetting;
+    private final Map<String, AccountCore> accounts = new ConcurrentHashMap<>();
     
     @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
@@ -25,12 +25,12 @@ class UserCore implements User {
         return syncObject;
     }
 
-    UserRule getUserRule() {
-        return userRule;
+    UserSetting getUserSetting() {
+        return userSetting;
     }
 
-    void setUserRule(UserRule userRule) {
-        this.userRule = new UserRule(userRule);
+    void setUserSetting(UserSetting userSetting) {
+        this.userSetting = new UserSetting(userSetting);
     }
 
     @Override
@@ -52,34 +52,34 @@ class UserCore implements User {
     }
 
     @Override
-    public String getCreateTime() {
-        return createTime;
+    public String getCreateDatetime() {
+        return createDatetime;
     }
 
-    void setCreateTime(String createTime) {
-        this.createTime = createTime;
+    void setCreateDatetime(String datetime) {
+        this.createDatetime = datetime;
     }
 
     @Override
-    public String getLastLoginTime() {
-        return lastLoginTime;
+    public String getLastLoginDatetime() {
+        return lastLoginDatetime;
     }
 
-    void setLastLoginTime(String lastLoginTime) {
-        this.lastLoginTime = lastLoginTime;
+    void setLastLoginDatetime(String datetime) {
+        this.lastLoginDatetime = datetime;
     }
 
     @Override
     public Collection<Account> getAccounts() {
-        return accountMap.values().stream()
+        return accounts.values().stream()
                 .map(core -> {
                     return (Account) core;
                 })
                 .collect(Collectors.toSet());
     }
 
-    Map<String, AccountCore> accountMap() {
-        return accountMap;
+    Map<String, AccountCore> accounts() {
+        return accounts;
     }
 
 }

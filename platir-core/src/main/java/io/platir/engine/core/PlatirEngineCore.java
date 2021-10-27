@@ -5,35 +5,48 @@ import io.platir.Strategy;
 import io.platir.User;
 import io.platir.broker.MarketDataService;
 import io.platir.broker.TradingService;
-import io.platir.engine.AddAcountException;
+import io.platir.engine.AddAccountException;
 import io.platir.engine.AddStrategyException;
 import io.platir.engine.AddUserException;
 import io.platir.engine.InitializeEngineException;
 import io.platir.engine.PlatirEngine;
-import io.platir.engine.RemoveAcountException;
+import io.platir.engine.RemoveAccountException;
 import io.platir.engine.RemoveStrategyException;
 import io.platir.engine.RemoveUserException;
 import io.platir.engine.RunStrategyException;
 import io.platir.engine.StopStrategyException;
-import io.platir.engine.rule.AccountRule;
-import io.platir.engine.rule.GlobalRule;
-import io.platir.engine.rule.StrategyRule;
-import io.platir.engine.rule.UserRule;
+import io.platir.engine.rule.AccountSetting;
+import io.platir.engine.rule.GlobalSetting;
+import io.platir.engine.rule.StrategySetting;
+import io.platir.engine.rule.UserSetting;
 import io.platir.user.UserStrategy;
 import io.platir.util.Utils;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PlatirEngineCore extends PlatirEngine {
 
     private final UserManager userManager = new UserManager();
     private final UserStrategyManager userStrategyManager = new UserStrategyManager();
-    private final LoggingManager loggingManager = new LoggingManager();
 
     private TradingAdapter tradingAdapter;
     private MarketDataAdapter marketDataAdapter;
     private TradingService tradingService;
     private MarketDataService marketDataService;
+
+    private static final Logger engineLogger = Logger.getLogger(PlatirEngineCore.class.getSimpleName());
+    private static final ExecutorService threads = Executors.newCachedThreadPool();
+
+    static ExecutorService threads() {
+        return threads;
+    }
+
+    static Logger logger() {
+        return engineLogger;
+    }
 
     @Override
     public void setUseService(TradingService tradingService) {
@@ -50,7 +63,8 @@ public class PlatirEngineCore extends PlatirEngine {
     }
 
     @Override
-    public void initialize(GlobalRule globalRule) throws InitializeEngineException {
+    public void initialize(GlobalSetting globalRule) throws InitializeEngineException {
+        // TODO Implement initialize() method of PlatirEngineCore.
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -60,27 +74,27 @@ public class PlatirEngineCore extends PlatirEngine {
     }
 
     @Override
-    public User addUser(String userId, String password, UserRule userRule) throws AddUserException {
+    public User addUser(String userId, String password, UserSetting userRule) throws AddUserException {
         return userManager.addUser(userId, password, userRule);
     }
 
     @Override
-    public void removeUser(String userId) throws RemoveUserException {
-        userManager.removeUser(userId);
+    public User removeUser(String userId) throws RemoveUserException {
+        return userManager.removeUser(userId);
     }
 
     @Override
-    public Account addAccount(Double initialBalance, User user, AccountRule accountRule) throws AddAcountException {
+    public Account addAccount(Double initialBalance, User user, AccountSetting accountRule) throws AddAccountException {
         return userManager.addAccount(initialBalance, user, accountRule);
     }
 
     @Override
-    public void removeAccount(String accountId, User user) throws RemoveAcountException {
+    public void removeAccount(String accountId, User user) throws RemoveAccountException {
         userManager.removeAccount(accountId, user);
     }
 
     @Override
-    public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategyRule strategyRule) throws AddStrategyException {
+    public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategySetting strategyRule) throws AddStrategyException {
         StrategyCore newStrategy = userManager.addStrategy(account, strategyRule);
         userStrategyManager.addUserStrategy(newStrategy, userStrategy);
         callbackOnload(newStrategy);
@@ -104,17 +118,16 @@ public class PlatirEngineCore extends PlatirEngine {
     }
 
     @Override
-    public void removeStrategy(String strategyId) throws RemoveStrategyException {
-        Strategy removed = userManager.removeStrategy(strategyId);
-        userStrategyManager.removeUserStrategy(removed);
+    public void removeStrategy(Strategy strategy) throws RemoveStrategyException {
+        userStrategyManager.removeUserStrategy(userManager.removeStrategy(strategy.getStrategyId(), strategy.getAccount()));
     }
 
     private void callbackOnload(StrategyCore strategy) {
         try {
-            userStrategyManager.getLookup().find(strategy)
-                    .onLoad(new UserSession((StrategyCore) strategy, tradingAdapter, marketDataAdapter, loggingManager.getLoggingHandler(strategy)));
+            userStrategyManager.getLookup().findStrategy(strategy)
+                    .onLoad(new UserSession((StrategyCore) strategy, tradingAdapter, marketDataAdapter, userStrategyManager.getLoggingManager().getLoggingHandler(strategy)));
         } catch (NoSuchUserStrategyException exception) {
-            Utils.logger().log(Level.SEVERE, "No user strategy found for strategy {0}.", strategy.getStrategyId());
+            logger().log(Level.SEVERE, "No user strategy found for strategy {0}.", strategy.getStrategyId());
         }
     }
 }

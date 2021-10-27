@@ -8,9 +8,9 @@ public interface Strategy {
     public static final String BLOCKED = "BLOCKED";
     public static final String REMOVED = "REMOVED";
 
-    String getCreateDate();
+    String getCreateDatetime();
 
-    String getRemoveDate();
+    String getRemoveDatetime();
 
     String getStrategyId();
 

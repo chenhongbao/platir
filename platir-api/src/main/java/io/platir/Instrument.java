@@ -16,5 +16,5 @@ public interface Instrument {
 
     Double getCommissionByQuantity();
 
-    String getUpdateTime();
+    String getUpdateDatetime();
 }

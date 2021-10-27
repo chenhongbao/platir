@@ -28,7 +28,7 @@ public interface Contract {
 
     String getOpenTradingDay();
 
-    String getOpenTime();
+    String getOpenDatetime();
 
     Double getClosePrice();
 

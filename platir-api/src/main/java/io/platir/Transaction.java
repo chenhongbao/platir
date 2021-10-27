@@ -28,7 +28,7 @@ public interface Transaction {
 
     String getTradingDay();
 
-    String getUpdateDateTime();
+    String getUpdateDatetime();
 
     String getOffset();
 

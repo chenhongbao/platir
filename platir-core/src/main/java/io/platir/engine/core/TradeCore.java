@@ -12,7 +12,7 @@ class TradeCore implements Trade {
     private String direction;
     private String offset;
     private String tradingDay;
-    private String updateTime;
+    private String updateDatetime;
     private OrderCore order;
 
     @Override
@@ -88,12 +88,12 @@ class TradeCore implements Trade {
     }
 
     @Override
-    public String getUpdateTime() {
-        return updateTime;
+    public String getUpdateDatetime() {
+        return updateDatetime;
     }
 
-    void setUpdateTime(String updateTime) {
-        this.updateTime = updateTime;
+    void setUpdateDatetime(String datetime) {
+        this.updateDatetime = datetime;
     }
 
     @Override

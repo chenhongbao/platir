@@ -18,9 +18,9 @@ class TransactionCore implements Transaction {
     private Integer quantity;
     private String direction;
     private String tradingDay;
-    private String updateDateTime;
+    private String updateDatetime;
     private String offset;
-    private final Map<String, OrderCore> orderMap = new ConcurrentHashMap<>();
+    private final Map<String, OrderCore> orders = new ConcurrentHashMap<>();
     private StrategyCore strategy;
     
     @Expose(serialize = false, deserialize = false)
@@ -37,7 +37,7 @@ class TransactionCore implements Transaction {
 
     @Override
     public Collection<Order> getOrders() {
-        return orderMap.values().stream().map(core -> {
+        return orders.values().stream().map(core -> {
             return (Order) core;
         }).collect(Collectors.toSet());
     }
@@ -110,12 +110,12 @@ class TransactionCore implements Transaction {
     }
 
     @Override
-    public String getUpdateDateTime() {
-        return updateDateTime;
+    public String getUpdateDatetime() {
+        return updateDatetime;
     }
 
-    void setUpdateDateTime(String updateTime) {
-        this.updateDateTime = updateTime;
+    void setUpdateDatetime(String datetime) {
+        this.updateDatetime = datetime;
     }
 
     @Override
@@ -132,8 +132,8 @@ class TransactionCore implements Transaction {
         return strategy;
     }
 
-    Map<String, OrderCore> orderMap() {
-        return orderMap;
+    Map<String, OrderCore> orders() {
+        return orders;
     }
 
     void setStrategy(StrategyCore strategy) {

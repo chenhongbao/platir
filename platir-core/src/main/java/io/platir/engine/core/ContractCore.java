@@ -12,7 +12,7 @@ class ContractCore implements Contract {
     private Double price;
     private String state;
     private String openTradingDay;
-    private String openTime;
+    private String openDatetime;
     private Double closePrice;
     private String settlementTradingDay;
 
@@ -89,12 +89,12 @@ class ContractCore implements Contract {
     }
 
     @Override
-    public String getOpenTime() {
-        return openTime;
+    public String getOpenDatetime() {
+        return openDatetime;
     }
 
-    void setOpenTime(String openTime) {
-        this.openTime = openTime;
+    void setOpenDatetime(String datetime) {
+        this.openDatetime = datetime;
     }
 
     @Override

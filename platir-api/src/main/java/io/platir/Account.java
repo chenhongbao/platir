@@ -28,7 +28,7 @@ public interface Account {
 
     String getTradingDay();
 
-    String getSettleTime();
+    String getSettleDatetime();
 
     Collection<Strategy> getStrategies();
     

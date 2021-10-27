@@ -1,15 +1,15 @@
 package io.platir.engine.rule;
 
-public class AccountRule {
+public class AccountSetting {
 
     private final MaxNumberRule maxStrategyCount = new MaxNumberRule(1);
     private final EveryTimeSetter settlementTime;
 
-    public AccountRule() {
+    public AccountSetting() {
         settlementTime = new EveryTimeSetter();
     }
 
-    public AccountRule(AccountRule accountRule) {
+    public AccountSetting(AccountSetting accountRule) {
         maxStrategyCount.set(accountRule.maxStrategyCount().get());
         settlementTime = new EveryTimeSetter(accountRule.settlementTime());
     }

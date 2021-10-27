@@ -22,7 +22,7 @@ class StrategyMarketDataAdapter {
     void add(StrategyCore strategy) {
         var queue = new StrategyMarketDataQueue(strategy, this, userStrategyLookup);
         if (isParallel) {
-            Utils.threads().submit(queue);
+            PlatirEngineCore.threads().submit(queue);
         }
         strategies.put(strategy, queue);
     }

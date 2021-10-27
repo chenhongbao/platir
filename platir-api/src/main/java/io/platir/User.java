@@ -8,9 +8,9 @@ public interface User {
 
     String getPassword();
 
-    String getCreateTime();
+    String getCreateDatetime();
 
-    String getLastLoginTime();
+    String getLastLoginDatetime();
 
     Collection<Account> getAccounts();
 }

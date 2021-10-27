@@ -9,7 +9,6 @@ import io.platir.broker.MarketDataSnapshot;
 import io.platir.user.MarketDataRequestException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 class MarketDataAdapter implements MarketDataListener {
 

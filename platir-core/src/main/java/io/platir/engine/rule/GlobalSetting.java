@@ -1,11 +1,14 @@
 package io.platir.engine.rule;
 
-public class GlobalRule {
+import io.platir.LoggingListener;
+
+public class GlobalSetting {
 
     private Boolean marketDataParallel = true;
+    private LoggingListener loggingListener;
     private final EveryTimeSetter reinitTime = new EveryTimeSetter();
 
-    public GlobalRule() {
+    public GlobalSetting() {
     }
 
     public EveryTimeSetter reinitTime() {
@@ -21,4 +24,13 @@ public class GlobalRule {
     public boolean isMarketDataParallel() {
         return marketDataParallel;
     }
+
+    public LoggingListener getLoggingListener() {
+        return loggingListener;
+    }
+
+    public void setLoggingListener(LoggingListener loggingListener) {
+        this.loggingListener = loggingListener;
+    }
+
 }

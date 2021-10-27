@@ -1,14 +1,14 @@
 package io.platir.engine.rule;
 
-public final class UserRule {
+public final class UserSetting {
 
     private final MaxNumberRule maxAccountCount = new MaxNumberRule(1);
     private final MaxNumberRule maxInitialBalance = new MaxNumberRule(Double.MAX_VALUE);
 
-    public UserRule() {
+    public UserSetting() {
     }
 
-    public UserRule(UserRule userRule) {
+    public UserSetting(UserSetting userRule) {
         maxAccountCount.set(userRule.maxAccountCount().get());
         maxInitialBalance.set(userRule.maxInitialBalance().get());
     }
