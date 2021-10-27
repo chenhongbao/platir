@@ -20,7 +20,6 @@ import io.platir.engine.rule.GlobalSetting;
 import io.platir.engine.rule.StrategySetting;
 import io.platir.engine.rule.UserSetting;
 import io.platir.user.UserStrategy;
-import io.platir.util.Utils;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
