@@ -1,7 +1,6 @@
 package io.platir.engine.core;
 
 import io.platir.Account;
-import io.platir.Strategy;
 import io.platir.User;
 import io.platir.engine.rule.AccountRule;
 import io.platir.engine.rule.StrategyRule;
@@ -30,11 +29,11 @@ class UserManager {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    Strategy addStrategy(Account account, StrategyRule strategyRule) {
+    StrategyCore addStrategy(Account account, StrategyRule strategyRule) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    Strategy removeStrategy(String strategyId) {
+    StrategyCore removeStrategy(String strategyId) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     

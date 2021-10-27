@@ -37,9 +37,9 @@ public abstract class PlatirEngine {
 
     public abstract Strategy addStrategy(UserStrategy userStrategy, Account account, StrategyRule strategyRule) throws AddStrategyException;
 
-    public abstract void runStrategy(Strategy strategy) throws RunStrategyException;
+    public abstract void unblockStrategy(Strategy strategy) throws RunStrategyException;
 
-    public abstract void stopStrategy(Strategy strategy) throws StopStrategyException;
+    public abstract void blockStrategy(Strategy strategy) throws StopStrategyException;
 
     public abstract void removeStrategy(String strategyId) throws RemoveStrategyException;
 }

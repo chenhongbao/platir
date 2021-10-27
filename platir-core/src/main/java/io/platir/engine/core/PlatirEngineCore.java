@@ -51,7 +51,7 @@ public class PlatirEngineCore extends PlatirEngine {
 
     @Override
     public void initialize(GlobalRule globalRule) throws InitializeEngineException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
@@ -81,24 +81,26 @@ public class PlatirEngineCore extends PlatirEngine {
 
     @Override
     public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategyRule strategyRule) throws AddStrategyException {
-        Strategy newStrategy = userManager.addStrategy(account, strategyRule);
+        StrategyCore newStrategy = userManager.addStrategy(account, strategyRule);
         userStrategyManager.addUserStrategy(newStrategy, userStrategy);
-        tradingAdapter.registerStrategy(newStrategy);
-        marketDataAdapter.registerStrategy(newStrategy);
         callbackOnload(newStrategy);
         return newStrategy;
     }
 
     @Override
-    public void runStrategy(Strategy strategy) throws RunStrategyException {
-        tradingAdapter.unblockStrategy(strategy);
-        marketDataAdapter.unblockStrategy(strategy);
+    public void unblockStrategy(Strategy strategy) throws RunStrategyException {
+        var core = ((StrategyCore) strategy);
+        synchronized (core.syncObject()) {
+            core.setState(Strategy.NORMAL);
+        }
     }
 
     @Override
-    public void stopStrategy(Strategy strategy) throws StopStrategyException {
-        tradingAdapter.blockStrategy(strategy);
-        marketDataAdapter.blockStrategy(strategy);
+    public void blockStrategy(Strategy strategy) throws StopStrategyException {
+        var core = ((StrategyCore) strategy);
+        synchronized (core.syncObject()) {
+            core.setState(Strategy.BLOCKED);
+        }
     }
 
     @Override
@@ -107,9 +109,9 @@ public class PlatirEngineCore extends PlatirEngine {
         userStrategyManager.removeUserStrategy(removed);
     }
 
-    private void callbackOnload(Strategy strategy) {
+    private void callbackOnload(StrategyCore strategy) {
         try {
-            userStrategyManager.getLookup().find(strategy.getStrategyId())
+            userStrategyManager.getLookup().find(strategy)
                     .onLoad(new UserSession((StrategyCore) strategy, tradingAdapter, marketDataAdapter, loggingManager.getLoggingHandler(strategy)));
         } catch (NoSuchUserStrategyException exception) {
             Utils.logger().log(Level.SEVERE, "No user strategy found for strategy {0}.", strategy.getStrategyId());

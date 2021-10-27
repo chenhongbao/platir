@@ -40,7 +40,7 @@ public class AccountUtils {
         }
     }
 
-    static Double computeAvailable(Account account, Map<String, Instrument> instruments, Map<String, Double> prices, String tradingDay) {
+    static void settleAccount(AccountCore account, Map<String, Instrument> instruments, Map<String, Double> prices, String tradingDay) {
         Double openingCommission = 0D;
         Double openingMargin = 0D;
         Double closingCommission = 0D;
@@ -48,6 +48,7 @@ public class AccountUtils {
         Double commission = 0D;
         Double closeProfit = 0D;
         Double positionProfit = 0D;
+        
         for (var contract : account.getContracts()) {
             var instrument = instruments.get(contract.getInstrumentId());
             var price = prices.get(contract.getInstrumentId());
@@ -81,6 +82,20 @@ public class AccountUtils {
                     break;
             }
         }
-        return account.getYdBalance() + positionProfit + closeProfit - commission - openingCommission - closingCommission - openingMargin - margin;
+        
+        Double balance = account.getYdBalance() + positionProfit + closeProfit - commission;
+        Double available = balance - openingCommission - closingCommission - openingMargin - margin;
+        
+        account.setAvailable(available);
+        account.setBalance(balance);
+        account.setCloseProfit(closeProfit);
+        account.setClosingCommission(closingCommission);
+        account.setCommission(commission);
+        account.setMargin(margin);
+        account.setOpeningCommission(openingCommission);
+        account.setOpeningMargin(openingMargin);
+        account.setPositionProfit(positionProfit);
+        account.setSettleTime(Utils.datetime());
+        account.setTradingDay(tradingDay);
     }
 }

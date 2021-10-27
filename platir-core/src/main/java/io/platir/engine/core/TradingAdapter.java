@@ -27,8 +27,10 @@ class TradingAdapter implements ExecutionListener {
     private final TradingService tradingService;
     private final UserStrategyLookup userStrategyLookup;
     private final AtomicInteger contractIdCounter = new AtomicInteger(0);
+    private final AtomicInteger tradeIdCounter = new AtomicInteger(0);
     private final AtomicInteger orderIdCounter = new AtomicInteger(0);
     private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
+    private final AtomicInteger currentTradingDayHashCode = new AtomicInteger(0);
     private final Map<String /* OrderId */, TransactionCore> executingTransactions = new ConcurrentHashMap<>();
 
     TradingAdapter(TradingService tradingService, UserStrategyLookup userStrategyLookup) {
@@ -42,6 +44,7 @@ class TradingAdapter implements ExecutionListener {
         try {
             transaction = findTransactionForOrder(executionReport.getOrderId());
             updateExecutionReport(transaction, executionReport);
+            tryUpdateTradingDay(executionReport.getTradingDay());
         } catch (NoSuchOrderException exception) {
             Utils.logger().log(Level.SEVERE, "No order found for execution report. {0}", exception.getMessage());
         } catch (IllegalServiceStateException exception) {
@@ -54,16 +57,26 @@ class TradingAdapter implements ExecutionListener {
     }
 
     Transaction newOrderSingle(Strategy strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction, String offset) throws NewOrderException {
+        var strategyCore = (StrategyCore) strategy;
+        synchronized (strategyCore.syncObject()) {
+            if (!strategy.getState().equals(Strategy.NORMAL)) {
+                throw new NewOrderException("Strategy(" + strategy.getStrategyId() + ") is " + strategy.getState() + ".");
+            }
+        }
+        return executeNewOrderSingle(strategyCore, instrumentId, exchangeId, price, quantity, direction, offset);
+    }
+
+    private TransactionCore executeNewOrderSingle(StrategyCore strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction, String offset) throws NewOrderException {
         TransactionCore transaction;
         switch (offset) {
             case Order.OPEN:
-                transaction = allocateOpenOrderSingle((StrategyCore) strategy, instrumentId, exchangeId, price, quantity, direction);
+                transaction = allocateOpenOrderSingle(strategy, instrumentId, exchangeId, price, quantity, direction);
                 break;
             case Order.CLOSE_TODAY:
-                transaction = allocateCloseTodayOrderSingle((StrategyCore) strategy, instrumentId, exchangeId, price, quantity, direction);
+                transaction = allocateCloseTodayOrderSingle(strategy, instrumentId, exchangeId, price, quantity, direction);
                 break;
             case Order.CLOSE_YESTERDAY:
-                transaction = allocateCloseYesterdayOrderSingle((StrategyCore) strategy, instrumentId, exchangeId, price, quantity, direction);
+                transaction = allocateCloseYesterdayOrderSingle(strategy, instrumentId, exchangeId, price, quantity, direction);
                 break;
             default:
                 throw new NewOrderException("Invalid offset(" + offset + ").");
@@ -73,19 +86,21 @@ class TradingAdapter implements ExecutionListener {
     }
 
     void cancelOrderSingle(TransactionCore transaction) throws CancelOrderException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    void registerStrategy(Strategy newStrategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    void unblockStrategy(Strategy strategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    void blockStrategy(Strategy strategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Set<String> failed = new HashSet<>();
+        transaction.getOrders().forEach(order -> {
+            int code = tradingService.orderCancelRequest(order);
+            if (code != 0) {
+                failed.add(order.getOrderId() + "/" + code);
+            }
+        });
+        if (!failed.isEmpty()) {
+            var iterator = failed.iterator();
+            String message = iterator.next();
+            while (iterator.hasNext()) {
+                message += ", " + iterator.next();
+            }
+            throw new CancelOrderException("Failed cancel order(" + message + ").");
+        }
     }
 
     private Map<String, Double> findLatestPrices(Account account) throws InsufficientInfoException {
@@ -177,9 +192,9 @@ class TradingAdapter implements ExecutionListener {
             synchronized (account.syncObject()) {
                 var instrument = InfoCenter.getInstrument(instrumentId);
                 var needMoney = AccountUtils.computeCommission(instrument, price, quantity) + AccountUtils.computeMargin(instrument, price, quantity);
-                var available = AccountUtils.computeAvailable(account, findInstruments(account), findLatestPrices(account), InfoCenter.getTradingDay());
-                if (available < needMoney) {
-                    throw new NewOrderException("Insufficient money need " + needMoney + " but have " + available + ".");
+                AccountUtils.settleAccount(account, findInstruments(account), findLatestPrices(account), InfoCenter.getTradingDay());
+                if (account.getAvailable() < needMoney) {
+                    throw new NewOrderException("Insufficient money need " + needMoney + " but have " + account.getAvailable() + ".");
                 }
                 setOpeningContracts(strategy.getAccount(), instrumentId, exchangeId, quantity, direction);
                 return computeTransaction(strategy, instrumentId, exchangeId, price, quantity, direction, Order.OPEN, computeOrder(instrumentId, exchangeId, price, quantity, direction, Order.OPEN));
@@ -326,8 +341,24 @@ class TradingAdapter implements ExecutionListener {
         }
     }
 
+    private TradeCore computeTrade(OrderCore order, ExecutionReport report) {
+        var trade = new TradeCore();
+        trade.setTradeId(order.getOrderId() + "." + tradeIdCounter.incrementAndGet());
+        trade.setDirection(report.getDirection());
+        trade.setInstrumentId(report.getInstrumentId());
+        trade.setOffset(report.getOffset());
+        trade.setOrder(order);
+        trade.setPrice(report.getLastTradedPirce());
+        trade.setQuantity(report.getLastTradedQuantity());
+        trade.setTradingDay(report.getTradingDay());
+        trade.setUpdateTime(report.getUpdateTime());
+        return trade;
+    }
+
     private void updateOrderState(OrderCore order, ExecutionReport report) throws IllegalServiceStateException {
         synchronized (order.syncObject()) {
+            TradeCore trade = computeTrade(order, report);
+            order.tradeMap().put(trade.getTradeId(), trade);
             if (report.getTradedQuantity().equals(report.getQuantity())) {
                 order.setState(Order.ALL_TRADED);
             } else if (report.getTradedQuantity() > report.getQuantity()) {
@@ -420,21 +451,19 @@ class TradingAdapter implements ExecutionListener {
                 transaction.setState(Transaction.REJECTED);
             }
         }
-        /* ********************************************************************
-         * Execution update changes the account state then the following update
-         * changes the account before preceeding update returns, leading to
-         * account state inconsistence. Here calls user callback as soon as 
+        /*
+         * Execution update changes the account state, so the following update
+         * could change the account before preceeding call returns, leading to
+         * account state inconsistence. Here invokes user callback as soon as 
          * update arrives and the synchronization is left to user.
-         * ********************************************************************/
+         */
         Utils.threads().submit(() -> {
-            String strategyId = null;
+            StrategyCore strategy = null;
             try {
-                strategyId = transaction.getStrategy().getStrategyId();
-                userStrategyLookup.find(strategyId).onTransaction(transaction);
-            } catch (NoSuchUserStrategyException exception) {
-                Utils.logger().log(Level.SEVERE, "Strategy({0}) isn't found for transaction update. {1}", new Object[]{strategyId, exception.getMessage()});
+                strategy = transaction.getStrategy();
+                userStrategyLookup.find(strategy).onTransaction(transaction);
             } catch (Throwable throwable) {
-                Utils.logger().log(Level.SEVERE, "Strategy({0}) callback throws exception. {1}", new Object[]{strategyId, throwable.getMessage()});
+                Utils.logger().log(Level.SEVERE, "Strategy({0}) callback throws exception. {1}", new Object[]{strategy.getStrategyId(), throwable.getMessage()});
             }
         });
     }
@@ -470,4 +499,13 @@ class TradingAdapter implements ExecutionListener {
         }
         return canceledCount;
     }
+
+    private void tryUpdateTradingDay(String tradingDay) {
+        var newHashCode = tradingDay.hashCode();
+        if (currentTradingDayHashCode.get() != newHashCode) {
+            InfoCenter.setTradingDay(tradingDay);
+            currentTradingDayHashCode.set(newHashCode);
+        }
+    }
+
 }

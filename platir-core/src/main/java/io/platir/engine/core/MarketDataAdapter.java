@@ -49,25 +49,16 @@ class MarketDataAdapter implements MarketDataListener {
     }
 
     void marketDataRequest(Strategy strategy, String instrumentId) throws MarketDataRequestException {
+        if (!strategy.getState().equals(Strategy.NORMAL)) {
+            throw new MarketDataRequestException("Strategy(" + strategy.getStrategyId() + ") is " + strategy.getState() + ".");
+        }
         if (!strategies.containsKey(instrumentId)) {
             var code = marketDataService.marketDataRequest(instrumentId, this);
             if (code != 0) {
                 throw new MarketDataRequestException("Market data request returns " + code + ".");
             }
         }
-        strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager, isParallel)).add(strategy);
-    }
-
-    void registerStrategy(Strategy newStrategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    void unblockStrategy(Strategy strategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    void blockStrategy(Strategy strategy) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager, isParallel)).add((StrategyCore) strategy);
     }
 
     private void tryUpdateTradingDay(String tradingDay) {
