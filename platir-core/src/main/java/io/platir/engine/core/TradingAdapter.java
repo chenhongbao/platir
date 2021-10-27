@@ -76,6 +76,18 @@ class TradingAdapter implements ExecutionListener {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    void registerStrategy(Strategy newStrategy) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    void unblockStrategy(Strategy strategy) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    void blockStrategy(Strategy strategy) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
     private Map<String, Double> findLatestPrices(Account account) throws InsufficientInfoException {
         final Map<String, Double> prices = new HashMap<>();
         try {

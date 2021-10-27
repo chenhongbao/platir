@@ -39,7 +39,7 @@ public abstract class PlatirEngine {
 
     public abstract void runStrategy(Strategy strategy) throws RunStrategyException;
 
-    public abstract void stopStrategy(String strategyId) throws StopStrategyException;
+    public abstract void stopStrategy(Strategy strategy) throws StopStrategyException;
 
     public abstract void removeStrategy(String strategyId) throws RemoveStrategyException;
 }

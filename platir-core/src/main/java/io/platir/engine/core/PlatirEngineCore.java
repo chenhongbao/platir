@@ -20,21 +20,33 @@ import io.platir.engine.rule.GlobalRule;
 import io.platir.engine.rule.StrategyRule;
 import io.platir.engine.rule.UserRule;
 import io.platir.user.UserStrategy;
+import io.platir.util.Utils;
 import java.util.Set;
+import java.util.logging.Level;
 
 public class PlatirEngineCore extends PlatirEngine {
-    
+
     private final UserManager userManager = new UserManager();
     private final UserStrategyManager userStrategyManager = new UserStrategyManager();
+    private final LoggingManager loggingManager = new LoggingManager();
+
+    private TradingAdapter tradingAdapter;
+    private MarketDataAdapter marketDataAdapter;
+    private TradingService tradingService;
+    private MarketDataService marketDataService;
 
     @Override
     public void setUseService(TradingService tradingService) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (tradingService != null) {
+            this.tradingService = tradingService;
+        }
     }
 
     @Override
     public void setUseService(MarketDataService marketDataService) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (marketDataService != null) {
+            this.marketDataService = marketDataService;
+        }
     }
 
     @Override
@@ -44,47 +56,63 @@ public class PlatirEngineCore extends PlatirEngine {
 
     @Override
     public Set<User> getUsers() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return userManager.getUsers();
     }
 
     @Override
     public User addUser(String userId, String password, UserRule userRule) throws AddUserException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return userManager.addUser(userId, password, userRule);
     }
 
     @Override
     public void removeUser(String userId) throws RemoveUserException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        userManager.removeUser(userId);
     }
 
     @Override
     public Account addAccount(Double initialBalance, User user, AccountRule accountRule) throws AddAcountException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return userManager.addAccount(initialBalance, user, accountRule);
     }
 
     @Override
     public void removeAccount(String accountId, User user) throws RemoveAcountException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        userManager.removeAccount(accountId, user);
     }
 
     @Override
     public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategyRule strategyRule) throws AddStrategyException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Strategy newStrategy = userManager.addStrategy(account, strategyRule);
+        userStrategyManager.addUserStrategy(newStrategy, userStrategy);
+        tradingAdapter.registerStrategy(newStrategy);
+        marketDataAdapter.registerStrategy(newStrategy);
+        callbackOnload(newStrategy);
+        return newStrategy;
     }
 
     @Override
     public void runStrategy(Strategy strategy) throws RunStrategyException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        tradingAdapter.unblockStrategy(strategy);
+        marketDataAdapter.unblockStrategy(strategy);
     }
 
     @Override
-    public void stopStrategy(String strategyId) throws StopStrategyException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void stopStrategy(Strategy strategy) throws StopStrategyException {
+        tradingAdapter.blockStrategy(strategy);
+        marketDataAdapter.blockStrategy(strategy);
     }
 
     @Override
     public void removeStrategy(String strategyId) throws RemoveStrategyException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Strategy removed = userManager.removeStrategy(strategyId);
+        userStrategyManager.removeUserStrategy(removed);
     }
 
+    private void callbackOnload(Strategy strategy) {
+        try {
+            userStrategyManager.getLookup().find(strategy.getStrategyId())
+                    .onLoad(new UserSession((StrategyCore) strategy, tradingAdapter, marketDataAdapter, loggingManager.getLoggingHandler(strategy)));
+        } catch (NoSuchUserStrategyException exception) {
+            Utils.logger().log(Level.SEVERE, "No user strategy found for strategy {0}.", strategy.getStrategyId());
+        }
+    }
 }

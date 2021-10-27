@@ -58,6 +58,18 @@ class MarketDataAdapter implements MarketDataListener {
         strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager, isParallel)).add(strategy);
     }
 
+    void registerStrategy(Strategy newStrategy) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    void unblockStrategy(Strategy strategy) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    void blockStrategy(Strategy strategy) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
     private void tryUpdateTradingDay(String tradingDay) {
         var newHashCode = tradingDay.hashCode();
         if (currentTradingDayHashCode.get() != newHashCode) {
