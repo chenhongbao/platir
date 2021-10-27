@@ -6,6 +6,7 @@ class TradeCore implements Trade {
 
     private String tradeId;
     private String instrumentId;
+    private String exchangeId;
     private Double price;
     private Integer quantity;
     private String direction;
@@ -13,6 +14,15 @@ class TradeCore implements Trade {
     private String tradingDay;
     private String updateTime;
     private OrderCore order;
+
+    @Override
+    public String getExchangeId() {
+        return exchangeId;
+    }
+
+    public void setExchangeId(String exchangeId) {
+        this.exchangeId = exchangeId;
+    }
 
     @Override
     public String getTradeId() {

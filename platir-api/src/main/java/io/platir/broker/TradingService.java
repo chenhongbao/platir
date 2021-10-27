@@ -88,4 +88,11 @@ public interface TradingService {
      * @return name string
      */
     String getServiceName();
+    
+    /**
+     * Get trading day.
+     * 
+     * @return trading day string
+     */
+    String getTradingDay();
 }

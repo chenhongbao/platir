@@ -74,6 +74,14 @@ class InfoCenter {
         }
     }
 
+    /**
+     * Set trading day.
+     * <p>
+     * The method is called internally by re-initialization daemon at the
+     * begning of every trading day.
+     *
+     * @param day trading day string
+     */
     static void setTradingDay(String day) {
         synchronized (tradingDay) {
             tradingDay.set(day);

@@ -1,5 +1,6 @@
 package io.platir.engine.core;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
@@ -28,8 +29,10 @@ class AccountCore implements Account {
     private final Map<String, ContractCore> contractMap = new ConcurrentHashMap<>();
     private UserCore user;
     private AccountRule accountRule;
+
+    @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
-    
+
     Object syncObject() {
         return syncObject;
     }

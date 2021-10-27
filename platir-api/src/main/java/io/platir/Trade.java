@@ -5,6 +5,8 @@ public interface Trade {
     String getTradeId();
     
     String getInstrumentId();
+    
+    String getExchangeId();
 
     Double getPrice();
 

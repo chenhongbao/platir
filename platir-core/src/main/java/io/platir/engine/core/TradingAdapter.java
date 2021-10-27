@@ -30,7 +30,6 @@ class TradingAdapter implements ExecutionListener {
     private final AtomicInteger tradeIdCounter = new AtomicInteger(0);
     private final AtomicInteger orderIdCounter = new AtomicInteger(0);
     private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
-    private final AtomicInteger currentTradingDayHashCode = new AtomicInteger(0);
     private final Map<String /* OrderId */, TransactionCore> executingTransactions = new ConcurrentHashMap<>();
 
     TradingAdapter(TradingService tradingService, UserStrategyLookup userStrategyLookup) {
@@ -44,7 +43,6 @@ class TradingAdapter implements ExecutionListener {
         try {
             transaction = findTransactionForOrder(executionReport.getOrderId());
             updateExecutionReport(transaction, executionReport);
-            tryUpdateTradingDay(executionReport.getTradingDay());
         } catch (NoSuchOrderException exception) {
             Utils.logger().log(Level.SEVERE, "No order found for execution report. {0}", exception.getMessage());
         } catch (IllegalServiceStateException exception) {
@@ -342,11 +340,13 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private TradeCore computeTrade(OrderCore order, ExecutionReport report) {
+        /* Sometimes execution report doesn't provide some fields. They are taken from order. */
         var trade = new TradeCore();
         trade.setTradeId(order.getOrderId() + "." + tradeIdCounter.incrementAndGet());
-        trade.setDirection(report.getDirection());
-        trade.setInstrumentId(report.getInstrumentId());
-        trade.setOffset(report.getOffset());
+        trade.setDirection(order.getDirection());
+        trade.setInstrumentId(order.getInstrumentId());
+        trade.setExchangeId(order.getExchangeId());
+        trade.setOffset(order.getOffset());
         trade.setOrder(order);
         trade.setPrice(report.getLastTradedPirce());
         trade.setQuantity(report.getLastTradedQuantity());
@@ -498,14 +498,6 @@ class TradingAdapter implements ExecutionListener {
             ++canceledCount;
         }
         return canceledCount;
-    }
-
-    private void tryUpdateTradingDay(String tradingDay) {
-        var newHashCode = tradingDay.hashCode();
-        if (currentTradingDayHashCode.get() != newHashCode) {
-            InfoCenter.setTradingDay(tradingDay);
-            currentTradingDayHashCode.set(newHashCode);
-        }
     }
 
 }

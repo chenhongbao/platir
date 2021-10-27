@@ -1,5 +1,6 @@
 package io.platir.engine.core;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Order;
 import io.platir.Trade;
 import java.util.Collection;
@@ -20,6 +21,8 @@ class OrderCore implements Order {
     private String state;
     private final Map<String, TradeCore> tradeMap = new ConcurrentHashMap<>();
     private TransactionCore transaction;
+    
+    @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
 
     Object syncObject() {

@@ -1,5 +1,6 @@
 package io.platir.engine.core;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.User;
 import io.platir.engine.rule.UserRule;
@@ -16,6 +17,8 @@ class UserCore implements User {
     private String lastLoginTime;
     private UserRule userRule;
     private final Map<String, AccountCore> accountMap = new ConcurrentHashMap<>();
+    
+    @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
 
     Object syncObject() {
