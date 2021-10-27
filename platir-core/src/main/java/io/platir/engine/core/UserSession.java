@@ -11,6 +11,7 @@ import io.platir.user.Session;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 class UserSession implements Session {
@@ -66,7 +67,15 @@ class UserSession implements Session {
 
     @Override
     public Account getAccount() {
-        return strategy.getAccount();
+        try {
+            var account = (AccountCore) strategy.getAccount();
+            synchronized (account.syncObject()) {
+                AccountUtils.settleAccount(account, AccountUtils.findInstruments(account), AccountUtils.findLatestPrices(account), InfoCenter.getTradingDay());
+                return account;
+            }
+        } catch (InsufficientInfoException ex) {
+            return null;
+        }
     }
 
     @Override

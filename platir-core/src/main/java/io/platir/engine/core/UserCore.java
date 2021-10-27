@@ -17,13 +17,6 @@ class UserCore implements User {
     private String lastLoginDatetime;
     private UserSetting userSetting;
     private final Map<String, AccountCore> accounts = new ConcurrentHashMap<>();
-    
-    @Expose(serialize = false, deserialize = false)
-    private final Object syncObject = new Object();
-
-    Object syncObject() {
-        return syncObject;
-    }
 
     UserSetting getUserSetting() {
         return userSetting;

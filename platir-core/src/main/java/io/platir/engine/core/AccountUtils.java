@@ -1,11 +1,14 @@
 package io.platir.engine.core;
 
+import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Instrument;
 import io.platir.Order;
 import io.platir.util.Utils;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class AccountUtils {
 
@@ -39,6 +42,44 @@ public class AccountUtils {
         }
     }
 
+    static Map<String, Double> findLatestPrices(Account account) throws InsufficientInfoException {
+        final Map<String, Double> prices = new HashMap<>();
+        try {
+            account.getContracts().stream()
+                    .map(contract -> contract.getInstrumentId())
+                    .collect(Collectors.toSet())
+                    .forEach(instrumentId -> {
+                        try {
+                            prices.put(instrumentId, InfoCenter.getLatestPrice(instrumentId));
+                        } catch (InsufficientInfoException exception) {
+                            throw new RuntimeException("No latest price for " + instrumentId + ".");
+                        }
+                    });
+            return prices;
+        } catch (RuntimeException exception) {
+            throw new InsufficientInfoException(exception.getMessage());
+        }
+    }
+
+    static Map<String, Instrument> findInstruments(Account account) throws InsufficientInfoException {
+        final Map<String, Instrument> instruments = new HashMap<>();
+        try {
+            account.getContracts().stream()
+                    .map(contract -> contract.getInstrumentId())
+                    .collect(Collectors.toSet())
+                    .forEach(instrumentId -> {
+                        try {
+                            instruments.put(instrumentId, InfoCenter.getInstrument(instrumentId));
+                        } catch (InsufficientInfoException exception) {
+                            throw new RuntimeException("No instrument " + instrumentId + ".");
+                        }
+                    });
+            return instruments;
+        } catch (RuntimeException exception) {
+            throw new InsufficientInfoException(exception.getMessage());
+        }
+    }
+
     static void settleAccount(AccountCore account, Map<String, Instrument> instruments, Map<String, Double> prices, String tradingDay) {
         Double openingCommission = 0D;
         Double openingMargin = 0D;
@@ -47,7 +88,7 @@ public class AccountUtils {
         Double commission = 0D;
         Double closeProfit = 0D;
         Double positionProfit = 0D;
-        
+
         for (var contract : account.getContracts()) {
             var instrument = instruments.get(contract.getInstrumentId());
             var price = prices.get(contract.getInstrumentId());
@@ -81,10 +122,10 @@ public class AccountUtils {
                     break;
             }
         }
-        
+
         Double balance = account.getYdBalance() + positionProfit + closeProfit - commission;
         Double available = balance - openingCommission - closingCommission - openingMargin - margin;
-        
+
         account.setAvailable(available);
         account.setBalance(balance);
         account.setCloseProfit(closeProfit);

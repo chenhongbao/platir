@@ -1,8 +1,6 @@
 package io.platir.engine.core;
 
-import io.platir.Account;
 import io.platir.Contract;
-import io.platir.Instrument;
 import io.platir.Order;
 import io.platir.Strategy;
 import io.platir.Transaction;
@@ -13,7 +11,6 @@ import io.platir.user.CancelOrderException;
 import io.platir.user.NewOrderException;
 import io.platir.util.Utils;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -100,44 +97,6 @@ class TradingAdapter implements ExecutionListener {
         }
     }
 
-    private Map<String, Double> findLatestPrices(Account account) throws InsufficientInfoException {
-        final Map<String, Double> prices = new HashMap<>();
-        try {
-            account.getContracts().stream()
-                    .map(contract -> contract.getInstrumentId())
-                    .collect(Collectors.toSet())
-                    .forEach(instrumentId -> {
-                        try {
-                            prices.put(instrumentId, InfoCenter.getLatestPrice(instrumentId));
-                        } catch (InsufficientInfoException exception) {
-                            throw new RuntimeException("No latest price for " + instrumentId + ".");
-                        }
-                    });
-            return prices;
-        } catch (RuntimeException exception) {
-            throw new InsufficientInfoException(exception.getMessage());
-        }
-    }
-
-    private Map<String, Instrument> findInstruments(Account account) throws InsufficientInfoException {
-        final Map<String, Instrument> instruments = new HashMap<>();
-        try {
-            account.getContracts().stream()
-                    .map(contract -> contract.getInstrumentId())
-                    .collect(Collectors.toSet())
-                    .forEach(instrumentId -> {
-                        try {
-                            instruments.put(instrumentId, InfoCenter.getInstrument(instrumentId));
-                        } catch (InsufficientInfoException exception) {
-                            throw new RuntimeException("No instrument " + instrumentId + ".");
-                        }
-                    });
-            return instruments;
-        } catch (RuntimeException exception) {
-            throw new InsufficientInfoException(exception.getMessage());
-        }
-    }
-
     private void setOpeningContracts(AccountCore account, String instrumentId, String exchangeId, Integer quantity, String direction) {
         int count = 0;
         while (count++ < quantity) {
@@ -180,6 +139,7 @@ class TradingAdapter implements ExecutionListener {
             order.setTransaction(transaction);
             transaction.orders().put(order.getOrderId(), order);
         }
+        strategy.transactions().put(transaction.getTransactionId(), transaction);
         return transaction;
     }
 
@@ -189,7 +149,7 @@ class TradingAdapter implements ExecutionListener {
             synchronized (account.syncObject()) {
                 var instrument = InfoCenter.getInstrument(instrumentId);
                 var needMoney = AccountUtils.computeCommission(instrument, price, quantity) + AccountUtils.computeMargin(instrument, price, quantity);
-                AccountUtils.settleAccount(account, findInstruments(account), findLatestPrices(account), InfoCenter.getTradingDay());
+                AccountUtils.settleAccount(account, AccountUtils.findInstruments(account), AccountUtils.findLatestPrices(account), InfoCenter.getTradingDay());
                 if (account.getAvailable() < needMoney) {
                     throw new NewOrderException("Insufficient money need " + needMoney + " but have " + account.getAvailable() + ".");
                 }
@@ -328,14 +288,14 @@ class TradingAdapter implements ExecutionListener {
     }
 
     private OrderCore findUpdatedOrder(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException {
-        synchronized (transaction.syncObject()) {
-            for (var order : transaction.orders().values()) {
+        for (var order : transaction.orders().values()) {
+            synchronized (order) {
                 if (order.getInstrumentId().equals(report.getInstrumentId()) && order.getExchangeId().equals(report.getExchangeId()) && order.getDirection().equals(report.getDirection()) && order.getOffset().equals(report.getOffset())) {
                     return order;
                 }
             }
-            throw new NoSuchOrderException("Order(" + report.getInstrumentId() + ", " + report.getExchangeId() + ", " + report.getDirection() + ", " + report.getOffset() + ").");
         }
+        throw new NoSuchOrderException("Order(" + report.getInstrumentId() + ", " + report.getExchangeId() + ", " + report.getDirection() + ", " + report.getOffset() + ").");
     }
 
     private TradeCore computeTrade(OrderCore order, ExecutionReport report) {
@@ -423,34 +383,33 @@ class TradingAdapter implements ExecutionListener {
         int queueingCount = 0;
         int canceledCount = 0;
         int rejectedCount = 0;
-        synchronized (transaction.syncObject()) {
-            for (var order : transaction.getOrders()) {
-                switch (order.getState()) {
-                    case Order.ALL_TRADED:
-                        ++allTradedCount;
-                        break;
-                    case Order.QUEUEING:
-                        ++queueingCount;
-                        break;
-                    case Order.CANCELED:
-                        ++canceledCount;
-                        break;
-                    case Order.REJECTED:
-                        ++rejectedCount;
-                        break;
-                    default:
-                        throw new IllegalAccountStateException("Illegal order state(" + order.getState() + ").");
-                }
+
+        for (var order : transaction.getOrders()) {
+            switch (order.getState()) {
+                case Order.ALL_TRADED:
+                    ++allTradedCount;
+                    break;
+                case Order.QUEUEING:
+                    ++queueingCount;
+                    break;
+                case Order.CANCELED:
+                    ++canceledCount;
+                    break;
+                case Order.REJECTED:
+                    ++rejectedCount;
+                    break;
+                default:
+                    throw new IllegalAccountStateException("Illegal order state(" + order.getState() + ").");
             }
-            if (queueingCount > 0) {
-                transaction.setState(Transaction.EXECUTING);
-            } else if (allTradedCount == 0) {
-                transaction.setState(Transaction.REJECTED);
-            } else {
-                transaction.setState(Transaction.REJECTED);
-            }
-            transaction.setUpdateDatetime(Utils.datetime());
         }
+        if (queueingCount > 0) {
+            transaction.setState(Transaction.EXECUTING);
+        } else if (allTradedCount == 0) {
+            transaction.setState(Transaction.REJECTED);
+        } else {
+            transaction.setState(Transaction.REJECTED);
+        }
+        transaction.setUpdateDatetime(Utils.datetime());
         /*
          * Execution update changes the account state, so the following update
          * could change the account before preceeding call returns, leading to

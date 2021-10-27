@@ -51,7 +51,7 @@ class UserManager {
 
     private void checkUserRemovable(UserCore userCore) throws RemoveUserException {
         var unremovables = userCore.accounts().values().stream()
-                .filter(account -> checkAccountRemovable(account))
+                .filter(account -> !isAccountRemovable(account))
                 .collect(Collectors.toSet());
         if (!unremovables.isEmpty()) {
             var iterator = unremovables.iterator();
@@ -103,9 +103,20 @@ class UserManager {
         return computeAccount(initialBalance, userCore, accountRule);
     }
 
-    private boolean checkAccountRemovable(AccountCore accountCore) {
-        return accountCore.strategies().values().stream().filter(strategy -> !strategy.getState().equals(Strategy.REMOVED)).count() > 0
-                || accountCore.contracts().values().stream().filter(contract -> !contract.getState().equals(Contract.CLOSED) && !contract.getState().equals(Contract.ABANDONED)).count() > 0;
+    private boolean isAccountRemovable(AccountCore accountCore) {
+        var strategyDone = accountCore.strategies().values().stream()
+                .filter(strategy -> {
+                    synchronized (strategy.syncObject()) {
+                        return !strategy.getState().equals(Strategy.REMOVED);
+                    }
+                }).count() == 0;
+        Boolean contractDone;
+        synchronized (accountCore.syncObject()) {
+            contractDone = accountCore.contracts().values().stream()
+                    .filter(contract -> !contract.getState().equals(Contract.CLOSED) && !contract.getState().equals(Contract.ABANDONED))
+                    .count() == 0;
+        }
+        return strategyDone && contractDone;
     }
 
     AccountCore removeAccount(String accountId, User user) throws RemoveAccountException {
@@ -114,7 +125,7 @@ class UserManager {
         if (accountCore == null) {
             throw new RemoveAccountException("No such account(" + accountId + ") under user(" + user.getUserId() + ").");
         }
-        if (!checkAccountRemovable(accountCore)) {
+        if (!isAccountRemovable(accountCore)) {
             throw new RemoveAccountException("Account(" + accountId + ") can't be removed due to incompleted strategies or contracts.");
         }
         return userCore.accounts().remove(accountId);
@@ -142,7 +153,11 @@ class UserManager {
 
     private void checkStrategyRemovable(StrategyCore strategyCore) throws RemoveStrategyException {
         var incompleted = strategyCore.transactions().values().stream()
-                .filter(transaction -> transaction.getState().equals(Transaction.EXECUTING) || transaction.getState().equals(Transaction.PENDING)).collect(Collectors.toSet());
+                .filter(transaction -> {
+                    synchronized (transaction.syncObject()) {
+                        return transaction.getState().equals(Transaction.EXECUTING) || transaction.getState().equals(Transaction.PENDING);
+                    }
+                }).collect(Collectors.toSet());
         if (incompleted.size() > 0) {
             var iterator = incompleted.iterator();
             String message = iterator.next().getTransactionId();
