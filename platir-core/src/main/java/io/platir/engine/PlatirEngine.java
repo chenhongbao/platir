@@ -1,5 +1,10 @@
 package io.platir.engine;
 
+import io.platir.setting.SettingFactory;
+import io.platir.setting.AccountSetting;
+import io.platir.setting.UserSetting;
+import io.platir.setting.StrategySetting;
+import io.platir.setting.GlobalSetting;
 import io.platir.Account;
 import io.platir.Strategy;
 import io.platir.User;

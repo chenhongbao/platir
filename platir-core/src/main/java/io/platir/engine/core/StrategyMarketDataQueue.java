@@ -1,10 +1,10 @@
 package io.platir.engine.core;
 
+import io.platir.commons.StrategyCore;
 import io.platir.Strategy;
 import io.platir.broker.Bar;
 import io.platir.broker.MarketDataSnapshot;
 import io.platir.user.UserStrategy;
-import io.platir.util.Utils;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;

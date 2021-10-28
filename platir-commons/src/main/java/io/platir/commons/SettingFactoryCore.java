@@ -1,11 +1,11 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.SettingFactory;
-import io.platir.engine.AccountSetting;
-import io.platir.engine.StrategySetting;
-import io.platir.engine.UserSetting;
+import io.platir.setting.SettingFactory;
+import io.platir.setting.AccountSetting;
+import io.platir.setting.StrategySetting;
+import io.platir.setting.UserSetting;
 
-class SettingFactoryCore implements SettingFactory {
+public class SettingFactoryCore implements SettingFactory {
 
     @Override
     public AccountSetting newAccountSetting() {

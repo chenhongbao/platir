@@ -1,27 +1,26 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
 import io.platir.Account;
 import io.platir.User;
-import io.platir.engine.UserSetting;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-class UserCore implements User {
+public class UserCore implements User {
 
     private String userId;
     private String password;
     private String createDatetime;
     private String lastLoginDatetime;
-    private UserSetting userSetting;
+    private UserSettingCore userSetting;
     private final Map<String, AccountCore> accounts = new ConcurrentHashMap<>();
 
-    UserSetting getUserSetting() {
+    public UserSettingCore getUserSetting() {
         return userSetting;
     }
 
-    void setUserSetting(UserSettingCore userSetting) {
+    public void setUserSetting(UserSettingCore userSetting) {
         this.userSetting = new UserSettingCore(userSetting);
     }
 
@@ -30,7 +29,7 @@ class UserCore implements User {
         return userId;
     }
 
-    void setUserId(String userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
@@ -39,7 +38,7 @@ class UserCore implements User {
         return password;
     }
 
-    void setPassword(String password) {
+    public void setPassword(String password) {
         this.password = password;
     }
 
@@ -48,7 +47,7 @@ class UserCore implements User {
         return createDatetime;
     }
 
-    void setCreateDatetime(String datetime) {
+    public void setCreateDatetime(String datetime) {
         this.createDatetime = datetime;
     }
 
@@ -57,7 +56,7 @@ class UserCore implements User {
         return lastLoginDatetime;
     }
 
-    void setLastLoginDatetime(String datetime) {
+    public void setLastLoginDatetime(String datetime) {
         this.lastLoginDatetime = datetime;
     }
 
@@ -70,7 +69,7 @@ class UserCore implements User {
                 .collect(Collectors.toSet());
     }
 
-    Map<String, AccountCore> accounts() {
+    public Map<String, AccountCore> accounts() {
         return accounts;
     }
 

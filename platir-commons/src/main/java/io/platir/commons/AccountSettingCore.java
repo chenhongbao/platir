@@ -1,17 +1,17 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.AccountSetting;
+import io.platir.setting.AccountSetting;
 
-class AccountSettingCore implements AccountSetting {
+public class AccountSettingCore implements AccountSetting {
 
     private final MaxNumberCheckerCore maxStrategyCount = new MaxNumberCheckerCore(1);
     private final EveryTimeCheckerCore settlementTime;
 
-    AccountSettingCore() {
+    public AccountSettingCore() {
         settlementTime = new EveryTimeCheckerCore();
     }
 
-    AccountSettingCore(AccountSettingCore accountSetting) {
+    public AccountSettingCore(AccountSettingCore accountSetting) {
         maxStrategyCount.set(accountSetting.maxStrategyCount().get());
         settlementTime = new EveryTimeCheckerCore(accountSetting.settlementTime());
     }

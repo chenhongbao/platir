@@ -1,18 +1,18 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.GlobalSetting;
+import io.platir.setting.GlobalSetting;
 import io.platir.LoggingListener;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-class GlobalSettingCore implements GlobalSetting {
+public class GlobalSettingCore implements GlobalSetting {
 
     private Boolean marketDataParallel = true;
     private final Set<LoggingListener> loggingListeners = new ConcurrentSkipListSet<>();
     private final EveryTimeCheckerCore reinitTime;
 
-    GlobalSettingCore() {
+    public GlobalSettingCore() {
         reinitTime = new EveryTimeCheckerCore();
     }
 

@@ -1,5 +1,6 @@
 package io.platir.engine.core;
 
+import io.platir.commons.StrategyCore;
 import io.platir.Strategy;
 import io.platir.broker.Bar;
 import io.platir.broker.MarketDataListener;

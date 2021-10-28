@@ -1,6 +1,5 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import com.google.gson.annotations.Expose;
 import io.platir.Order;
 import io.platir.Trade;
 import java.util.Collection;
@@ -8,7 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-class OrderCore implements Order {
+public class OrderCore implements Order {
 
     private String orderId;
     private String instrumentId;
@@ -19,15 +18,15 @@ class OrderCore implements Order {
     private String tradingDay;
     private String offset;
     private String state;
-    private final Map<String, TradeCore> trades = new ConcurrentHashMap<>();
     private TransactionCore transaction;
+    private final Map<String, TradeCore> trades = new ConcurrentHashMap<>();
 
     @Override
     public String getOrderId() {
         return orderId;
     }
 
-    void setOrderId(String orderId) {
+    public void setOrderId(String orderId) {
         this.orderId = orderId;
     }
 
@@ -36,7 +35,7 @@ class OrderCore implements Order {
         return instrumentId;
     }
 
-    void setInstrumentId(String instrumentId) {
+    public void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -45,7 +44,7 @@ class OrderCore implements Order {
         return exchangeId;
     }
 
-    void setExchangeId(String exchangeId) {
+    public void setExchangeId(String exchangeId) {
         this.exchangeId = exchangeId;
     }
 
@@ -54,7 +53,7 @@ class OrderCore implements Order {
         return price;
     }
 
-    void setPrice(Double price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 
@@ -63,7 +62,7 @@ class OrderCore implements Order {
         return quantity;
     }
 
-    void setQuantity(Integer quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
@@ -72,7 +71,7 @@ class OrderCore implements Order {
         return direction;
     }
 
-    void setDirection(String direction) {
+    public void setDirection(String direction) {
         this.direction = direction;
     }
 
@@ -81,7 +80,7 @@ class OrderCore implements Order {
         return tradingDay;
     }
 
-    void setTradingDay(String tradingDay) {
+    public void setTradingDay(String tradingDay) {
         this.tradingDay = tradingDay;
     }
 
@@ -90,7 +89,7 @@ class OrderCore implements Order {
         return offset;
     }
 
-    void setOffset(String offset) {
+    public void setOffset(String offset) {
         this.offset = offset;
     }
 
@@ -99,7 +98,7 @@ class OrderCore implements Order {
         return state;
     }
 
-    void setState(String state) {
+    public void setState(String state) {
         this.state = state;
     }
 
@@ -115,11 +114,11 @@ class OrderCore implements Order {
         }).collect(Collectors.toSet());
     }
 
-    Map<String, TradeCore> trades() {
+    public Map<String, TradeCore> trades() {
         return trades;
     }
 
-    void setTransaction(TransactionCore transaction) {
+    public void setTransaction(TransactionCore transaction) {
         this.transaction = transaction;
     }
 

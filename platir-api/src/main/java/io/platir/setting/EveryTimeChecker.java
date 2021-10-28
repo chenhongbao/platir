@@ -1,4 +1,4 @@
-package io.platir.engine;
+package io.platir.setting;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

@@ -1,7 +1,6 @@
-module PlatirCore {
-    requires platir.api;
-    requires com.google.gson;
+module io.platir.core {
+    requires io.platir.commons;
     exports io.platir.engine;
     exports io.platir.engine.broker;
-    exports io.platir.engine.setting;
+    opens io.platir.engine.core;
 }

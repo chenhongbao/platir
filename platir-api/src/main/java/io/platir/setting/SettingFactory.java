@@ -1,4 +1,4 @@
-package io.platir.engine;
+package io.platir.setting;
 
 public interface SettingFactory {
 

@@ -1,16 +1,16 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.UserSetting;
+import io.platir.setting.UserSetting;
 
-final class UserSettingCore implements UserSetting {
+public class UserSettingCore implements UserSetting {
 
     private final MaxNumberCheckerCore maxAccountCount = new MaxNumberCheckerCore(1);
     private final MaxNumberCheckerCore maxInitialBalance = new MaxNumberCheckerCore(Double.MAX_VALUE);
 
-    UserSettingCore() {
+    public UserSettingCore() {
     }
 
-    UserSettingCore(UserSettingCore userSetting) {
+    public UserSettingCore(UserSettingCore userSetting) {
         maxAccountCount.set(userSetting.maxAccountCount().get());
         maxInitialBalance.set(userSetting.maxInitialBalance().get());
     }

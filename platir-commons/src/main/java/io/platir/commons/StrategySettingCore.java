@@ -1,6 +1,6 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.StrategySetting;
+import io.platir.setting.StrategySetting;
 import io.platir.LoggingListener;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-class StrategySettingCore implements StrategySetting {
+public class StrategySettingCore implements StrategySetting {
 
     private LocalDateTime loadTime;
     private final Set<LoggingListener> loggingListeners = new ConcurrentSkipListSet<>();
@@ -19,7 +19,7 @@ class StrategySettingCore implements StrategySetting {
     private final PointTimeCheckerCore alarmPointTime;
     private final Map<String, String> parameters = new HashMap<>();
 
-    StrategySettingCore() {
+    public StrategySettingCore() {
         loadTime = null;
         configuredOpenTime = new EveryTimeCheckerCore();
         configuredCloseTime = new EveryTimeCheckerCore();
@@ -27,7 +27,7 @@ class StrategySettingCore implements StrategySetting {
         alarmPointTime = new PointTimeCheckerCore();
     }
 
-    StrategySettingCore(StrategySettingCore strategySetting) {
+    public StrategySettingCore(StrategySettingCore strategySetting) {
         loadTime = strategySetting.getLoadTime();
         configuredOpenTime = new EveryTimeCheckerCore(strategySetting.configuredOpenTime());
         configuredCloseTime = new EveryTimeCheckerCore(strategySetting.configuredCloseTime());

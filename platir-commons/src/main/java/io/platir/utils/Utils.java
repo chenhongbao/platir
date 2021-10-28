@@ -1,4 +1,4 @@
-package io.platir.util;
+package io.platir.utils;
 
 import java.io.File;
 import java.io.FileNotFoundException;

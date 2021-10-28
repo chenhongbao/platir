@@ -1,6 +1,6 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.EveryTimeChecker;
+import io.platir.setting.EveryTimeChecker;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,16 +11,16 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class EveryTimeCheckerCore implements EveryTimeChecker {
+public class EveryTimeCheckerCore implements EveryTimeChecker {
 
     private final Set<LocalTime> everyTimes = new HashSet<>();
     private final Set<LocalDate> exceptDates = new HashSet<>();
     private final Set<DayOfWeek> exceptDaysOfWeek = new HashSet<>();
 
-    EveryTimeCheckerCore() {
+    public EveryTimeCheckerCore() {
     }
 
-    EveryTimeCheckerCore(EveryTimeChecker everyTimeChecker) {
+    public EveryTimeCheckerCore(EveryTimeChecker everyTimeChecker) {
         everyTimes.addAll(everyTimeChecker.getEveryTimes());
         exceptDates.addAll(everyTimeChecker.getExceptDates());
         exceptDaysOfWeek.addAll(everyTimeChecker.getExceptDaysOfWeek());

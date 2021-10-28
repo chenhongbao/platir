@@ -1,6 +1,6 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import io.platir.engine.PointTimeChecker;
+import io.platir.setting.PointTimeChecker;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,14 +8,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class PointTimeCheckerCore implements PointTimeChecker {
+public class PointTimeCheckerCore implements PointTimeChecker {
 
     private final List<LocalDateTime> times = new LinkedList<>();
 
-    PointTimeCheckerCore() {
+    public PointTimeCheckerCore() {
     }
 
-    PointTimeCheckerCore(PointTimeChecker pointTimeSetter) {
+    public PointTimeCheckerCore(PointTimeChecker pointTimeSetter) {
         times.addAll(pointTimeSetter.getRemainTimes());
     }
 

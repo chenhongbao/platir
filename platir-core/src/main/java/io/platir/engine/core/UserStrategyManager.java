@@ -1,5 +1,6 @@
 package io.platir.engine.core;
 
+import io.platir.commons.StrategyCore;
 import io.platir.engine.AddStrategyException;
 import io.platir.user.UserStrategy;
 

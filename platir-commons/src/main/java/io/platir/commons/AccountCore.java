@@ -1,16 +1,15 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
-import io.platir.engine.AccountSetting;
+import io.platir.setting.AccountSetting;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-class AccountCore implements Account {
+public class AccountCore implements Account {
 
     private String accountId;
     private Double openingMargin;
@@ -26,23 +25,21 @@ class AccountCore implements Account {
     private String tradingDay;
     private String settleDatetime;
     private UserCore user;
-    private AccountSetting accountSetting;
+    private AccountSettingCore accountSetting;
     private final Map<String, StrategyCore> strategies = new ConcurrentHashMap<>();
     private final Map<String, ContractCore> contracts = new ConcurrentHashMap<>();
-
-    @Expose(serialize = false, deserialize = false)
     private final Object syncObject = new Object();
 
-    Object syncObject() {
+    public Object syncObject() {
         return syncObject;
     }
 
-    AccountSetting getAccountSetting() {
+    public AccountSettingCore getAccountSetting() {
         return accountSetting;
     }
 
-    void setAccountRule(AccountSettingCore accountSetting) {
-        this.accountSetting = new AccountSettingCore(accountSetting);
+    public void setAccountRule(AccountSetting accountSetting) {
+        this.accountSetting = new AccountSettingCore((AccountSettingCore) accountSetting);
     }
 
     @Override
@@ -50,7 +47,7 @@ class AccountCore implements Account {
         return accountId;
     }
 
-    void setAccountId(String accountId) {
+    public void setAccountId(String accountId) {
         this.accountId = accountId;
     }
 
@@ -59,7 +56,7 @@ class AccountCore implements Account {
         return openingMargin;
     }
 
-    void setOpeningMargin(Double openingMargin) {
+    public void setOpeningMargin(Double openingMargin) {
         this.openingMargin = openingMargin;
     }
 
@@ -68,7 +65,7 @@ class AccountCore implements Account {
         return openingCommission;
     }
 
-    void setOpeningCommission(Double openingCommission) {
+    public void setOpeningCommission(Double openingCommission) {
         this.openingCommission = openingCommission;
     }
 
@@ -77,7 +74,7 @@ class AccountCore implements Account {
         return closingCommission;
     }
 
-    void setClosingCommission(Double closingCommission) {
+    public void setClosingCommission(Double closingCommission) {
         this.closingCommission = closingCommission;
     }
 
@@ -86,7 +83,7 @@ class AccountCore implements Account {
         return balance;
     }
 
-    void setBalance(Double balance) {
+    public void setBalance(Double balance) {
         this.balance = balance;
     }
 
@@ -95,7 +92,7 @@ class AccountCore implements Account {
         return margin;
     }
 
-    void setMargin(Double margin) {
+    public void setMargin(Double margin) {
         this.margin = margin;
     }
 
@@ -104,7 +101,7 @@ class AccountCore implements Account {
         return commission;
     }
 
-    void setCommission(Double commission) {
+    public void setCommission(Double commission) {
         this.commission = commission;
     }
 
@@ -113,7 +110,7 @@ class AccountCore implements Account {
         return available;
     }
 
-    void setAvailable(Double available) {
+    public void setAvailable(Double available) {
         this.available = available;
     }
 
@@ -122,7 +119,7 @@ class AccountCore implements Account {
         return positionProfit;
     }
 
-    void setPositionProfit(Double positionProfit) {
+    public void setPositionProfit(Double positionProfit) {
         this.positionProfit = positionProfit;
     }
 
@@ -131,7 +128,7 @@ class AccountCore implements Account {
         return closeProfit;
     }
 
-    void setCloseProfit(Double closeProfit) {
+    public void setCloseProfit(Double closeProfit) {
         this.closeProfit = closeProfit;
     }
 
@@ -140,7 +137,7 @@ class AccountCore implements Account {
         return ydBalance;
     }
 
-    void setYdBalance(Double ydBalance) {
+    public void setYdBalance(Double ydBalance) {
         this.ydBalance = ydBalance;
     }
 
@@ -149,7 +146,7 @@ class AccountCore implements Account {
         return tradingDay;
     }
 
-    void setTradingDay(String tradingDay) {
+    public void setTradingDay(String tradingDay) {
         this.tradingDay = tradingDay;
     }
 
@@ -158,7 +155,7 @@ class AccountCore implements Account {
         return settleDatetime;
     }
 
-    void setSettleDatetime(String datetime) {
+    public void setSettleDatetime(String datetime) {
         this.settleDatetime = datetime;
     }
 
@@ -181,15 +178,15 @@ class AccountCore implements Account {
         }).collect(Collectors.toSet());
     }
 
-    Map<String, StrategyCore> strategies() {
+    public Map<String, StrategyCore> strategies() {
         return strategies;
     }
 
-    Map<String, ContractCore> contracts() {
+    public Map<String, ContractCore> contracts() {
         return contracts;
     }
 
-    void setUser(UserCore user) {
+    public void setUser(UserCore user) {
         this.user = user;
     }
 

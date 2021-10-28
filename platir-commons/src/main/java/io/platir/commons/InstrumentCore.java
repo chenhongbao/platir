@@ -1,8 +1,8 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
 import io.platir.Instrument;
 
-class InstrumentCore implements Instrument {
+public class InstrumentCore implements Instrument {
 
     private String instrumentId;
     private String exchangeId;
@@ -18,7 +18,7 @@ class InstrumentCore implements Instrument {
         return instrumentId;
     }
 
-    void setInstrumentId(String instrumentId) {
+    public void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -27,7 +27,7 @@ class InstrumentCore implements Instrument {
         return exchangeId;
     }
 
-    void setExchangeId(String exchangeId) {
+    public void setExchangeId(String exchangeId) {
         this.exchangeId = exchangeId;
     }
 
@@ -36,7 +36,7 @@ class InstrumentCore implements Instrument {
         return multiple;
     }
 
-    void setMultiple(Double multiple) {
+    public void setMultiple(Double multiple) {
         this.multiple = multiple;
     }
 
@@ -45,7 +45,7 @@ class InstrumentCore implements Instrument {
         return commissionByQuantity;
     }
 
-    void setCommissionByQuantity(Double commissionByQuantity) {
+    public void setCommissionByQuantity(Double commissionByQuantity) {
         this.commissionByQuantity = commissionByQuantity;
     }
 
@@ -54,7 +54,7 @@ class InstrumentCore implements Instrument {
         return commissionByAmount;
     }
 
-    void setCommissionByAmount(Double commissionByAmount) {
+    public void setCommissionByAmount(Double commissionByAmount) {
         this.commissionByAmount = commissionByAmount;
     }
 
@@ -63,7 +63,7 @@ class InstrumentCore implements Instrument {
         return marginByQuantity;
     }
 
-    void setMarginByQuantity(Double marginByQuantity) {
+    public void setMarginByQuantity(Double marginByQuantity) {
         this.marginByQuantity = marginByQuantity;
     }
 
@@ -72,7 +72,7 @@ class InstrumentCore implements Instrument {
         return marginByAmount;
     }
 
-    void setMarginByAmount(Double marginByAmount) {
+    public void setMarginByAmount(Double marginByAmount) {
         this.marginByAmount = marginByAmount;
     }
 
@@ -81,7 +81,7 @@ class InstrumentCore implements Instrument {
         return updateDatetime;
     }
 
-    void setUpdateDatetime(String datetime) {
+    public void setUpdateDatetime(String datetime) {
         this.updateDatetime = datetime;
     }
 

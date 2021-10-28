@@ -1,6 +1,5 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import com.google.gson.annotations.Expose;
 import io.platir.Order;
 import io.platir.Transaction;
 import java.util.Collection;
@@ -8,7 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-class TransactionCore implements Transaction {
+public class TransactionCore implements Transaction {
 
     private String state;
     private String transactionId;
@@ -20,8 +19,8 @@ class TransactionCore implements Transaction {
     private String tradingDay;
     private String updateDatetime;
     private String offset;
-    private final Map<String, OrderCore> orders = new ConcurrentHashMap<>();
     private StrategyCore strategy;
+    private final Map<String, OrderCore> orders = new ConcurrentHashMap<>();
 
     @Override
     public String getState() {
@@ -35,7 +34,7 @@ class TransactionCore implements Transaction {
         }).collect(Collectors.toSet());
     }
 
-    void setState(String state) {
+    public void setState(String state) {
         this.state = state;
     }
 
@@ -44,7 +43,7 @@ class TransactionCore implements Transaction {
         return transactionId;
     }
 
-    void setTransactionId(String transactionId) {
+    public void setTransactionId(String transactionId) {
         this.transactionId = transactionId;
     }
 
@@ -53,7 +52,7 @@ class TransactionCore implements Transaction {
         return instrumentId;
     }
 
-    void setInstrumentId(String instrumentId) {
+    public void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -62,7 +61,7 @@ class TransactionCore implements Transaction {
         return exchangeId;
     }
 
-    void setExchangeId(String exchangeId) {
+    public void setExchangeId(String exchangeId) {
         this.exchangeId = exchangeId;
     }
 
@@ -71,7 +70,7 @@ class TransactionCore implements Transaction {
         return price;
     }
 
-    void setPrice(Double price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 
@@ -80,7 +79,7 @@ class TransactionCore implements Transaction {
         return quantity;
     }
 
-    void setQuantity(Integer quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
@@ -89,7 +88,7 @@ class TransactionCore implements Transaction {
         return direction;
     }
 
-    void setDirection(String direction) {
+    public void setDirection(String direction) {
         this.direction = direction;
     }
 
@@ -98,7 +97,7 @@ class TransactionCore implements Transaction {
         return tradingDay;
     }
 
-    void setTradingDay(String tradingDay) {
+    public void setTradingDay(String tradingDay) {
         this.tradingDay = tradingDay;
     }
 
@@ -107,7 +106,7 @@ class TransactionCore implements Transaction {
         return updateDatetime;
     }
 
-    void setUpdateDatetime(String datetime) {
+    public void setUpdateDatetime(String datetime) {
         this.updateDatetime = datetime;
     }
 
@@ -116,7 +115,7 @@ class TransactionCore implements Transaction {
         return offset;
     }
 
-    void setOffset(String offset) {
+    public void setOffset(String offset) {
         this.offset = offset;
     }
 
@@ -125,11 +124,11 @@ class TransactionCore implements Transaction {
         return strategy;
     }
 
-    Map<String, OrderCore> orders() {
+    public Map<String, OrderCore> orders() {
         return orders;
     }
 
-    void setStrategy(StrategyCore strategy) {
+    public void setStrategy(StrategyCore strategy) {
         this.strategy = strategy;
     }
 

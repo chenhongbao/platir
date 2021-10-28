@@ -1,36 +1,32 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
-import com.google.gson.annotations.Expose;
 import io.platir.Strategy;
 import io.platir.Transaction;
-import io.platir.engine.StrategySetting;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-class StrategyCore implements Strategy {
+public class StrategyCore implements Strategy {
 
     private String createDatetime;
     private String removeDatetime;
     private String strategyId;
     private String state;
-    private final Map<String, TransactionCore> transactions = new ConcurrentHashMap<>();
-    private StrategySetting strategySetting;
+    private StrategySettingCore strategySetting;
     private AccountCore account;
-
-    @Expose(serialize = false, deserialize = false)
+    private final Map<String, TransactionCore> transactions = new ConcurrentHashMap<>();
     private final Object syncObject = new Object();
 
-    Object syncObject() {
+    public Object syncObject() {
         return syncObject;
     }
 
-    StrategySetting getStrategySetting() {
+    public StrategySettingCore getStrategySetting() {
         return strategySetting;
     }
 
-    void setStrategySetting(StrategySettingCore strategySetting) {
+    public void setStrategySetting(StrategySettingCore strategySetting) {
         this.strategySetting = new StrategySettingCore(strategySetting);
     }
 
@@ -39,7 +35,7 @@ class StrategyCore implements Strategy {
         return createDatetime;
     }
 
-    void setCreateDatetime(String datetime) {
+    public void setCreateDatetime(String datetime) {
         this.createDatetime = datetime;
     }
 
@@ -48,7 +44,7 @@ class StrategyCore implements Strategy {
         return removeDatetime;
     }
 
-    void setRemoveDatetime(String dateTime) {
+    public void setRemoveDatetime(String dateTime) {
         this.removeDatetime = dateTime;
     }
 
@@ -57,7 +53,7 @@ class StrategyCore implements Strategy {
         return strategyId;
     }
 
-    void setStrategyId(String strategyId) {
+    public void setStrategyId(String strategyId) {
         this.strategyId = strategyId;
     }
 
@@ -66,7 +62,7 @@ class StrategyCore implements Strategy {
         return state;
     }
 
-    void setState(String state) {
+    public void setState(String state) {
         this.state = state;
     }
 
@@ -82,11 +78,11 @@ class StrategyCore implements Strategy {
         }).collect(Collectors.toSet());
     }
 
-    Map<String, TransactionCore> transactions() {
+    public Map<String, TransactionCore> transactions() {
         return transactions;
     }
 
-    void setAccount(AccountCore account) {
+    public void setAccount(AccountCore account) {
         this.account = account;
     }
 

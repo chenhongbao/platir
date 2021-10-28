@@ -1,8 +1,8 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
 import io.platir.Contract;
 
-class ContractCore implements Contract {
+public class ContractCore implements Contract {
 
     private String contractId;
     private String accountId;
@@ -21,7 +21,7 @@ class ContractCore implements Contract {
         return contractId;
     }
 
-    void setContractId(String contractId) {
+    public void setContractId(String contractId) {
         this.contractId = contractId;
     }
 
@@ -30,7 +30,7 @@ class ContractCore implements Contract {
         return accountId;
     }
 
-    void setAccountId(String accountId) {
+    public void setAccountId(String accountId) {
         this.accountId = accountId;
     }
 
@@ -39,7 +39,7 @@ class ContractCore implements Contract {
         return instrumentId;
     }
 
-    void setInstrumentId(String instrumentId) {
+    public void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -48,7 +48,7 @@ class ContractCore implements Contract {
         return exchangeId;
     }
 
-    void setExchangeId(String exchangeId) {
+    public void setExchangeId(String exchangeId) {
         this.exchangeId = exchangeId;
     }
 
@@ -57,7 +57,7 @@ class ContractCore implements Contract {
         return direction;
     }
 
-    void setDirection(String direction) {
+    public void setDirection(String direction) {
         this.direction = direction;
     }
 
@@ -66,7 +66,7 @@ class ContractCore implements Contract {
         return price;
     }
 
-    void setPrice(Double price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 
@@ -75,7 +75,7 @@ class ContractCore implements Contract {
         return state;
     }
 
-    void setState(String state) {
+    public void setState(String state) {
         this.state = state;
     }
 
@@ -84,7 +84,7 @@ class ContractCore implements Contract {
         return openTradingDay;
     }
 
-    void setOpenTradingDay(String openTradingDay) {
+    public void setOpenTradingDay(String openTradingDay) {
         this.openTradingDay = openTradingDay;
     }
 
@@ -93,7 +93,7 @@ class ContractCore implements Contract {
         return openDatetime;
     }
 
-    void setOpenDatetime(String datetime) {
+    public void setOpenDatetime(String datetime) {
         this.openDatetime = datetime;
     }
 
@@ -102,7 +102,7 @@ class ContractCore implements Contract {
         return closePrice;
     }
 
-    void setClosePrice(Double closePrice) {
+    public void setClosePrice(Double closePrice) {
         this.closePrice = closePrice;
     }
 
@@ -111,7 +111,7 @@ class ContractCore implements Contract {
         return settlementTradingDay;
     }
 
-    void setSettlementTradingDay(String settlementTradingDay) {
+    public void setSettlementTradingDay(String settlementTradingDay) {
         this.settlementTradingDay = settlementTradingDay;
     }
 

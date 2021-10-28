@@ -1,8 +1,8 @@
-package io.platir.engine.core;
+package io.platir.commons;
 
 import io.platir.Trade;
 
-class TradeCore implements Trade {
+public class TradeCore implements Trade {
 
     private String tradeId;
     private String instrumentId;
@@ -29,7 +29,7 @@ class TradeCore implements Trade {
         return tradeId;
     }
 
-    void setTradeId(String tradeId) {
+    public void setTradeId(String tradeId) {
         this.tradeId = tradeId;
     }
 
@@ -38,7 +38,7 @@ class TradeCore implements Trade {
         return instrumentId;
     }
 
-    void setInstrumentId(String instrumentId) {
+    public void setInstrumentId(String instrumentId) {
         this.instrumentId = instrumentId;
     }
 
@@ -47,7 +47,7 @@ class TradeCore implements Trade {
         return price;
     }
 
-    void setPrice(Double price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 
@@ -56,7 +56,7 @@ class TradeCore implements Trade {
         return quantity;
     }
 
-    void setQuantity(Integer quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
@@ -65,7 +65,7 @@ class TradeCore implements Trade {
         return direction;
     }
 
-    void setDirection(String direction) {
+    public void setDirection(String direction) {
         this.direction = direction;
     }
 
@@ -74,7 +74,7 @@ class TradeCore implements Trade {
         return offset;
     }
 
-    void setOffset(String offset) {
+    public void setOffset(String offset) {
         this.offset = offset;
     }
 
@@ -83,7 +83,7 @@ class TradeCore implements Trade {
         return tradingDay;
     }
 
-    void setTradingDay(String tradingDay) {
+    public void setTradingDay(String tradingDay) {
         this.tradingDay = tradingDay;
     }
 
@@ -92,7 +92,7 @@ class TradeCore implements Trade {
         return updateDatetime;
     }
 
-    void setUpdateDatetime(String datetime) {
+    public void setUpdateDatetime(String datetime) {
         this.updateDatetime = datetime;
     }
 
@@ -101,7 +101,7 @@ class TradeCore implements Trade {
         return order;
     }
 
-    void setOrder(OrderCore order) {
+    public void setOrder(OrderCore order) {
         this.order = order;
     }
 
