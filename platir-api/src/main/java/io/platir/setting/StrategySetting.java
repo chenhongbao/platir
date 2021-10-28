@@ -17,9 +17,18 @@ public interface StrategySetting {
 
     EveryTimeChecker configuredOpenTime();
 
-    LocalDateTime getLoadTime();
+    LocalDateTime getLoadDatetime();
 
-    void setLoadTime(LocalDateTime loadTime);
+    /**
+     * Set strategy loading datetime.
+     * <p>
+     * If the specified datetime is past and the strategy is not loaded, load
+     * the strategy once and only once. Upon loading strategy,
+     * {@linkplain io.platir.user.UserStrategy#onLoad UserStrategy.onLoad} is called.
+     *
+     * @param datetime datetime when the specified strategy is loaded
+     */
+    void setLoadDatetime(LocalDateTime datetime);
 
     Set<LoggingListener> getLoggingListeners();
 

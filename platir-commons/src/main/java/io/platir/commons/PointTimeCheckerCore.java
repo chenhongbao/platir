@@ -49,6 +49,7 @@ public class PointTimeCheckerCore implements PointTimeChecker {
                 break;
             } else if (alignTime.compareTo(next) == 0) {
                 hit = true;
+                /* Remove obsolete datetime. */
                 iterator.remove();
             } else {
                 iterator.remove();

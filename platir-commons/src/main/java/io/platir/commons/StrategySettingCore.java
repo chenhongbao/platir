@@ -3,6 +3,7 @@ package io.platir.commons;
 import io.platir.setting.StrategySetting;
 import io.platir.LoggingListener;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class StrategySettingCore implements StrategySetting {
     }
 
     public StrategySettingCore(StrategySettingCore strategySetting) {
-        loadTime = strategySetting.getLoadTime();
+        loadTime = strategySetting.getLoadDatetime();
         configuredOpenTime = new EveryTimeCheckerCore(strategySetting.configuredOpenTime());
         configuredCloseTime = new EveryTimeCheckerCore(strategySetting.configuredCloseTime());
         alarmEveryTime = new EveryTimeCheckerCore(strategySetting.alarmEveryTime());
@@ -47,13 +48,13 @@ public class StrategySettingCore implements StrategySetting {
     }
 
     @Override
-    public LocalDateTime getLoadTime() {
+    public LocalDateTime getLoadDatetime() {
         return loadTime;
     }
 
     @Override
-    public void setLoadTime(LocalDateTime loadTime) {
-        this.loadTime = loadTime;
+    public void setLoadDatetime(LocalDateTime datetime) {
+        this.loadTime = LocalDateTime.of(datetime.getYear(), datetime.getMonthValue(), datetime.getDayOfMonth(), datetime.getHour(), datetime.getMinute());
     }
 
     @Override

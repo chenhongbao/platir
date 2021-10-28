@@ -5,14 +5,14 @@ import java.util.Set;
 
 public interface GlobalSetting {
 
-    void addLoggingListener(LoggingListener loggingListener);
+    boolean isMarketDataParallel();
 
     Set<LoggingListener> getLoggingListeners();
-
-    boolean isMarketDataParallel();
 
     EveryTimeChecker reinitTime();
 
     void setMarketDataParallel(Boolean parallel);
+
+    void addLoggingListener(LoggingListener loggingListener);
 
 }

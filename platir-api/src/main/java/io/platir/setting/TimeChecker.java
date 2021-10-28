@@ -3,5 +3,5 @@ package io.platir.setting;
 import java.time.LocalDateTime;
 
 public interface TimeChecker {
-    boolean check(LocalDateTime time);
+    boolean check(LocalDateTime datetime);
 }

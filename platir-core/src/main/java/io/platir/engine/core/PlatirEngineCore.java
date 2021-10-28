@@ -7,6 +7,7 @@ import io.platir.Strategy;
 import io.platir.User;
 import io.platir.broker.MarketDataService;
 import io.platir.broker.TradingService;
+import io.platir.commons.GlobalSettingCore;
 import io.platir.setting.AccountSetting;
 import io.platir.engine.AddAccountException;
 import io.platir.engine.AddStrategyException;
@@ -25,7 +26,6 @@ import io.platir.user.UserStrategy;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PlatirEngineCore extends PlatirEngine {
@@ -38,6 +38,8 @@ public class PlatirEngineCore extends PlatirEngine {
     private TradingService tradingService;
     private MarketDataService marketDataService;
 
+    private GlobalSettingCore globalSetting;
+
     private static final Logger engineLogger = Logger.getLogger(PlatirEngineCore.class.getSimpleName());
     private static final ExecutorService threads = Executors.newCachedThreadPool();
 
@@ -48,7 +50,27 @@ public class PlatirEngineCore extends PlatirEngine {
     static Logger logger() {
         return engineLogger;
     }
-    
+
+    GlobalSettingCore getGlobalSetting() {
+        return globalSetting;
+    }
+
+    UserManager getUserManager() {
+        return userManager;
+    }
+
+    UserStrategyManager getUserStrategyManager() {
+        return userStrategyManager;
+    }
+
+    TradingAdapter getTradingAdapter() {
+        return tradingAdapter;
+    }
+
+    MarketDataAdapter getMarketDataAdapter() {
+        return marketDataAdapter;
+    }
+
     @Override
     public SettingFactory getSettingFactory() {
         return new SettingFactoryCore();
@@ -80,13 +102,14 @@ public class PlatirEngineCore extends PlatirEngine {
     }
 
     @Override
-    public User addUser(String userId, String password, UserSetting userRule) throws AddUserException {
-        return userManager.addUser(userId, password, userRule);
+    public User addUser(String userId, String password, UserSetting userSetting) throws AddUserException {
+        return userManager.addUser(userId, password, userSetting);
     }
 
     @Override
-    public Account addAccount(Double initialBalance, User user, AccountSetting accountRule) throws AddAccountException {
-        return userManager.addAccount(initialBalance, user, accountRule);
+    public Account addAccount(Double initialBalance, User user, AccountSetting accountSetting) throws AddAccountException {
+        // TODO Set timer job.
+        return userManager.addAccount(initialBalance, user, accountSetting);
     }
 
     @Override
@@ -95,10 +118,10 @@ public class PlatirEngineCore extends PlatirEngine {
     }
 
     @Override
-    public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategySetting strategyRule) throws AddStrategyException {
-        StrategyCore newStrategy = userManager.addStrategy(account, strategyRule);
+    public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategySetting strategySetting) throws AddStrategyException {
+        StrategyCore newStrategy = userManager.addStrategy(account, strategySetting);
         userStrategyManager.addUserStrategy(newStrategy, userStrategy);
-        callbackOnload(newStrategy);
+        // TODO Set timer jobs.
         return newStrategy;
     }
 
@@ -123,12 +146,4 @@ public class PlatirEngineCore extends PlatirEngine {
         userStrategyManager.removeUserStrategy(userManager.removeStrategy(strategy.getStrategyId(), strategy.getAccount()));
     }
 
-    private void callbackOnload(StrategyCore strategy) {
-        try {
-            userStrategyManager.getLookup().findStrategy(strategy)
-                    .onLoad(new UserSession((StrategyCore) strategy, tradingAdapter, marketDataAdapter, userStrategyManager.getLoggingManager().getLoggingHandler(strategy)));
-        } catch (NoSuchUserStrategyException exception) {
-            logger().log(Level.SEVERE, "No user strategy found for strategy {0}.", strategy.getStrategyId());
-        }
-    }
 }

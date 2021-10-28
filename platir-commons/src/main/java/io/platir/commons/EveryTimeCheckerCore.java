@@ -27,12 +27,10 @@ public class EveryTimeCheckerCore implements EveryTimeChecker {
     }
 
     @Override
-    public boolean check(LocalDateTime time) {
-        var alignTime = LocalTime.of(time.getHour(), time.getMinute());
-        var today = LocalDate.now();
-        return everyTimes.contains(alignTime)
-                && !exceptDates.contains(today)
-                && !exceptDaysOfWeek.contains(today.getDayOfWeek());
+    public boolean check(LocalDateTime datetime) {
+        var alignTime = LocalTime.of(datetime.getHour(), datetime.getMinute());
+        var date = datetime.toLocalDate();
+        return everyTimes.contains(alignTime) && !exceptDates.contains(date) && !exceptDaysOfWeek.contains(date.getDayOfWeek());
     }
 
     @Override
