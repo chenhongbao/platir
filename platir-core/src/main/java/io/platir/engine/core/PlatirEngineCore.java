@@ -15,6 +15,7 @@ import io.platir.engine.PlatirEngine;
 import io.platir.engine.RemoveAccountException;
 import io.platir.engine.RemoveStrategyException;
 import io.platir.engine.RunStrategyException;
+import io.platir.engine.SettingFactory;
 import io.platir.engine.StopStrategyException;
 import io.platir.engine.StrategySetting;
 import io.platir.engine.UserSetting;
@@ -44,6 +45,11 @@ public class PlatirEngineCore extends PlatirEngine {
 
     static Logger logger() {
         return engineLogger;
+    }
+    
+    @Override
+    public SettingFactory getSettingFactory() {
+        return new SettingFactoryCore();
     }
 
     @Override

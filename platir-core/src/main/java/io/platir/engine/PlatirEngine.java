@@ -14,6 +14,8 @@ public abstract class PlatirEngine {
     public static PlatirEngine newEngine() {
         return new PlatirEngineCore();
     }
+    
+    public abstract SettingFactory getSettingFactory();
 
     public abstract void setUseService(TradingService tradingService);
 

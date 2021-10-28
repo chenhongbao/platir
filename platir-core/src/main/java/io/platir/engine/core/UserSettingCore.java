@@ -1,4 +1,4 @@
-package io.platir.engine.setting;
+package io.platir.engine.core;
 
 import io.platir.engine.UserSetting;
 
@@ -10,7 +10,7 @@ final class UserSettingCore implements UserSetting {
     UserSettingCore() {
     }
 
-    UserSettingCore(UserSetting userSetting) {
+    UserSettingCore(UserSettingCore userSetting) {
         maxAccountCount.set(userSetting.maxAccountCount().get());
         maxInitialBalance.set(userSetting.maxInitialBalance().get());
     }

@@ -31,27 +31,27 @@ class UserManager {
         return new HashSet<>(users.values());
     }
 
-    private UserCore computeUser(String userId, String password, UserSetting userRule) {
+    private UserCore computeUser(String userId, String password, UserSetting userSetting) {
         var userCore = new UserCore();
         userCore.setCreateDatetime(Utils.datetime());
         userCore.setUserId(userId);
         userCore.setPassword(password);
-        userCore.setUserSetting(userRule);
+        userCore.setUserSetting((UserSettingCore) userSetting);
         users.put(userId, userCore);
         return userCore;
     }
 
-    UserCore addUser(String userId, String password, UserSetting userRule) throws AddUserException {
+    UserCore addUser(String userId, String password, UserSetting userSetting) throws AddUserException {
         if (users.containsKey(userId)) {
             throw new AddUserException("Duplicated user ID " + userId + ".");
         }
-        return computeUser(userId, password, userRule);
+        return computeUser(userId, password, userSetting);
     }
 
-    private AccountCore computeAccount(Double initialBalance, UserCore userCore, AccountSetting accountRule) {
+    private AccountCore computeAccount(Double initialBalance, UserCore userCore, AccountSettingCore accountSetting) {
         var accountCore = new AccountCore();
         accountCore.setAccountId(userCore.getUserId() + "-" + accountIdCounter.incrementAndGet());
-        accountCore.setAccountRule(accountRule);
+        accountCore.setAccountRule(accountSetting);
         accountCore.setAvailable(initialBalance);
         accountCore.setBalance(initialBalance);
         accountCore.setCloseProfit(0D);
@@ -67,7 +67,7 @@ class UserManager {
         return accountCore;
     }
 
-    AccountCore addAccount(Double initialBalance, User user, AccountSetting accountRule) throws AddAccountException {
+    AccountCore addAccount(Double initialBalance, User user, AccountSetting accountSetting) throws AddAccountException {
         var userCore = (UserCore) user;
         var userRule = userCore.getUserSetting();
         if (!userRule.maxAccountCount().check(userCore.getAccounts().size() + 1)) {
@@ -76,7 +76,7 @@ class UserManager {
         if (!userRule.maxInitialBalance().check(initialBalance)) {
             throw new AddAccountException("Initial account balance under user(" + userCore.getUserId() + ") exceeds limit " + userRule.maxInitialBalance().get() + ".");
         }
-        return computeAccount(initialBalance, userCore, accountRule);
+        return computeAccount(initialBalance, userCore, (AccountSettingCore) accountSetting);
     }
 
     private boolean isAccountRemovable(AccountCore accountCore) {
@@ -104,12 +104,12 @@ class UserManager {
         return userCore.accounts().remove(accountId);
     }
 
-    private StrategyCore computeStrategy(AccountCore accountCore, StrategySetting strategyRule) {
+    private StrategyCore computeStrategy(AccountCore accountCore, StrategySetting strategySetting) {
         var strategyCore = new StrategyCore();
         strategyCore.setAccount(accountCore);
         strategyCore.setCreateDatetime(Utils.date());
         strategyCore.setState(Strategy.NORMAL);
-        strategyCore.setStrategySetting(strategyRule);
+        strategyCore.setStrategySetting((StrategySettingCore) strategySetting);
         strategyCore.setStrategyId(Utils.date() + "-" + strategyIdCounter.incrementAndGet());
         synchronized (accountCore.syncObject()) {
             accountCore.strategies().put(strategyCore.getStrategyId(), strategyCore);
@@ -117,13 +117,13 @@ class UserManager {
         return strategyCore;
     }
 
-    StrategyCore addStrategy(Account account, StrategySetting strategyRule) throws AddStrategyException {
+    StrategyCore addStrategy(Account account, StrategySetting strategySetting) throws AddStrategyException {
         var accountCore = (AccountCore) account;
         var rule = accountCore.getAccountSetting().maxStrategyCount();
         if (!rule.check(account.getStrategies().size() + 1)) {
             throw new AddStrategyException("User strategies number under account(" + accountCore.getAccountId() + ") exceeds limit " + rule.get() + ".");
         }
-        return computeStrategy(accountCore, strategyRule);
+        return computeStrategy(accountCore, strategySetting);
     }
 
     private void checkStrategyRemovable(StrategyCore strategyCore) throws RemoveStrategyException {

@@ -3,7 +3,6 @@ package io.platir.engine.core;
 import io.platir.Account;
 import io.platir.User;
 import io.platir.engine.UserSetting;
-import io.platir.engine.setting.SettingFactory;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,8 +21,8 @@ class UserCore implements User {
         return userSetting;
     }
 
-    void setUserSetting(UserSetting userSetting) {
-        this.userSetting = SettingFactory.newUserSetting(userSetting);
+    void setUserSetting(UserSettingCore userSetting) {
+        this.userSetting = new UserSettingCore(userSetting);
     }
 
     @Override

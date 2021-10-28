@@ -1,4 +1,4 @@
-package io.platir.engine.setting;
+package io.platir.engine.core;
 
 import io.platir.engine.EveryTimeChecker;
 import java.time.DayOfWeek;

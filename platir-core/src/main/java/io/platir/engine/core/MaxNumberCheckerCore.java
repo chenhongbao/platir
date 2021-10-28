@@ -1,4 +1,4 @@
-package io.platir.engine.setting;
+package io.platir.engine.core;
 
 import java.util.concurrent.atomic.AtomicReference;
 import io.platir.engine.MaxNumberChecker;

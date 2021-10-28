@@ -5,7 +5,6 @@ import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
 import io.platir.engine.AccountSetting;
-import io.platir.engine.setting.SettingFactory;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,8 +41,8 @@ class AccountCore implements Account {
         return accountSetting;
     }
 
-    void setAccountRule(AccountSetting accountSetting) {
-        this.accountSetting = SettingFactory.newAccountSetting(accountSetting);
+    void setAccountRule(AccountSettingCore accountSetting) {
+        this.accountSetting = new AccountSettingCore(accountSetting);
     }
 
     @Override

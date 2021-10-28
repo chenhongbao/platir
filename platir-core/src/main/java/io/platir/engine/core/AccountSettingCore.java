@@ -1,4 +1,4 @@
-package io.platir.engine.setting;
+package io.platir.engine.core;
 
 import io.platir.engine.AccountSetting;
 
@@ -11,7 +11,7 @@ class AccountSettingCore implements AccountSetting {
         settlementTime = new EveryTimeCheckerCore();
     }
 
-    AccountSettingCore(AccountSetting accountSetting) {
+    AccountSettingCore(AccountSettingCore accountSetting) {
         maxStrategyCount.set(accountSetting.maxStrategyCount().get());
         settlementTime = new EveryTimeCheckerCore(accountSetting.settlementTime());
     }

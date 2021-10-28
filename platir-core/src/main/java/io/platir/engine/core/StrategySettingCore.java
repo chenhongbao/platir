@@ -1,4 +1,4 @@
-package io.platir.engine.setting;
+package io.platir.engine.core;
 
 import io.platir.engine.StrategySetting;
 import io.platir.LoggingListener;
@@ -27,7 +27,7 @@ class StrategySettingCore implements StrategySetting {
         alarmPointTime = new PointTimeCheckerCore();
     }
 
-    StrategySettingCore(StrategySetting strategySetting) {
+    StrategySettingCore(StrategySettingCore strategySetting) {
         loadTime = strategySetting.getLoadTime();
         configuredOpenTime = new EveryTimeCheckerCore(strategySetting.configuredOpenTime());
         configuredCloseTime = new EveryTimeCheckerCore(strategySetting.configuredCloseTime());

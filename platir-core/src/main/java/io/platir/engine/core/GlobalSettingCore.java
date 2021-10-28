@@ -1,4 +1,4 @@
-package io.platir.engine.setting;
+package io.platir.engine.core;
 
 import io.platir.engine.GlobalSetting;
 import io.platir.LoggingListener;
