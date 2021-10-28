@@ -1,5 +1,6 @@
-package io.platir.engine.rule;
+package io.platir.engine.setting;
 
+import io.platir.engine.EveryTimeChecker;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,19 +11,19 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class EveryTimeSetter extends TimeSetter {
+class EveryTimeCheckerCore implements EveryTimeChecker {
 
     private final Set<LocalTime> everyTimes = new HashSet<>();
     private final Set<LocalDate> exceptDates = new HashSet<>();
     private final Set<DayOfWeek> exceptDaysOfWeek = new HashSet<>();
 
-    public EveryTimeSetter() {
+    EveryTimeCheckerCore() {
     }
 
-    public EveryTimeSetter(EveryTimeSetter everyTimeSetter) {
-        everyTimes.addAll(everyTimeSetter.getEveryTimes());
-        exceptDates.addAll(everyTimeSetter.getExceptDates());
-        exceptDaysOfWeek.addAll(everyTimeSetter.getExceptDaysOfWeek());
+    EveryTimeCheckerCore(EveryTimeChecker everyTimeChecker) {
+        everyTimes.addAll(everyTimeChecker.getEveryTimes());
+        exceptDates.addAll(everyTimeChecker.getExceptDates());
+        exceptDaysOfWeek.addAll(everyTimeChecker.getExceptDaysOfWeek());
     }
 
     @Override
@@ -34,39 +35,47 @@ public class EveryTimeSetter extends TimeSetter {
                 && !exceptDaysOfWeek.contains(today.getDayOfWeek());
     }
 
+    @Override
     public Set<LocalTime> getEveryTimes() {
         return new HashSet<>(everyTimes);
     }
 
+    @Override
     public Set<LocalDate> getExceptDates() {
         return new HashSet<>(exceptDates);
     }
 
+    @Override
     public Set<DayOfWeek> getExceptDaysOfWeek() {
         return new HashSet<>(exceptDaysOfWeek);
     }
 
-    public EveryTimeSetter every(LocalTime... times) {
+    @Override
+    public EveryTimeCheckerCore every(LocalTime... times) {
         return every(Arrays.asList(times));
     }
 
-    public EveryTimeSetter every(Collection<LocalTime> times) {
+    @Override
+    public EveryTimeCheckerCore every(Collection<LocalTime> times) {
         everyTimes.addAll(times.stream()
                 .map(time -> LocalTime.of(time.getHour(), time.getMinute()))
                 .collect(Collectors.toSet()));
         return this;
     }
 
-    public EveryTimeSetter except(LocalDate... dates) {
+    @Override
+    public EveryTimeCheckerCore except(LocalDate... dates) {
         return except(Arrays.asList(dates));
     }
 
-    public EveryTimeSetter except(Collection<LocalDate> dates) {
+    @Override
+    public EveryTimeCheckerCore except(Collection<LocalDate> dates) {
         exceptDates.addAll(dates);
         return this;
     }
 
-    public EveryTimeSetter except(DayOfWeek... daysOfWeek) {
+    @Override
+    public EveryTimeCheckerCore except(DayOfWeek... daysOfWeek) {
         exceptDaysOfWeek.addAll(Arrays.asList(daysOfWeek));
         return this;
     }

@@ -1,15 +1,11 @@
 package io.platir.engine;
 
-import io.platir.engine.rule.StrategySetting;
-import io.platir.engine.rule.UserSetting;
-import io.platir.engine.rule.AccountSetting;
 import io.platir.Account;
 import io.platir.Strategy;
 import io.platir.User;
 import io.platir.broker.MarketDataService;
 import io.platir.broker.TradingService;
 import io.platir.engine.core.PlatirEngineCore;
-import io.platir.engine.rule.GlobalSetting;
 import io.platir.user.UserStrategy;
 import java.util.Set;
 

@@ -1,9 +1,9 @@
 package io.platir.engine.core;
 
-import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.User;
-import io.platir.engine.rule.UserSetting;
+import io.platir.engine.UserSetting;
+import io.platir.engine.setting.SettingFactory;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +23,7 @@ class UserCore implements User {
     }
 
     void setUserSetting(UserSetting userSetting) {
-        this.userSetting = new UserSetting(userSetting);
+        this.userSetting = SettingFactory.newUserSetting(userSetting);
     }
 
     @Override

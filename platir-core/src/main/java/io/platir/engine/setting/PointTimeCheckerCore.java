@@ -1,5 +1,6 @@
-package io.platir.engine.rule;
+package io.platir.engine.setting;
 
+import io.platir.engine.PointTimeChecker;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -7,22 +8,24 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class PointTimeSetter extends TimeSetter {
+class PointTimeCheckerCore implements PointTimeChecker {
 
     private final List<LocalDateTime> times = new LinkedList<>();
 
-    public PointTimeSetter() {
+    PointTimeCheckerCore() {
     }
 
-    public PointTimeSetter(PointTimeSetter pointTimeSetter) {
+    PointTimeCheckerCore(PointTimeChecker pointTimeSetter) {
         times.addAll(pointTimeSetter.getRemainTimes());
     }
 
-    public PointTimeSetter at(LocalDateTime... times) {
+    @Override
+    public PointTimeCheckerCore at(LocalDateTime... times) {
         return at(Arrays.asList(times));
     }
 
-    public PointTimeSetter at(Collection<LocalDateTime> times) {
+    @Override
+    public PointTimeCheckerCore at(Collection<LocalDateTime> times) {
         this.times.addAll(times.stream()
                 .map(time -> LocalDateTime.of(time.getYear(), time.getMonthValue(), time.getDayOfMonth(), time.getHour(), time.getMinute()))
                 .collect(Collectors.toSet()));
@@ -30,6 +33,7 @@ public class PointTimeSetter extends TimeSetter {
         return this;
     }
 
+    @Override
     public List<LocalDateTime> getRemainTimes() {
         return new LinkedList<>(times);
     }

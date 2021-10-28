@@ -3,7 +3,8 @@ package io.platir.engine.core;
 import com.google.gson.annotations.Expose;
 import io.platir.Strategy;
 import io.platir.Transaction;
-import io.platir.engine.rule.StrategySetting;
+import io.platir.engine.StrategySetting;
+import io.platir.engine.setting.SettingFactory;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +32,7 @@ class StrategyCore implements Strategy {
     }
 
     void setStrategySetting(StrategySetting strategySetting) {
-        this.strategySetting = new StrategySetting(strategySetting);
+        this.strategySetting = SettingFactory.newStrategySetting(strategySetting);
     }
 
     @Override
