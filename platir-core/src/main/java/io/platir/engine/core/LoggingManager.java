@@ -4,12 +4,9 @@ import io.platir.commons.StrategyCore;
 import java.util.logging.Handler;
 
 class LoggingManager {
-    // TODO Implement LoggingManager.
+
     Handler getLoggingHandler(StrategyCore strategy) {
-        throw new UnsupportedOperationException("Unsuported operation.");
+        return new LoggingDispatcher(strategy);
     }
 
-    void removeStrategy(StrategyCore strategy) {
-
-    }
 }

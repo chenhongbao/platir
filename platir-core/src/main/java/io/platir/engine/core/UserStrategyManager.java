@@ -17,7 +17,6 @@ class UserStrategyManager {
     }
 
     UserStrategy removeUserStrategy(StrategyCore removed) {
-        logging.removeStrategy(removed);
         return lookup.removeStrategy(removed);
     }
 

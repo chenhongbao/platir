@@ -33,7 +33,7 @@ class UserManager {
     private final AtomicInteger strategyIdCounter = new AtomicInteger(0);
     private final Map<String, UserCore> users = new ConcurrentHashMap<>();
 
-    Set<User> getUsers() {
+    Set<UserCore> getUsers() {
         return new HashSet<>(users.values());
     }
 

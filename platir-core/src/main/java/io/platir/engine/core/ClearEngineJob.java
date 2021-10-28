@@ -1,5 +1,7 @@
 package io.platir.engine.core;
 
+import io.platir.Transaction;
+import io.platir.commons.UserCore;
 import io.platir.engine.timer.EngineTimer;
 import io.platir.engine.timer.TimerJob;
 import io.platir.utils.Utils;
@@ -29,6 +31,7 @@ class ClearEngineJob implements TimerJob {
              */
             rollTradingDay();
             tryForceCancelAll();
+            checkIfAllUsersDone();
             InfoCenter.write(Utils.file(Paths.get(Commons.clearBackupDirectory().toString(), Commons.infoCenterBackupFilename())));
         }
     }
@@ -39,9 +42,21 @@ class ClearEngineJob implements TimerJob {
             try {
                 engine.getTradingAdapter().forceCancelAll();
             } catch (ForceCancelException exception) {
-                PlatirEngineCore.logger().log(Level.WARNING, "Force canceling all throws exception. {0}", exception.getMessage());
+                PlatirEngineCore.logger().log(Level.SEVERE, "Force canceling all throws exception. {0}", exception.getMessage());
             }
         }
+    }
+
+    private void checkIfAllUsersDone() {
+        engine.getUserManager().getUsers().forEach(user -> checkIfUserDone(user));
+    }
+
+    private void checkIfUserDone(UserCore user) {
+        user.accounts().values().forEach(account -> account.strategies().values().forEach(strategy -> strategy.transactions().values().forEach(transaction -> {
+            if (transaction.getState().equals(Transaction.EXECUTING) || transaction.getState().equals(Transaction.PENDING)) {
+                PlatirEngineCore.logger().log(Level.SEVERE, "User({0}) account({1}) strategy({2}) transaction({3}) is still alive at clearance, need manual intervention.", new Object[]{user.getUserId(), account.getAccountId(), strategy.getStrategyId(), transaction.getTransactionId()});
+            }
+        })));
     }
 
     private void rollTradingDay() {

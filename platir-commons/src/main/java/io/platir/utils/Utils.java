@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +18,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Utils {
 
@@ -109,6 +112,15 @@ public class Utils {
         } catch (IOException exception) {
             exception.printStackTrace(stdout());
             return null;
+        }
+    }
+
+    public static String classFilePath(Class clazz) {
+        try {
+            return new File(clazz.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+        } catch (URISyntaxException exception) {
+            exception.printStackTrace(stdout());
+            return "";
         }
     }
 }

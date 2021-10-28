@@ -24,11 +24,21 @@ import io.platir.engine.timer.EngineTimer;
 import io.platir.setting.StrategySetting;
 import io.platir.setting.UserSetting;
 import io.platir.user.UserStrategy;
+import io.platir.utils.Utils;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PlatirEngineCore extends PlatirEngine {
@@ -67,7 +77,7 @@ public class PlatirEngineCore extends PlatirEngine {
     UserStrategyManager getUserStrategyManager() {
         return userStrategyManager;
     }
-    
+
     TradingAdapter getTradingAdapter() {
         return tradingAdapter;
     }
@@ -111,6 +121,18 @@ public class PlatirEngineCore extends PlatirEngine {
         } finally {
             engineTimer.addJob(new ReinitEngineJob(this));
             engineTimer.addJob(new ClearEngineJob(this));
+            logger().addHandler(new LoggingDispatcher(globalSetting.getLoggingListeners()));
+            /* Can't initialize twice. */
+            lockInstance();
+        }
+    }
+
+    private void lockInstance() {
+        File file = Utils.file(Paths.get(Commons.instanceDirectory().toString(), ".lock"));
+        try {
+            new FileOutputStream(file).getChannel().lock();
+        } catch (IOException exception) {
+            logger().log(Level.WARNING, "Can''t lock file for singleton instance. {0}", exception.getMessage());
         }
     }
 
@@ -131,7 +153,9 @@ public class PlatirEngineCore extends PlatirEngine {
 
     @Override
     public Set<User> getUsers() {
-        return userManager.getUsers();
+        Set<User> users = new HashSet<>();
+        userManager.getUsers().forEach(userCore -> users.add(userCore));
+        return users;
     }
 
     @Override
