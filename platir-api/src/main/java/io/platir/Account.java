@@ -3,6 +3,10 @@ package io.platir;
 import java.util.Collection;
 
 public interface Account {
+    
+    public static final String ACTIVE = "ACTIVE";
+    
+    public static final String REMOVED = "REMOVED";
 
     String getAccountId();
 
@@ -33,6 +37,8 @@ public interface Account {
     Collection<Strategy> getStrategies();
     
     Collection<Contract> getContracts();
+    
+    String getState();
     
     User getUser();
 }

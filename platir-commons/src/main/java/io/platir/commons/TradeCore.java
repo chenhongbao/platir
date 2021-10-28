@@ -1,5 +1,6 @@
 package io.platir.commons;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Trade;
 
 public class TradeCore implements Trade {
@@ -13,6 +14,8 @@ public class TradeCore implements Trade {
     private String offset;
     private String tradingDay;
     private String updateDatetime;
+
+    @Expose(serialize = false, deserialize = false)
     private OrderCore order;
 
     @Override

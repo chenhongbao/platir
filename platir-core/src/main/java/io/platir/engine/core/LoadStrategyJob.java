@@ -6,12 +6,12 @@ import io.platir.engine.timer.TimerJob;
 import java.time.LocalDateTime;
 import java.util.logging.Level;
 
-public class LoadStrategyJob implements TimerJob {
+class LoadStrategyJob implements TimerJob {
 
     private final StrategyCore strategy;
     private final PlatirEngineCore engine;
 
-    public LoadStrategyJob(StrategyCore strategy, PlatirEngineCore engine) {
+    LoadStrategyJob(StrategyCore strategy, PlatirEngineCore engine) {
         this.strategy = strategy;
         this.engine = engine;
     }

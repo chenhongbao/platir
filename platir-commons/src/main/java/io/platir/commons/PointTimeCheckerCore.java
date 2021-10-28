@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 public class PointTimeCheckerCore implements PointTimeChecker {
 
+    private boolean hasValue = false;
     private final List<LocalDateTime> times = new LinkedList<>();
 
     public PointTimeCheckerCore() {
@@ -21,11 +22,13 @@ public class PointTimeCheckerCore implements PointTimeChecker {
 
     @Override
     public PointTimeCheckerCore at(LocalDateTime... times) {
+        hasValue = true;
         return at(Arrays.asList(times));
     }
 
     @Override
     public PointTimeCheckerCore at(Collection<LocalDateTime> times) {
+        hasValue = true;
         this.times.addAll(times.stream()
                 .map(time -> LocalDateTime.of(time.getYear(), time.getMonthValue(), time.getDayOfMonth(), time.getHour(), time.getMinute()))
                 .collect(Collectors.toSet()));
@@ -40,6 +43,9 @@ public class PointTimeCheckerCore implements PointTimeChecker {
 
     @Override
     public boolean check(LocalDateTime time) {
+        if (!hasValue) {
+            return false;
+        }
         var alignTime = LocalDateTime.of(time.getYear(), time.getMonthValue(), time.getDayOfMonth(), time.getHour(), time.getMinute());
         var iterator = this.times.iterator();
         var hit = false;
@@ -56,5 +62,10 @@ public class PointTimeCheckerCore implements PointTimeChecker {
             }
         }
         return hit;
+    }
+
+    @Override
+    public boolean hasValue() {
+        return hasValue;
     }
 }

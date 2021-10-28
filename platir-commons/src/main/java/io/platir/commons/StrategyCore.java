@@ -1,5 +1,6 @@
 package io.platir.commons;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Strategy;
 import io.platir.Transaction;
 import java.util.Collection;
@@ -14,8 +15,11 @@ public class StrategyCore implements Strategy {
     private String strategyId;
     private String state;
     private StrategySettingCore strategySetting;
-    private AccountCore account;
     private final Map<String, TransactionCore> transactions = new ConcurrentHashMap<>();
+
+    @Expose(serialize = false, deserialize = false)
+    private AccountCore account;
+
     private final Object syncObject = new Object();
 
     public Object syncObject() {

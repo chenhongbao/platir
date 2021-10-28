@@ -12,6 +12,8 @@ public interface GlobalSetting {
     Set<LoggingListener> getLoggingListeners();
 
     EveryTimeChecker reinitTime();
+    
+    EveryTimeChecker clearTime();
 
     void setMarketDataParallel(boolean parallel);
 

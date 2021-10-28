@@ -4,6 +4,4 @@ public interface AccountSetting {
 
     MaxNumberChecker maxStrategyCount();
 
-    EveryTimeChecker settlementTime();
-
 }

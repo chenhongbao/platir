@@ -2,23 +2,25 @@ package io.platir.engine.core;
 
 import io.platir.commons.InstrumentCore;
 import io.platir.utils.Utils;
+import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 class InfoCenter {
 
-    private static final AtomicReference<String> tradingDay = new AtomicReference<>();
+    private static String tradingDay;
+    private static final Object tradingDaySync = new Object();
     private static final Map<String, SettlementPrice> settlementPrices = new ConcurrentHashMap<>();
     private static final Map<String, LatestPrice> latestPrices = new ConcurrentHashMap<>();
     private static final Map<String, InstrumentCore> instruments = new ConcurrentHashMap<>();
 
     static String getTradingDay() throws InsufficientInfoException {
-        synchronized (tradingDay) {
-            if (tradingDay.get() == null || tradingDay.get().compareTo(Utils.date()) < 0) {
+        synchronized (tradingDaySync) {
+            if (tradingDay == null || tradingDay.compareTo(Utils.date()) < 0) {
                 throw new InsufficientInfoException("No trading day.");
             }
-            return tradingDay.get();
+            return tradingDay;
         }
     }
 
@@ -78,15 +80,38 @@ class InfoCenter {
     /**
      * Set trading day.
      * <p>
-     * The method is called internally by re-initialization daemon at the
+     * The method is called internally by (re)initialization daemon at the
      * begning of every trading day.
      *
      * @param day trading day string
      */
     static void setTradingDay(String day) {
-        synchronized (tradingDay) {
-            tradingDay.set(day);
+        synchronized (tradingDaySync) {
+            tradingDay = day;
         }
+    }
+
+    static void read(File file) {
+        var info = Utils.readJson(file, WritableInfo.class);
+        setTradingDay(info.tradingDay);
+        info.instruments.values().forEach(instrument -> setInstrument(instrument));
+    }
+
+    static void write(File file) {
+        var info = new WritableInfo();
+        info.tradingDay = tradingDay;
+        info.instruments.putAll(instruments);
+        info.latestPrices.putAll(latestPrices);
+        info.settlementPrices.putAll(settlementPrices);
+        Utils.writeJson(file, info);
+    }
+
+    private static class WritableInfo {
+
+        String tradingDay;
+        Map<String, SettlementPrice> settlementPrices = new HashMap<>();
+        Map<String, LatestPrice> latestPrices = new HashMap<>();
+        Map<String, InstrumentCore> instruments = new HashMap<>();
     }
 
     private static class SettlementPrice {

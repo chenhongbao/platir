@@ -67,6 +67,10 @@ public class PlatirEngineCore extends PlatirEngine {
     UserStrategyManager getUserStrategyManager() {
         return userStrategyManager;
     }
+    
+    TradingAdapter getTradingAdapter() {
+        return tradingAdapter;
+    }
 
     UserSession createSession(StrategyCore strategy) {
         return new UserSession(strategy, tradingAdapter, marketDataAdapter, userStrategyManager.getLoggingManager().getLoggingHandler(strategy));
@@ -106,6 +110,7 @@ public class PlatirEngineCore extends PlatirEngine {
             }
         } finally {
             engineTimer.addJob(new ReinitEngineJob(this));
+            engineTimer.addJob(new ClearEngineJob(this));
         }
     }
 
@@ -131,14 +136,17 @@ public class PlatirEngineCore extends PlatirEngine {
 
     @Override
     public User addUser(String userId, String password, UserSetting userSetting) throws AddUserException {
-        return userManager.addUser(userId, password, userSetting);
+        if (!userSetting.settlementTime().hasValue()) {
+            throw new AddUserException("No settlement time setting.");
+        }
+        var userCore = userManager.addUser(userId, password, userSetting);
+        engineTimer.addJob(new SettleUserJob(userCore, this));
+        return userCore;
     }
 
     @Override
     public Account addAccount(Double initialBalance, User user, AccountSetting accountSetting) throws AddAccountException {
-        var account = userManager.addAccount(initialBalance, user, accountSetting);
-        engineTimer.addJob(new SettleAccountJob(account));
-        return account;
+        return userManager.addAccount(initialBalance, user, accountSetting);
     }
 
     @Override

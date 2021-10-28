@@ -5,5 +5,7 @@ public interface UserSetting {
     MaxNumberChecker maxAccountCount();
 
     MaxNumberChecker maxInitialBalance();
+    
+    EveryTimeChecker settlementTime();
 
 }

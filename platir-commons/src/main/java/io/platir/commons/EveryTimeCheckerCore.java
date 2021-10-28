@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 public class EveryTimeCheckerCore implements EveryTimeChecker {
 
+    private boolean hasValue = false;
     private final Set<LocalTime> everyTimes = new HashSet<>();
     private final Set<LocalDate> exceptDates = new HashSet<>();
     private final Set<DayOfWeek> exceptDaysOfWeek = new HashSet<>();
@@ -28,6 +29,9 @@ public class EveryTimeCheckerCore implements EveryTimeChecker {
 
     @Override
     public boolean check(LocalDateTime datetime) {
+        if (!hasValue) {
+            return false;
+        }
         var alignTime = LocalTime.of(datetime.getHour(), datetime.getMinute());
         var date = datetime.toLocalDate();
         return everyTimes.contains(alignTime) && !exceptDates.contains(date) && !exceptDaysOfWeek.contains(date.getDayOfWeek());
@@ -50,11 +54,13 @@ public class EveryTimeCheckerCore implements EveryTimeChecker {
 
     @Override
     public EveryTimeCheckerCore every(LocalTime... times) {
+        hasValue = true;
         return every(Arrays.asList(times));
     }
 
     @Override
     public EveryTimeCheckerCore every(Collection<LocalTime> times) {
+        hasValue = true;
         everyTimes.addAll(times.stream()
                 .map(time -> LocalTime.of(time.getHour(), time.getMinute()))
                 .collect(Collectors.toSet()));
@@ -76,5 +82,10 @@ public class EveryTimeCheckerCore implements EveryTimeChecker {
     public EveryTimeCheckerCore except(DayOfWeek... daysOfWeek) {
         exceptDaysOfWeek.addAll(Arrays.asList(daysOfWeek));
         return this;
+    }
+
+    @Override
+    public boolean hasValue() {
+        return hasValue;
     }
 }

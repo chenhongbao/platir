@@ -1,5 +1,6 @@
 package io.platir.commons;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Account;
 import io.platir.Contract;
 import io.platir.Strategy;
@@ -24,14 +25,27 @@ public class AccountCore implements Account {
     private Double ydBalance;
     private String tradingDay;
     private String settleDatetime;
-    private UserCore user;
+    private String state;
     private AccountSettingCore accountSetting;
     private final Map<String, StrategyCore> strategies = new ConcurrentHashMap<>();
     private final Map<String, ContractCore> contracts = new ConcurrentHashMap<>();
+
+    @Expose(serialize = false, deserialize = false)
+    private UserCore user;
+
     private final Object syncObject = new Object();
 
     public Object syncObject() {
         return syncObject;
+    }
+
+    @Override
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
     public AccountSettingCore getAccountSetting() {

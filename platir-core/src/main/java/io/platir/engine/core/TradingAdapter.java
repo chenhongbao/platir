@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 class TradingAdapter implements ExecutionListener {
@@ -34,14 +35,42 @@ class TradingAdapter implements ExecutionListener {
     private final AtomicInteger orderIdCounter = new AtomicInteger(0);
     private final AtomicInteger transactionIdCounter = new AtomicInteger(0);
     private final Map<String /* OrderId */, TransactionCore> executingTransactions = new ConcurrentHashMap<>();
+    private final Map<String /* OrderId */, ExecutionReport> lastExecutionReports = new ConcurrentHashMap<>();
 
     TradingAdapter(TradingService tradingService, UserStrategyLookup userStrategyLookup) {
         this.tradingService = tradingService;
         this.userStrategyLookup = userStrategyLookup;
     }
 
+    boolean isTransactionAllDone() {
+        return executingTransactions.isEmpty() && lastExecutionReports.isEmpty();
+    }
+    
+    void forceCancelAll() throws ForceCancelException {
+        for (var orderId : executingTransactions.keySet()) {
+            forceCancel(orderId);
+        }
+    }
+
+    void forceCancel(String orderId) throws ForceCancelException {
+        var report = lastExecutionReports.remove(orderId);
+        var transaction = executingTransactions.remove(orderId);
+        if (report == null || transaction == null) {
+            throw new ForceCancelException("No execution report or transaction for order(" + orderId + ") force cancel.");
+        }
+        try {
+            cancelOrder(transaction, report, Order.CANCELED);
+            cancelTransaction(transaction, report);
+        } catch (NoSuchOrderException | IllegalAccountStateException | IllegalServiceStateException exception) {
+            throw new ForceCancelException("Force cancel throws exception. " + exception.getMessage());
+        }
+    }
+
     @Override
     public void onExecutionReport(ExecutionReport executionReport) {
+        /* Save last execution report for settlement canceling. */
+        lastExecutionReports.put(executionReport.getOrderId(), executionReport);
+
         TransactionCore transaction = null;
         try {
             transaction = findTransactionForOrder(executionReport.getOrderId());
@@ -56,7 +85,10 @@ class TradingAdapter implements ExecutionListener {
         }
     }
 
-    Transaction newOrderSingle(Strategy strategy, String instrumentId, String exchangeId, Double price, Integer quantity, String direction, String offset) throws NewOrderException {
+    Transaction newOrderSingle(Strategy strategy, String instrumentId,
+            String exchangeId, Double price,
+            Integer quantity, String direction,
+            String offset) throws NewOrderException {
         var strategyCore = (StrategyCore) strategy;
         synchronized (strategyCore.syncObject()) {
             if (!strategy.getState().equals(Strategy.NORMAL)) {
@@ -277,8 +309,6 @@ class TradingAdapter implements ExecutionListener {
     private void updateExecutionReport(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalServiceStateException, IllegalAccountStateException {
         var accountCore = transaction.getStrategy().getAccount();
         switch (report.getState()) {
-            case Order.ALL_TRADED:
-                executingTransactions.remove(report.getOrderId());
             case Order.QUEUEING:
                 synchronized (accountCore.syncObject()) {
                     updateContracts(transaction.getStrategy().getAccount(), report);
@@ -289,13 +319,21 @@ class TradingAdapter implements ExecutionListener {
             case Order.CANCELED:
             case Order.REJECTED:
                 synchronized (accountCore.syncObject()) {
+                    cancelOrder(transaction, report, null);
                     cancelTransaction(transaction, report);
                 }
+            case Order.ALL_TRADED:
+                removeLocalRecords(report.getOrderId());
                 break;
             default:
                 throw new IllegalServiceStateException("Illegal execution state(" + report.getState() + ").");
         }
 
+    }
+
+    private void removeLocalRecords(String orderId) {
+        lastExecutionReports.remove(orderId);
+        executingTransactions.remove(orderId);
     }
 
     private OrderCore findUpdatedOrder(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException {
@@ -432,13 +470,16 @@ class TradingAdapter implements ExecutionListener {
         });
     }
 
-    private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws NoSuchOrderException, IllegalAccountStateException, IllegalServiceStateException {
-        var order = findUpdatedOrder(transaction, report);
-        order.setState(report.getState());
+    private void cancelOrder(TransactionCore transaction, ExecutionReport report, String state) throws NoSuchOrderException {
+        findUpdatedOrder(transaction, report).setState(state == null ? report.getState() : state);
+    }
+
+    private void cancelTransaction(TransactionCore transaction, ExecutionReport report) throws IllegalAccountStateException, IllegalServiceStateException {
         var account = transaction.getStrategy().getAccount();
-        int canceledCount = cancelContractStates(findUpdatedContracts(account, report), report.getQuantity() - report.getTradedQuantity());
-        if (canceledCount < report.getLastTradedQuantity()) {
-            throw new IllegalAccountStateException("Need " + report.getLastTradedQuantity() + " contracts to cancel but got " + canceledCount + ".");
+        var needCancel = report.getQuantity() - report.getTradedQuantity();
+        int canceledCount = cancelContractStates(findUpdatedContracts(account, report), needCancel);
+        if (canceledCount < needCancel) {
+            throw new IllegalAccountStateException("Need " + needCancel + " contracts to cancel but got " + canceledCount + ".");
         }
         updateTransactionState(transaction);
     }

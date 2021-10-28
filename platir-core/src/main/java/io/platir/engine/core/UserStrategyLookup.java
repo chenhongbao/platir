@@ -1,9 +1,12 @@
 package io.platir.engine.core;
 
+import io.platir.Strategy;
 import io.platir.commons.StrategyCore;
 import io.platir.user.UserStrategy;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 class UserStrategyLookup {
 
@@ -22,5 +25,15 @@ class UserStrategyLookup {
 
     UserStrategy removeStrategy(StrategyCore strategy) {
         return userStrategies.remove(strategy);
+    }
+
+    void reload(Set<StrategyCore> reloadStrategies) {
+        reloadStrategies.forEach(strategy -> {
+            if (strategy.getState().equals(Strategy.REMOVED)) {
+                if (userStrategies.remove(strategy) == null) {
+                    PlatirEngineCore.logger().log(Level.WARNING, "Strategy({0}) has no user strategy.", strategy.getStrategyId());
+                }
+            }
+        });
     }
 }

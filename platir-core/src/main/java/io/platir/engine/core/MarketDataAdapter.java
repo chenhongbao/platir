@@ -8,6 +8,8 @@ import io.platir.broker.MarketDataResponse;
 import io.platir.broker.MarketDataService;
 import io.platir.broker.MarketDataSnapshot;
 import io.platir.user.MarketDataRequestException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -56,5 +58,11 @@ class MarketDataAdapter implements MarketDataListener {
             }
         }
         strategies.computeIfAbsent(instrumentId, key -> new StrategyMarketDataAdapter(userStrategyManager, isParallel)).add((StrategyCore) strategy);
+        tryRemoveDeadSubscription();
+    }
+
+    private void tryRemoveDeadSubscription() {
+        final var now = LocalDateTime.now();
+        strategies.values().removeIf(adapter -> Duration.between(adapter.getTimestamp(), now).toDays() > 30);
     }
 }

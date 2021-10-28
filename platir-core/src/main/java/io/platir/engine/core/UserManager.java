@@ -37,6 +37,25 @@ class UserManager {
         return new HashSet<>(users.values());
     }
 
+    void reload(Set<UserCore> reloadUsers) {
+        users.clear();
+        reloadUsers.forEach(user -> {
+            user.accounts().values().removeIf(account -> account.getState().equals(Account.REMOVED));
+            user.accounts().values().forEach(account -> {
+                /* Clear removed accounts and strategies, and done contracts. */
+                account.strategies().values().removeIf(strategy -> strategy.getState().equals(Strategy.REMOVED));
+                account.strategies().values().forEach(strategy -> {
+                    strategy.transactions().clear();
+                    /* Restore upward reference. */
+                    strategy.setAccount(account);
+                });
+                account.contracts().values().removeIf(contract -> contract.getState().equals(Contract.ABANDONED) || contract.getState().equals(Contract.CLOSED));
+                account.setUser(user);
+            });
+            users.put(user.getUserId(), user);
+        });
+    }
+
     private UserCore computeUser(String userId, String password, UserSetting userSetting) {
         var userCore = new UserCore();
         userCore.setCreateDatetime(Utils.datetime());
@@ -106,8 +125,9 @@ class UserManager {
             if (!isAccountRemovable(accountCore)) {
                 throw new RemoveAccountException("Account(" + accountId + ") can't be removed due to incompleted strategies or contracts.");
             }
+            accountCore.setState(Account.REMOVED);
         }
-        return userCore.accounts().remove(accountId);
+        return accountCore;
     }
 
     private StrategyCore computeStrategy(AccountCore accountCore, StrategySetting strategySetting) {
@@ -156,7 +176,7 @@ class UserManager {
         synchronized (accountCore.syncObject()) {
             checkStrategyRemovable(strategyCore);
             strategyCore.setState(Strategy.REMOVED);
-            return accountCore.strategies().remove(strategyId);
+            return strategyCore;
         }
     }
 

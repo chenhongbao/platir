@@ -1,5 +1,6 @@
 package io.platir.commons;
 
+import com.google.gson.annotations.Expose;
 import io.platir.Order;
 import io.platir.Transaction;
 import java.util.Collection;
@@ -19,8 +20,10 @@ public class TransactionCore implements Transaction {
     private String tradingDay;
     private String updateDatetime;
     private String offset;
-    private StrategyCore strategy;
     private final Map<String, OrderCore> orders = new ConcurrentHashMap<>();
+
+    @Expose(serialize = false, deserialize = false)
+    private StrategyCore strategy;
 
     @Override
     public String getState() {
