@@ -59,7 +59,11 @@ class LoggingDispatcher extends Handler {
             handler.setFormatter(new SimpleFormatter());
             return handler;
         } catch (IOException | SecurityException ex) {
-            PlatirEngineCore.logger().log(Level.SEVERE, "Can''t create logging file handler for strategy({0}). {1}", new Object[]{strategy.getStrategyId(), ex.getMessage()});
+            var strategyId = "";
+            if (strategy != null) {
+                strategyId = strategy.getStrategyId();
+            }
+            PlatirEngineCore.logger().log(Level.SEVERE, "Can''t create logging file handler for strategy({0}). {1}", new Object[]{strategyId, ex.getMessage()});
             return null;
         }
     }
