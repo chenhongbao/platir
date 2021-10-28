@@ -1,5 +1,6 @@
 package io.platir.engine.core;
 
+import io.platir.engine.InitializeEngineException;
 import io.platir.engine.timer.EngineTimer;
 import io.platir.engine.timer.TimerJob;
 import java.time.LocalDateTime;
@@ -26,7 +27,11 @@ public class ReinitEngineJob implements TimerJob {
     }
 
     private void reinitEngine() {
-        // TODO Implement reinitEngine() method in ReinitEngineJob.
+        try {
+            engine.initializeNow();
+        } catch (InitializeEngineException exception) {
+            PlatirEngineCore.logger().log(Level.SEVERE, "Re-initialize engine throws exception. {0}", exception.getMessage());
+        }
     }
 
 }

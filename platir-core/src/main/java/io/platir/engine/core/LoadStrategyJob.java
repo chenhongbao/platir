@@ -22,7 +22,7 @@ public class LoadStrategyJob implements TimerJob {
             return;
         }
         try {
-            callbackOnload(timer);
+            callbackOnload();
         } catch (Throwable throwable) {
             PlatirEngineCore.logger().log(Level.SEVERE, "Load strategy({0}) throws exception. {1}", new Object[]{strategy.getStrategyId(), throwable.getMessage()});
         } finally {
@@ -31,11 +31,10 @@ public class LoadStrategyJob implements TimerJob {
 
     }
 
-    private void callbackOnload(EngineTimer timer) {
+    private void callbackOnload() {
         var userStrategyManager = engine.getUserStrategyManager();
         try {
-            userStrategyManager.getLookup().findStrategy(strategy)
-                    .onLoad(new UserSession((StrategyCore) strategy, engine.getTradingAdapter(), engine.getMarketDataAdapter(), userStrategyManager.getLoggingManager().getLoggingHandler(strategy)));
+            userStrategyManager.getLookup().findStrategy(strategy).onLoad(engine.createSession(strategy));
         } catch (NoSuchUserStrategyException exception) {
             PlatirEngineCore.logger().log(Level.SEVERE, "No user strategy found for strategy {0}. {1}", new Object[]{strategy.getStrategyId(), exception.getMessage()});
         }

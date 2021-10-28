@@ -12,6 +12,7 @@ import io.platir.broker.MarketDataService;
 import io.platir.broker.TradingService;
 import io.platir.engine.core.PlatirEngineCore;
 import io.platir.user.UserStrategy;
+import java.util.Map;
 import java.util.Set;
 
 public abstract class PlatirEngine {
@@ -22,9 +23,9 @@ public abstract class PlatirEngine {
     
     public abstract SettingFactory getSettingFactory();
 
-    public abstract void setUseService(TradingService tradingService);
+    public abstract void setUseService(TradingService tradingService, Map<String, String> parameters);
 
-    public abstract void setUseService(MarketDataService marketDataService);
+    public abstract void setUseService(MarketDataService marketDataService, Map<String, String> parameters);
 
     public abstract void initialize(GlobalSetting globalRule) throws InitializeEngineException;
 

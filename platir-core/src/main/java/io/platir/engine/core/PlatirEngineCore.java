@@ -20,9 +20,12 @@ import io.platir.engine.RemoveStrategyException;
 import io.platir.engine.RunStrategyException;
 import io.platir.setting.SettingFactory;
 import io.platir.engine.StopStrategyException;
+import io.platir.engine.timer.EngineTimer;
 import io.platir.setting.StrategySetting;
 import io.platir.setting.UserSetting;
 import io.platir.user.UserStrategy;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,14 +33,16 @@ import java.util.logging.Logger;
 
 public class PlatirEngineCore extends PlatirEngine {
 
+    private final EngineTimer engineTimer = EngineTimer.newTimer();
     private final UserManager userManager = new UserManager();
     private final UserStrategyManager userStrategyManager = new UserStrategyManager();
+    private final Map<String, String> tradingServiceParameters = new HashMap<>();
+    private final Map<String, String> marketDataServiceParameters = new HashMap<>();
 
     private TradingAdapter tradingAdapter;
     private MarketDataAdapter marketDataAdapter;
     private TradingService tradingService;
     private MarketDataService marketDataService;
-
     private GlobalSettingCore globalSetting;
 
     private static final Logger engineLogger = Logger.getLogger(PlatirEngineCore.class.getSimpleName());
@@ -63,12 +68,8 @@ public class PlatirEngineCore extends PlatirEngine {
         return userStrategyManager;
     }
 
-    TradingAdapter getTradingAdapter() {
-        return tradingAdapter;
-    }
-
-    MarketDataAdapter getMarketDataAdapter() {
-        return marketDataAdapter;
+    UserSession createSession(StrategyCore strategy) {
+        return new UserSession(strategy, tradingAdapter, marketDataAdapter, userStrategyManager.getLoggingManager().getLoggingHandler(strategy));
     }
 
     @Override
@@ -77,23 +78,50 @@ public class PlatirEngineCore extends PlatirEngine {
     }
 
     @Override
-    public void setUseService(TradingService tradingService) {
+    public void setUseService(TradingService tradingService, Map<String, String> parameters) {
         if (tradingService != null) {
             this.tradingService = tradingService;
         }
-    }
-
-    @Override
-    public void setUseService(MarketDataService marketDataService) {
-        if (marketDataService != null) {
-            this.marketDataService = marketDataService;
+        if (parameters != null) {
+            tradingServiceParameters.putAll(parameters);
         }
     }
 
     @Override
-    public void initialize(GlobalSetting globalRule) throws InitializeEngineException {
-        // TODO Implement initialize() method of PlatirEngineCore.
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void setUseService(MarketDataService marketDataService, Map<String, String> parameters) {
+        if (marketDataService != null) {
+            this.marketDataService = marketDataService;
+        }
+        if (parameters != null) {
+            marketDataServiceParameters.putAll(parameters);
+        }
+    }
+
+    @Override
+    public void initialize(GlobalSetting globalSetting) throws InitializeEngineException {
+        globalSetting = new GlobalSettingCore((GlobalSettingCore) globalSetting);
+        try {
+            if (!globalSetting.isInitialDefered()) {
+                initializeNow();
+            }
+        } finally {
+            engineTimer.addJob(new ReinitEngineJob(this));
+        }
+    }
+
+    void initializeNow() throws InitializeEngineException {
+        int returnCode = tradingService.initialize(tradingServiceParameters);
+        if (returnCode != 0) {
+            throw new InitializeEngineException("Initializing trading service returns " + returnCode + ".");
+        } else {
+            InfoCenter.setTradingDay(tradingService.getTradingDay());
+        }
+        returnCode = marketDataService.initialize(tradingServiceParameters);
+        if (returnCode != 0) {
+            throw new InitializeEngineException("Initializing market data service returns " + returnCode + ".");
+        }
+        tradingAdapter = new TradingAdapter(tradingService, userStrategyManager.getLookup());
+        marketDataAdapter = new MarketDataAdapter(marketDataService, userStrategyManager.getLookup(), globalSetting.isMarketDataParallel());
     }
 
     @Override
@@ -108,8 +136,9 @@ public class PlatirEngineCore extends PlatirEngine {
 
     @Override
     public Account addAccount(Double initialBalance, User user, AccountSetting accountSetting) throws AddAccountException {
-        // TODO Set timer job.
-        return userManager.addAccount(initialBalance, user, accountSetting);
+        var account = userManager.addAccount(initialBalance, user, accountSetting);
+        engineTimer.addJob(new SettleAccountJob(account));
+        return account;
     }
 
     @Override
@@ -121,7 +150,8 @@ public class PlatirEngineCore extends PlatirEngine {
     public Strategy addStrategy(UserStrategy userStrategy, Account account, StrategySetting strategySetting) throws AddStrategyException {
         StrategyCore newStrategy = userManager.addStrategy(account, strategySetting);
         userStrategyManager.addUserStrategy(newStrategy, userStrategy);
-        // TODO Set timer jobs.
+        engineTimer.addJob(new LoadStrategyJob(newStrategy, this));
+        engineTimer.addJob(new ConfiguredStrategyJob(newStrategy, this));
         return newStrategy;
     }
 

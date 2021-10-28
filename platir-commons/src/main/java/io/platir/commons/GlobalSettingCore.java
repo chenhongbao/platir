@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 public class GlobalSettingCore implements GlobalSetting {
 
+    private Boolean initialDefered = false;
     private Boolean marketDataParallel = true;
     private final Set<LoggingListener> loggingListeners = new ConcurrentSkipListSet<>();
     private final EveryTimeCheckerCore reinitTime;
@@ -28,10 +29,8 @@ public class GlobalSettingCore implements GlobalSetting {
     }
 
     @Override
-    public void setMarketDataParallel(Boolean parallel) {
-        if (parallel != null) {
-            marketDataParallel = parallel;
-        }
+    public void setMarketDataParallel(boolean parallel) {
+        marketDataParallel = parallel;
     }
 
     @Override
@@ -47,6 +46,16 @@ public class GlobalSettingCore implements GlobalSetting {
     @Override
     public void addLoggingListener(LoggingListener loggingListener) {
         loggingListeners.add(loggingListener);
+    }
+
+    @Override
+    public boolean isInitialDefered() {
+        return initialDefered;
+    }
+
+    @Override
+    public void setInitialDefered(boolean defered) {
+        initialDefered = defered;
     }
 
 }
